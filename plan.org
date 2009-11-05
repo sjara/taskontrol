@@ -1,3 +1,6 @@
+#+STARTUP: hidestars
+#+STARTUP: oddeven
+#+STARTUP: showall
 
 * Python style
 ** TODO Do not compare with == (singleton), use 'is'
@@ -6,4 +9,11 @@
 ** TODO endswith() instead of slicing string
 ** TODO Use isinstance(obj, int) instead of comparing types
 ** TODO Don't compare boolean values to True or False using ==
+
+* TASKontrol
+*** RTLSMclient
+*** SoundClient
+*** Solo-like graphical module
+*** Dispatcher-like module
+
 

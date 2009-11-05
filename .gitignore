@@ -1,0 +1,6 @@
+*.egg
+*.pyc
+*~
+\#*
+.emacs*
+old
