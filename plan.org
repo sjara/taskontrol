@@ -1,14 +1,14 @@
 #+STARTUP: hidestars
-#+STARTUP: oddeven
+#+STARTUP: odd
 #+STARTUP: showall
 
 * Python style
-** TODO Do not compare with == (singleton), use 'is'
-** TODO Use .join() instead of +=
-** TODO Be explicit about which exception is catched
-** TODO endswith() instead of slicing string
-** TODO Use isinstance(obj, int) instead of comparing types
-** TODO Don't compare boolean values to True or False using ==
+*** TODO Do not compare with == (singleton), use 'is'
+*** TODO Use .join() instead of +=
+*** TODO Be explicit about which exception is catched
+*** TODO endswith() instead of slicing string
+*** TODO Use isinstance(obj, int) instead of comparing types
+*** TODO Don't compare boolean values to True or False using ==
 
 * TASKontrol
 *** RTLSMclient
@@ -16,4 +16,17 @@
 *** Solo-like graphical module
 *** Dispatcher-like module
 
+* Notes on developing in python:
+*** Ipython:
+***** Debugger:
+******* Running 'run -d script' did not work:
+	"AttributeError: Pdb instance has no attribute 'curframe'"
+	https://bugs.launchpad.net/ubuntu/+source/ipython/+bug/381069
+	But running "ipython -pdb" worked.
+******* Trying to use pydb failed because it installed only for python2.4
+******* SOLUTION: running 'ipython -pdb' worked fine.
+***** TAB-autocompletion:
+      It adds a blank space after the completion, very annoying.
+      Try for example: cd /hom<TAB>
+      http://mail.scipy.org/pipermail/ipython-user/2005-March/002612.html
 

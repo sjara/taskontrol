@@ -27,20 +27,30 @@ Author: Santiago
 import string
 VERBOSE = True
 
-def verbosePrint(msg):
+def verbose_print(msg):
     if(VERBOSE):
         print(msg)
 
-def UrlEncode(onestring):
+def matsize(array2d):
+    '''Get size of array. Not robust, it assumes all rows have same size.'''
+    ncols = len(array2d)
+    nrows = len(array2d[0])
+    return (ncols,nrows)
+
+def url_encode(instring):
     # FIX: Check validity of input 'UrlEncode only works on strings!'
-    out = ''
-    for xl in onestring:
-        if (((xl >= 65)  and (xl <= 90)) or
-            ((xl <= 57)  and (xl >= 48)) or
-            ((xl <= 122) and (xl >= 97))):
-            out += xl
+    outstring = ''
+    for onechar in instring:
+        '''
+        if (((onechar >= 65) and (onechar <= 90)) or
+            ((onechar >= 48) and (onechar <= 57)) or
+            ((onechar >= 97) and (onechar <= 122)) ):
+        '''
+        if onechar.isalnum():
+            outstring = ''.join((outstring,onechar))
         else:
-            out += '%%%02x'%xl
+            outstring = ''.join((outstring,'%%%02x'%ord(onechar)))
+    return outstring
 
 class orouting:
     def __init__(self,type='',data=''):
@@ -63,7 +73,7 @@ class sm:
 
     The sm will not have any SchedWave matrix, or any state matrix.
     '''
-    def __init__(self, host='localhost', port=3333, fsm_id=0):
+    def __init__(self, host='localhost', port=3333, fsm_id=0, connectnow=True):
         self.MIN_SERVER_VERSION = 220080319  # Update this on protocol change
         self.host = host
         self.port = port
@@ -78,12 +88,12 @@ class sm:
         self.output_routing = [ orouting(type='dout',data='0-15'),
                                 orouting(type='ext',data=str(self.fsm_id)) ]
 
-        self.handleFSMClient = FSMClient(self.host, self.port);
-        self.handleFSMClient.connect()
-
-        self.ChkConn()
-        self.ChkVersion()
-        self.SetStateMachine();
+        if connectnow:
+            self.handleFSMClient = FSMClient(self.host, self.port);
+            self.handleFSMClient.connect()
+            self.ChkConn()
+            self.ChkVersion()
+            self.SetStateMachine();
         self.SetInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
 
@@ -92,20 +102,20 @@ class sm:
            This should probably be implented by catching exceptions.
            And it should not repeat code from DoSimpleCmd+ReceiveOK
         '''
-        verbosePrint('Checking connection to FSM server')
+        verbose_print('Checking connection to FSM server')
         self.DoQueryCmd('NOOP')
 
     def ChkVersion(self):
-        verbosePrint('Checking version of FSM server')
+        verbose_print('Checking version of FSM server')
         verstr = self.DoQueryCmd('VERSION')
         ver = int(verstr.split()[0])
         if (ver >= self.MIN_SERVER_VERSION):
             okversion = True
-            verbosePrint('FSM server protocol version %s\n'%verstr.split('\n')[0])
+            verbose_print('FSM server protocol version %s\n'%verstr.split('\n')[0])
         else:
             # --- FIX: This should raise an exception --
             okversion = False
-            verbosePrint('The FSM server does not meet the minimum protocol'+\
+            verbose_print('The FSM server does not meet the minimum protocol'+\
                   ' version requirement of %u'%self.MIN_SERVER_VERSION)
         self.DoQueryCmd('CLIENTVERSION %u'%self.MIN_SERVER_VERSION)
 
@@ -130,11 +140,11 @@ class sm:
 
     def ReceiveOK(self,cmd,result):
         if result[-3:]=='OK\n':
-            verbosePrint('Reveiced OK after %s'%cmd)
+            verbose_print('Reveiced OK after %s'%cmd)
         else:
             # --- FIX: This should raise an exception --
-            verbosePrint('WARNING: RTLinux FSM Server did not send OK after %s command.'%cmd)
-            verbosePrint('RESULT: %s'%result)
+            verbose_print('WARNING: RTLinux FSM Server did not send OK after %s command.'%cmd)
+            verbose_print('RESULT: %s'%result)
 
     def SetInputEvents(self,val,channeltype):
         ### FIX check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
@@ -276,8 +286,7 @@ class sm:
 
         # Check the validity of the matris
         # Get size of state_matrix
-        nStates = len(state_matrix)
-        nEvents = len(state_matrix[0])
+        (nStates, nEvents) = matsize(state_matrix)
         nInputEvents = len(self.input_event_mapping)
         # Define orouting as output_routing
         endCols = 2 + len(self.output_routing)  # 2 columns for timer
@@ -291,7 +300,8 @@ class sm:
 
         # Verify matrix is sane with respect to number of columns
         if(nEvents != nInputEvents+endCols):
-            raise Error
+            print '%d = %d + %d'%(nEvents,nInputEvents,endCols)
+            raise TypeError
             # FIX: define this exception (add description)
 
         # Concatenate the input_event_mapping vector as the last row
@@ -310,12 +320,13 @@ class sm:
         #
         # FIX finish this section
         # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
+        nSchedWaves = len(self.sched_waves)
 
         # Format and urlencode the output_spec_str with format:
         # \1.type\2.data\1.type\2.data... where everything is
         # urlencoded (so \1 becomes %01, \2 becomes %02, etc)
         hasSound = False
-        output_spec_str = ''
+        outputSpecStr = ''
         for oneoutput in self.output_routing:
             if oneoutput.type in ['tcp', 'udp']:
                 # Force trailing newline for tcp/udp text packets.
@@ -323,18 +334,34 @@ class sm:
                 pass
             elif oneoutput.type in ['sound', 'ext']:
                 hasSound = True
-            output_spec_str += '\\1%s\\2%s'%(oneoutput.type,oneoutput.data)
-        # FIX:  do output_spec_str = UrlEncode(sm, output_spec_str);
-        output_spec_str = UrlEncode(output_spec_str)
+            stringThisOutput = '\\1%s\\2%s'%(oneoutput.type,oneoutput.data)
+            outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
+        outputSpecStrUrlEnc = url_encode(outputSpecStr)
+ 
+        # FIX: Check if schedwave but no sound
 
-        
+        # Format for SET STATE MATRIX command is:
+        # SET STATE MATRIX nRows nCols nInEvents nSchedWaves
+        #                  InChanType ReadyForTrialJumpstate
+        #                  IGNORED IGNORED IGNORED OUTPUT_SPEC_STR_URL_ENCODED
+        (nStates, nEvents) = matsize(state_matrix)
+        stringpieces = 5*[0]
+        stringpieces[0] = 'SET STATE MATRIX %u %u %u'%(nStates, nEvents, nInputEvents)
+        stringpieces[1] = '%u %s'%(nSchedWaves, self.in_chan_type)
+        stringpieces[2] = '%u'%(self.ready_for_trial_jumpstate)
+        stringpieces[3] = '%u %u %u'%(0,0,0)
+        stringpieces[4] = '%s %u'%(outputSpecStrUrlEnc, pend_sm_swap)
+        stringtosend = ' '.join(stringpieces)
+        raise
+        return (outputSpecStrUrlEnc,stringtosend)
+
 import socket   ### FIX: Move this to the top later ###
 class FSMClient:
     ''' .../Modules/NetClient/FSMClient.cpp starting on line 321'''
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        verbosePrint('Creating FSMClient')
+        verbose_print('Creating FSMClient')
         #createNewClient
         self.NetClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.NetClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
@@ -353,7 +380,7 @@ class FSMClient:
         #destroyClient,
         pass
     def connect(self):
-        verbosePrint('Connecting FSMClient')
+        verbose_print('Connecting FSMClient')
         #tryConnection
         self.NetClient.connect( (self.host,self.port) )
         pass
@@ -369,7 +396,7 @@ class FSMClient:
         line = ''
         lastchar = ''
         while(lastchar!='\n'):
-            line += lastchar
+            line += lastchar ### Use .join instead
             lastchar = self.NetClient.recv(1)
         return line
         
@@ -392,7 +419,7 @@ class FSMClient:
         lastchar = ''
         while True:
             try:
-                lines += lastchar
+                lines = ''.join((lines,lastchar))
                 lastchar = self.NetClient.recv(1)
             except socket.timeout:
                 break
@@ -407,7 +434,7 @@ class FSMClient:
 
 if __name__ == "__main__":
 
-    mySM = sm('soul')
+    #mySM = sm('soul')
 
     #mySM.DoQueryCmd('SET STATE MACHINE %d'%mySM.fsm_id)
     #mySM.DoQueryCmd('CLIENTVERSION %u'%mySM.MIN_SERVER_VERSION)
@@ -419,3 +446,13 @@ if __name__ == "__main__":
     #
     #mySM.handleFSMClient.NetClient.setblocking(False)
     #mySM.handleFSMClient.NetClient.settimeout(1)
+
+    mySM = sm('soul',connectnow=0)
+    mat = [14*[0],14*[0]]
+    mySM.SetStateMatrix(mat)
+
+'''
+/usr/local/lib/python2.6/site-packages/
+sudo ln -s /usr/lib/python2.4/site-packages/pydb /usr/local/lib/python2.5/site-packages/
+
+'''
