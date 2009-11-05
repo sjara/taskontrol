@@ -13,6 +13,11 @@ Command, NumberOfOutpuLines, OK, Notes
 'INITIALIZE',           0,   1,   Initialize state machine
 'RUN',                  0,   1,   Resume state machine
 'HALT',                 0,   1,   Pause the state machine
+'SET STATE MATRIX',     0,  Returns READY after first line sent
+                            then expects the matrix,
+                            and then it return OK
+
+
 
  
 
@@ -41,11 +46,6 @@ def url_encode(instring):
     # FIX: Check validity of input 'UrlEncode only works on strings!'
     outstring = ''
     for onechar in instring:
-        '''
-        if (((onechar >= 65) and (onechar <= 90)) or
-            ((onechar >= 48) and (onechar <= 57)) or
-            ((onechar >= 97) and (onechar <= 122)) ):
-        '''
         if onechar.isalnum():
             outstring = ''.join((outstring,onechar))
         else:
@@ -352,8 +352,10 @@ class sm:
         stringpieces[3] = '%u %u %u'%(0,0,0)
         stringpieces[4] = '%s %u'%(outputSpecStrUrlEnc, pend_sm_swap)
         stringtosend = ' '.join(stringpieces)
-        raise
-        return (outputSpecStrUrlEnc,stringtosend)
+
+        self.DoQueryCmd(stringtosend)
+        #self.ReceiveREADY('SET STATE MATRIX')
+        #return (outputSpecStrUrlEnc,stringtosend)
 
 import socket   ### FIX: Move this to the top later ###
 class FSMClient:
@@ -446,10 +448,13 @@ if __name__ == "__main__":
     #
     #mySM.handleFSMClient.NetClient.setblocking(False)
     #mySM.handleFSMClient.NetClient.settimeout(1)
+    #mySM = sm('soul',connectnow=0)
 
-    mySM = sm('soul',connectnow=0)
-    mat = [14*[0],14*[0]]
-    mySM.SetStateMatrix(mat)
+    # Send matrix
+    if 1:
+        mySM = sm('soul')
+        mat = [14*[0],14*[0]]
+        mySM.SetStateMatrix(mat)
 
 '''
 /usr/local/lib/python2.6/site-packages/
