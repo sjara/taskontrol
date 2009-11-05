@@ -138,13 +138,17 @@ class sm:
         self.ReceiveOK(cmd)
         '''
 
-    def ReceiveOK(self,cmd,result):
-        if result[-3:]=='OK\n':
-            verbose_print('Reveiced OK after %s'%cmd)
+    def ReceiveAck(self,cmd,result,ackstring='OK'):
+        '''Check that FSM server send the acknowledgement for the last command.
+        The acknowledgement string is either 'OK' or 'READY'
+        '''
+        if result.endswith(ackstring+'\n'):
+            verbose_print('Reveiced %s after %s'%(ackstring,cmd))
         else:
             # --- FIX: This should raise an exception --
-            verbose_print('WARNING: RTLinux FSM Server did not send OK after %s command.'%cmd)
-            verbose_print('RESULT: %s'%result)
+            verbose_print('WARNING: RTLinux FSM Server did not send %s '+\
+                          'after %s command.'%(ackstring,cmd))
+            verbose_print('Server returned: %s'%result)
 
     def SetInputEvents(self,val,channeltype):
         ### FIX check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
@@ -202,10 +206,11 @@ class sm:
         self.in_chan_type = channeltype
 
 
-    def DoQueryCmd(self,cmd):
+    def DoQueryCmd(self,cmd,expect='OK'):
         self.handleFSMClient.sendString(cmd+'\n')
         result = self.handleFSMClient.readLines()
-        self.ReceiveOK(cmd,result)
+        self.ReceiveAck(cmd,result,expect)
+            
         '''
         --- SHOULD I SPLIT LINES HERE? ---
         results = lines.splitlines()
@@ -353,9 +358,10 @@ class sm:
         stringpieces[4] = '%s %u'%(outputSpecStrUrlEnc, pend_sm_swap)
         stringtosend = ' '.join(stringpieces)
 
-        self.DoQueryCmd(stringtosend)
-        #self.ReceiveREADY('SET STATE MATRIX')
+        self.DoQueryCmd(stringtosend,expect='READY')
         #return (outputSpecStrUrlEnc,stringtosend)
+        #[res] = FSMClient('sendmatrix', sm.handle, mat);
+        #ReceiveOK(sm, 'SET STATE MATRIX');
 
 import socket   ### FIX: Move this to the top later ###
 class FSMClient:
@@ -391,31 +397,20 @@ class FSMClient:
         pass
     def sendString(self,stringToSend):
         self.NetClient.send(stringToSend)
-    def sendMatrix(self):
-        pass
-    def OLDreadLine(self):
-        '''Receive one line from socket, one char at a time.'''
-        line = ''
-        lastchar = ''
-        while(lastchar!='\n'):
-            line += lastchar ### Use .join instead
-            lastchar = self.NetClient.recv(1)
-        return line
+    def sendMatrix(self,mat):
+        '''The matlab/C++ version in FSMClient.cpp requires sendData
+        (see FSMClient.h), which is inherited from Socket.cpp
+        I'm not gonna assume TCP (ignore UDP).
+        '''
         
-    def OLDreadLines(self):
-        ### FIX THIS! what's the right length of message? ###
-        #lines = self.NetClient.recv(1024)
-        lines = []
-        while True:
-            try:
-                lines.append(self.readLine())
-            except socket.timeout:
-                break
-        return lines
-        '''
-        NOTES: readLines() uses NetClient::receiveLines() uses
-                NetClient::receiveLine() uses NetClient::receiveData
-        '''
+        ### DEFINE dataToSend as the numeric data of type double (in matlab)
+        ### converted into char?
+        ### See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
+        ###       unsigned Socket::sendData
+
+
+
+        self.NetClient.send(dataToSend)
     def readLines(self):
         lines = ''
         lastchar = ''
