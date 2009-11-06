@@ -29,7 +29,8 @@ To fix:
 Author: Santiago
 '''
 
-import string
+import socket   # For FSMClient
+import struct   # For FSMClient
 VERBOSE = True
 
 def verbose_print(msg):
@@ -41,6 +42,20 @@ def matsize(array2d):
     ncols = len(array2d)
     nrows = len(array2d[0])
     return (ncols,nrows)
+
+def packmatrix(mat):
+    '''Pack entries of a matrix into a string of their binary representation
+       as double precision floating point numbers
+       This function flattens a matrix by concatenating its rows.
+    '''
+    packedMatrix = ''
+    packer = struct.Struct('d')
+    (nrows,ncols) = matsize(mat)
+    for onerow in mat:
+        for oneentry in onerow:
+            packedvalue = packer.pack(oneentry)
+            packedMatrix = ''.join((packedMatrix,packedvalue))
+    return packedMatrix
 
 def url_encode(instring):
     # FIX: Check validity of input 'UrlEncode only works on strings!'
@@ -89,7 +104,7 @@ class sm:
                                 orouting(type='ext',data=str(self.fsm_id)) ]
 
         if connectnow:
-            self.handleFSMClient = FSMClient(self.host, self.port);
+            self.handleFSMClient = FSMClient(self.host, self.port)
             self.handleFSMClient.connect()
             self.ChkConn()
             self.ChkVersion()
@@ -363,7 +378,6 @@ class sm:
         #[res] = FSMClient('sendmatrix', sm.handle, mat);
         #ReceiveOK(sm, 'SET STATE MATRIX');
 
-import socket   ### FIX: Move this to the top later ###
 class FSMClient:
     ''' .../Modules/NetClient/FSMClient.cpp starting on line 321'''
     def __init__(self, host, port):
@@ -407,9 +421,7 @@ class FSMClient:
         ### converted into char?
         ### See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
         ###       unsigned Socket::sendData
-
-
-
+        dataToSend = packmatrix(mat)
         self.NetClient.send(dataToSend)
     def readLines(self):
         lines = ''
@@ -446,11 +458,12 @@ if __name__ == "__main__":
     #mySM = sm('soul',connectnow=0)
 
     # Send matrix
-    if 1:
+    if 0:
         mySM = sm('soul')
         mat = [14*[0],14*[0]]
         mySM.SetStateMatrix(mat)
-
+    else:
+        mySM = sm('soul',connectnow=0)
 '''
 /usr/local/lib/python2.6/site-packages/
 sudo ln -s /usr/lib/python2.4/site-packages/pydb /usr/local/lib/python2.5/site-packages/
