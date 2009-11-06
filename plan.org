@@ -12,12 +12,18 @@
 *** Solo-like graphical module
 *** Dispatcher-like module
 
+* Question
+*** What is the state matrix column called CONT_OUT in SetStateMatrix?
+*** What is the state matrix column called TRIG_OUT in SetStateMatrix?
+
+
+
 * Python style
 *** TODO Do not compare with == (singleton), use 'is'
-*** TODO Use .join() instead of +=
+*** DONE Use .join() instead of +=
 *** TODO Be explicit about which exception is catched
-*** TODO endswith() instead of slicing string
-*** TODO Use isinstance(obj, int) instead of comparing types
+*** DONE endswith() instead of slicing string
+*** DONE Use isinstance(obj, int) instead of comparing types
 *** TODO Don't compare boolean values to True or False using ==
 
 * Notes on developing in python:

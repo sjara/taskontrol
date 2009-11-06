@@ -43,17 +43,28 @@ def matsize(array2d):
     nrows = len(array2d[0])
     return (ncols,nrows)
 
+def OLDpackmatrix(mat):
+    '''Flatten by rows'''
+    packedMatrix = ''
+    packer = struct.Struct('d')
+    for onerow in mat:
+        for oneentry in onerow:
+            packedvalue = packer.pack(oneentry)
+            packedMatrix = ''.join((packedMatrix,packedvalue))
+
+
+
 def packmatrix(mat):
     '''Pack entries of a matrix into a string of their binary representation
        as double precision floating point numbers
-       This function flattens a matrix by concatenating its rows.
+       This function flattens a matrix by concatenating its columns.
     '''
     packedMatrix = ''
     packer = struct.Struct('d')
     (nrows,ncols) = matsize(mat)
-    for onerow in mat:
-        for oneentry in onerow:
-            packedvalue = packer.pack(oneentry)
+    for indcol in range(ncols):
+        for indrow in range(nrows):
+            packedvalue = packer.pack(mat[indrow][indcol])
             packedMatrix = ''.join((packedMatrix,packedvalue))
     return packedMatrix
 
@@ -68,8 +79,8 @@ def url_encode(instring):
     return outstring
 
 class orouting:
-    def __init__(self,type='',data=''):
-        self.type = type
+    def __init__(self,dtype='',data=''):
+        self.dtype = dtype
         self.data = data
 
 class sm:
@@ -100,8 +111,8 @@ class sm:
         self.ready_for_trial_jumpstate = 35  
 
         # 'ext' means sound
-        self.output_routing = [ orouting(type='dout',data='0-15'),
-                                orouting(type='ext',data=str(self.fsm_id)) ]
+        self.output_routing = [ orouting(dtype='dout',data='0-15'),
+                                orouting(dtype='ext',data=str(self.fsm_id)) ]
 
         if connectnow:
             self.handleFSMClient = FSMClient(self.host, self.port)
@@ -212,10 +223,10 @@ class sm:
         Note: this new input event mapping does not take effect
         immediately and requires a call to SetStateMatrix().
         '''
-        if type(val)==type(0):
+        if isinstance(val,int):
             # Create a vector of val entries [1,-1, 2,-2,...]
             f = lambda x : (x/2+1)*(2*(x%2)-1)
-            val = map(f,range(10))
+            val = map(f,range(val))
         # Assign vector of input events
         self.input_event_mapping = val
         self.in_chan_type = channeltype
@@ -236,6 +247,12 @@ class sm:
             print 'WARNING: FSM did not return OK at the end of query: %s'%cmd
         '''
         return result
+
+    def SendData(self,mat,expect='OK'):
+        dataToSend = packmatrix(mat)
+        self.handleFSMClient.sendString(dataToSend)
+        result = self.handleFSMClient.readLines()
+        self.ReceiveAck('Sending data',result,expect)
 
     def Initialize(self):
         '''
@@ -309,8 +326,7 @@ class sm:
         (nStates, nEvents) = matsize(state_matrix)
         nInputEvents = len(self.input_event_mapping)
         # Define orouting as output_routing
-        endCols = 2 + len(self.output_routing)  # 2 columns for timer
-                                                # at the end, plus output cols
+        endCols = 2 + len(self.output_routing)  # 2 cols for timer
 
         if(len(self.sched_waves)>0 or len(self.sched_waves_ao)>0):
             # FIX
@@ -343,18 +359,18 @@ class sm:
         nSchedWaves = len(self.sched_waves)
 
         # Format and urlencode the output_spec_str with format:
-        # \1.type\2.data\1.type\2.data... where everything is
+        # \1.dtype\2.data\1.dtype\2.data... where everything is
         # urlencoded (so \1 becomes %01, \2 becomes %02, etc)
         hasSound = False
         outputSpecStr = ''
         for oneoutput in self.output_routing:
-            if oneoutput.type in ['tcp', 'udp']:
+            if oneoutput.dtype in ['tcp', 'udp']:
                 # Force trailing newline for tcp/udp text packets.
                 # FIX: need to add '\n' at the end of data
                 pass
-            elif oneoutput.type in ['sound', 'ext']:
+            elif oneoutput.dtype in ['sound', 'ext']:
                 hasSound = True
-            stringThisOutput = '\\1%s\\2%s'%(oneoutput.type,oneoutput.data)
+            stringThisOutput = '\\1%s\\2%s'%(oneoutput.dtype,oneoutput.data)
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
         outputSpecStrUrlEnc = url_encode(outputSpecStr)
  
@@ -374,9 +390,10 @@ class sm:
         stringtosend = ' '.join(stringpieces)
 
         self.DoQueryCmd(stringtosend,expect='READY')
-        #return (outputSpecStrUrlEnc,stringtosend)
-        #[res] = FSMClient('sendmatrix', sm.handle, mat);
-        #ReceiveOK(sm, 'SET STATE MATRIX');
+        self.SendData(state_matrix,expect='OK')
+        
+        # FIX: Send AO waves
+
 
 class FSMClient:
     ''' .../Modules/NetClient/FSMClient.cpp starting on line 321'''
@@ -416,11 +433,10 @@ class FSMClient:
         (see FSMClient.h), which is inherited from Socket.cpp
         I'm not gonna assume TCP (ignore UDP).
         '''
-        
-        ### DEFINE dataToSend as the numeric data of type double (in matlab)
-        ### converted into char?
         ### See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
         ###       unsigned Socket::sendData
+        #
+        # I replaced this function by sm.SendData()
         dataToSend = packmatrix(mat)
         self.NetClient.send(dataToSend)
     def readLines(self):
@@ -458,12 +474,23 @@ if __name__ == "__main__":
     #mySM = sm('soul',connectnow=0)
 
     # Send matrix
-    if 0:
+    if 1:
         mySM = sm('soul')
-        mat = [14*[0],14*[0]]
+        #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
+        mat = [ [ 0,  0,  0,  0,  0,  0,  1,  1.2,   0,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  1,   10,   1,   1       ] ,\
+                [ 1,  1,  0,  0,  0,  0,  2,   10,   1,   1       ] ]
         mySM.SetStateMatrix(mat)
+        mySM.Run()
+        #mySM.Halt()
+        #mySM.Initialize()
     else:
         mySM = sm('soul',connectnow=0)
+        '''
+        mat = [14*[0],14*[1]]
+        mat[0][0] = 1
+        mat[1][1] = 0
+        '''
 '''
 /usr/local/lib/python2.6/site-packages/
 sudo ln -s /usr/lib/python2.4/site-packages/pydb /usr/local/lib/python2.5/site-packages/
