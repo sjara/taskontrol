@@ -15,9 +15,8 @@ Command, NumberOfOutpuLines, OK, Notes
 'HALT',                 0,   1,   Pause the state machine
 'SET STATE MATRIX',     0,  Returns READY after first line sent
                             then expects the matrix,
-                            and then it return OK
-
-
+                            and then it return OK.
+                            Format for the matrix are below.
 
  
 
@@ -31,6 +30,8 @@ Author: Santiago
 
 import socket   # For FSMClient
 import struct   # For FSMClient
+import string   # For SetOutputRouting
+
 VERBOSE = True
 
 def verbose_print(msg):
@@ -69,7 +70,7 @@ def packmatrix(mat):
     return packedMatrix
 
 def url_encode(instring):
-    # FIX: Check validity of input 'UrlEncode only works on strings!'
+    # FIXME: Check validity of input 'UrlEncode only works on strings!'
     outstring = ''
     for onechar in instring:
         if onechar.isalnum():
@@ -110,7 +111,7 @@ class sm:
         self.input_event_mapping = []        # Written-to by SetInputEvents
         self.ready_for_trial_jumpstate = 35  
 
-        # 'ext' means sound
+        # 'ext' is used in this case for sound
         self.output_routing = [ orouting(dtype='dout',data='0-15'),
                                 orouting(dtype='ext',data=str(self.fsm_id)) ]
 
@@ -139,7 +140,7 @@ class sm:
             okversion = True
             verbose_print('FSM server protocol version %s\n'%verstr.split('\n')[0])
         else:
-            # --- FIX: This should raise an exception --
+            # --- FIXME: This should raise an exception --
             okversion = False
             verbose_print('The FSM server does not meet the minimum protocol'+\
                   ' version requirement of %u'%self.MIN_SERVER_VERSION)
@@ -157,6 +158,12 @@ class sm:
         '''
         self.DoQueryCmd('SET STATE MACHINE %d'%self.fsm_id)
 
+    def GetStateMachine(self):
+        '''Query the FSM server about the current state machine ID (out of 6).'''
+        smIDstr = self.DoQueryCmd('GET STATE MACHINE')
+        smID = int(smIDstr.split()[0])
+        return smID
+
         '''
     def DoSimpleCmd(self,cmd):
         self.ChkConn()
@@ -171,13 +178,13 @@ class sm:
         if result.endswith(ackstring+'\n'):
             verbose_print('Reveiced %s after %s'%(ackstring,cmd))
         else:
-            # --- FIX: This should raise an exception --
+            # --- FIXME: This should raise an exception --
             verbose_print('WARNING: RTLinux FSM Server did not send %s '+\
                           'after %s command.'%(ackstring,cmd))
             verbose_print('Server returned: %s'%result)
 
     def SetInputEvents(self,val,channeltype):
-        ### FIX check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
+        ### FIXME check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
         # Check validity of 'val': positive scalar or ?
         # Check validity of 'channeltype': either 'ai' or 'dio'
         '''
@@ -230,6 +237,219 @@ class sm:
         # Assign vector of input events
         self.input_event_mapping = val
         self.in_chan_type = channeltype
+
+    def GetInputEvents(self):
+        '''
+        Returns the input event mapping vector for this FSM.
+
+        This vector was set with a call to SetInputEvents (or was
+        default).  The format for this vector is described in
+        SetInputEvents() above.
+        '''
+        return self.input_event_mapping;
+
+    def SetOutputRouting(self,routing):
+        '''
+        Modify the output routing for a state machine.
+
+        FIXME: This doc is from the matlab version. It should be
+        updated.
+
+        Output routing is the specification that the state machine
+        uses for doing output when a new state is entered.  Using this
+        call, you can specify the precise number and meaning of the
+        last few columns of the state machine (which are typically
+        output columns).  New output routings take effect after the
+        next call to SetStateMatrix.
+
+        The format for the output routing is an
+        ordered (M x 1) cell array of structs.  The structs correspond
+        to columns at the end of the state matrix.  Each struct needs
+        to have the following fields: 'type' and 'data'.  'data' is
+        interpreted in such a way as to depend on the 'type' field.
+        The default output routing for a new state machine object is
+        the following:
+
+                { struct('type', 'dout', ...
+                         'data', '0-15') ; ...
+                  struct('type', 'sound', ...
+                         'data', sprintf('%d', fsm.fsm_id)) };
+
+        Which means that the last two columns of the state machine are
+        to be used for 'dout' and 'sound' respectively.  The 'dout'
+        column is to write data to DIO lines 0-15 on the DAQ card, and
+        'sound' column is to trigger soundfiles to be played.
+
+        OUTPUT ROUTING TYPES:
+
+        'dout' - The state machine writes the bitpattern (of the
+                 number converted to UINT32) appearing in this column
+                 to DIO lines.  Each bit in this number corresponds to
+                 a DIO line.  0 means all low (off), 1 means the first
+                 line is high (the rest are off), 2 the second is
+                 high, 3 the first *two* are high, etc.  The 'data'
+                 field of the struct indicates which channels to
+                 use. The example above has '0-15' in the data filed
+                 meaning use 16 channels from channel 0-15 inclusive.
+                          
+        'trig' - Identical to the 'dout' type above, however the
+                 'trig' type uses a TTL pulse that stays on for 1 ms
+                 and then automatically turns off.  So for instance
+                 where a 'dout' output of '1' would turn channel 0 on
+                 indefinitely (until explicitly turned off by a
+                 different state with that bit cleared) a 'trig'
+                 output of '1' would always issue a 1ms TTL pulse on
+                 the first channel (automatically setting that channel
+                 low after 1 ms of time has elapsed).
+                  
+        'sound' - DEPRECATED (use 'ext' for sounds). The state machine
+                 triggers a sound file to play by communicating with
+                 the RT-SoundMachine and giving it the number
+                 appearing in this column as a sound id to trigger.
+                 Note that sounds can be untriggered by using a
+                 negative number for the sound id.  The 'data' field
+                 is a number string and specifies which sound card to
+                 use.  Default is the same number as the fsm_id at
+                 RTLSM2 object creation.  Note: when changing FSM id
+                 via SetStateMachine.m, be sure to update this number!
+                 Note that 'sound' is implemented using 'ext' so the
+                 two may not be used at the same time!
+
+        'ext' - The state machine triggers an external module.  By
+                 calling its function pointer.  See
+                 include/FSMExternalTrig.h and kernel/fsm.c.  Note
+                 that 'sound' is implemented using 'ext' so the two
+                 may not be used at the same time!
+
+         'sched_wave' - The state machine uses this column to trigger
+                 a scheduled wave (analog or digital sched wave).  The
+                 'data' field of the struct is ignored.
+
+         'tcp' - The state machine uses this column to trigger a TCP
+                 message to be sent in soft-realtime using regular
+                 linux networking services.  The 'data' field should
+                 be of the form: 'host:port:My data packet %v' Where
+                 host is the hostname to contact via TCP, port is the
+                 port number of the host, and the last field is an
+                 arbitrary text string to be sent to the host (a
+                 trailing newline is automatically appended if
+                 missing).
+
+                 The %v format specifier tells the state machine to
+                 place the number from the state machine column
+                 (value) in this %v position.  In this way it is
+                 possible to tell some external host *what* the state
+                 machine column contained (for example to trigger some
+                 external device on the network, etc).  Note that the
+                 TCP packet is only sent when the output value
+                 *changes*.  This way you don't always get a TCP
+                 packet being sent for all of your state matrix states
+                 -- you only get 1 TCP packet sent for each change in
+                 value of this column.
+                          
+                 Note about 'tcp': This mechanism is useful for
+                 triggering the olfactometer.  You can use the
+                 following format to trigger an external olfactometer
+                 (at eg IP address 143.48.30.39) to switch odors
+                 during the course of an experiment trial:
+
+                          struct('type', 'tcp', ...
+                                 'data', '143.48.30.39:3336:SET ODOR Bank1 %v');
+
+                 Thus, for this state machine column, whenever it
+                 changes value a TCP message will be sent to
+                 143.48.30.39 on port 3336 (the olfactometer port)
+                 with the olfactometer command SET ODOR Bank1 %v where
+                 %v is the value of the state matrix entry that
+                 triggered the output.
+                       
+                 NOTE: A new connection is initiated each time a TCP
+                 message is sent, and then it is immediately closed
+                 when the message is finished sending.  There is no
+                 way to know from Matlab if the connection failed.
+                 One must instead check the console log on the Linux
+                 FSM Server.
+
+                 NOTE2: in addition to the state machine column value
+                 being placed whenever a %v is encountered in the
+                 string, the following other % format codes are also
+                 interpreted:
+
+                          %t - Timestamp_seconds (a floating point number)
+                          %T - Timestamp_nanos  (a fixed point integer)
+                          %s - State machine state (a fixed point integer)
+                          %c - State machine column(a fixed point integer)
+                          %% - Literal '%' character
+                          (Every other %-code gets consumed and
+                          produces no output).
+
+                 Examples:
+
+                 Input string to 'data' field of struct:
+                  '143.48.30.39:3336:The timestamp was %t seconds
+                   (%T nanoseconds) for state %s, col %c the value was %v.'
+       
+                 Sends (to port 3336 at IP 143.48.30.39): 
+                  'The timestamp was 25.6 seconds (2560000000 nanoseconds)
+                   for state 10, col 1 the value was 13.'
+
+                          
+         'udp' - Identical to 'tcp' above but the protocol used is UDP
+                 (a less reliable but faster connectionless version of
+                 TCP). UDP doesn't work for olfactometers, though. It
+                 is only useful for network servers that support UDP,
+                 and is implemented here for completeness.
+
+         'noop' - The state machine column is to be ignored, it is
+                 just a placeholder.  This defines a state machine
+                 column as existing, but it is never used for anything
+                 other than to take up space in the state matrix.
+        '''
+        # FIXME: Check validity of input 
+        #self.output_routing = [ orouting(dtype='dout',data='0-15'),
+        #                        orouting(dtype='ext',data=str(self.fsm_id)) ]
+
+        # Loop through specified outputs
+        for oneoutput in routing:
+            outputdtype = oneoutput.dtype.lower()
+            if outputdtype in ['dout','trig']:
+                # FIXME: Test for validity of data with format '%d-%d'
+                datalist = oneoutput.data.split('-')
+                (first,last) = map(string.atoi,datalist)
+                if (first<0 or first>last or last>31):
+                    # FIXME: define exception
+                    raise TypeError('Digital outputs have to be values '+
+                                    'between 0-31 and in order.')
+            elif outputdtype=='sound':
+                # Server protocol expects 'ext' instead of 'sound' here.
+                # FIXME: define exception
+                raise TypeError("The FSM now expects 'ext' as the output"+\
+                                'routing type for sound triggering')
+            elif outputdtype=='ext':
+                # FIXME: Check that there is only one 'ext'?
+                pass
+            elif outputdtype=='sched_wave':
+                pass
+            elif outputdtype=='noop':
+                pass
+            elif outputdtype in ['dout','trig']:
+                # FIXME
+                pass
+            else:
+                # FIXME: define exception
+                raise TypeError("Routing type '%s' is invalid."%outputdtype)
+        self.output_routing = routing
+
+
+    def GetOutputRouting(self):
+        '''
+        Retreive the currently specified output routing for the fsm.
+
+        Note that output routing takes effect on the next call to
+        SetStateMatrix().  For more documentation on output routing
+        see SetOutputRouting().
+        '''
+        return self.output_routing;
 
 
     def DoQueryCmd(self,cmd,expect='OK'):
@@ -329,7 +549,7 @@ class sm:
         endCols = 2 + len(self.output_routing)  # 2 cols for timer
 
         if(len(self.sched_waves)>0 or len(self.sched_waves_ao)>0):
-            # FIX
+            # FIXME
             # Do stuff about sche_waves
             # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
             pass
@@ -338,7 +558,7 @@ class sm:
         if(nEvents != nInputEvents+endCols):
             print '%d = %d + %d'%(nEvents,nInputEvents,endCols)
             raise TypeError
-            # FIX: define this exception (add description)
+            # FIXME: define this exception (add description)
 
         # Concatenate the input_event_mapping vector as the last row
         #  of the matrix, server side will deconcatenate it.
@@ -354,7 +574,7 @@ class sm:
         # its own sched_waves data structure.  It just knows there are
         # 8 columns per scheduled wave.
         #
-        # FIX finish this section
+        # FIXME finish this section
         # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
         nSchedWaves = len(self.sched_waves)
 
@@ -366,7 +586,7 @@ class sm:
         for oneoutput in self.output_routing:
             if oneoutput.dtype in ['tcp', 'udp']:
                 # Force trailing newline for tcp/udp text packets.
-                # FIX: need to add '\n' at the end of data
+                # FIXME: need to add '\n' at the end of data
                 pass
             elif oneoutput.dtype in ['sound', 'ext']:
                 hasSound = True
@@ -374,7 +594,7 @@ class sm:
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
         outputSpecStrUrlEnc = url_encode(outputSpecStr)
  
-        # FIX: Check if schedwave but no sound
+        # FIXME: Check if schedwave but no sound
 
         # Format for SET STATE MATRIX command is:
         # SET STATE MATRIX nRows nCols nInEvents nSchedWaves
@@ -392,7 +612,7 @@ class sm:
         self.DoQueryCmd(stringtosend,expect='READY')
         self.SendData(state_matrix,expect='OK')
         
-        # FIX: Send AO waves
+        # FIXME: Send AO waves
 
 
 class FSMClient:
