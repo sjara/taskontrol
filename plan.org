@@ -23,7 +23,8 @@
 ***** TODO [#C] RegisterEventsCallback()
 ***** TODO [#C] StopEventsCallback()
 ***** DONE GetEvents() (new and old versions)
-***** TODO GetTime()
+***** DONE GetTime()
+***** DONE GetTimeEventsAndState()
 *** SoundClient
 *** Solo-like graphical module
 *** Dispatcher-like module

@@ -26,8 +26,8 @@ Command, NumberOfOutpuLines, OK, Notes
 'GET EVENT COUNTER'     1,   1,
 'GET EVENTS %d %d'     mat,  1,   Request matrix of events (old version)
 'GET EVENTS_II %d %d'  mat,  1,   Request matrix of events (new version)
-
-
+'GET TIME'              1,   1,   Request time since Initialize()
+'GET TIME, EVENTS, AND STATE %d\n'
 
 Format of state matrix...
 Format of schedule wave matrix (DIO)...
@@ -1022,6 +1022,47 @@ class sm:
         return eventList
 
 
+    def GetTime(self):
+        '''Get times elapsed (in sec) since last call to Initialize()'''
+        etimestr = self.DoQueryCmd('GET TIME')
+        etime = float(etimestr.split()[0])
+        return etime
+
+
+    def GetTimeEventsAndState(self,firstEvent):
+        '''
+        Request both the time and the events matrix.
+
+        Gets the time, in seconds, that has elapsed since the last
+        call to Initialize(), as well as the Events matrix starting
+        from first_event_num up until the present.
+ 
+        The returned struct has the following 4 fields:
+                time: (time in seconds)
+                state: (state number state machine is currently in)
+                event_ct: (event number of the latest event)
+                events: (m by 5 matrix of events)
+        '''
+        cmd = 'GET TIME, EVENTS, AND STATE %d'%firstEvent
+        resultstr = self.DoQueryCmd(cmd,expect='')
+        resultsbyline = resultstr.splitlines()
+        if(len(resultsbyline) != 4):
+            raise TypeError('FSM server did not return the correct values.')
+        etime = float(resultsbyline[0].split()[1])              # TIME %f
+        state = int(resultsbyline[1].split()[1])                # STATE %d
+        eventcount = int(resultsbyline[2].split()[2])           # EVENT COUNTER %d
+        (nrows,ncols) = map(int,resultsbyline[3].split()[1:3])  # MATRIX %d %d
+        # FIXME: this code is repeated in DoQueryMatrixCmd()
+        #        they should be split/recombined/merged
+        self.handleFSMClient.sendString('READY\n')
+        (mat,ackstr) = self.handleFSMClient.readMatrix(nrows,ncols)
+        self.ReceiveAck(cmd,ackstr,'OK')
+        # FIXME: make this dict into an object
+        allresults = {'etime':etime,'state':state,\
+                      'eventcount':eventcount+firstEvent,'events':mat}
+        return allresults
+
+
     def DoQueryCmd(self,cmd,expect='OK'):
         self.handleFSMClient.sendString(cmd+'\n')
         result = self.handleFSMClient.readLines()
@@ -1316,7 +1357,7 @@ class FSMClient:
 
 #def main():
 if __name__ == "__main__":
-    TESTCASES = [1,2,3]
+    TESTCASES = [1,2]
 
     if 0 in TESTCASES:  #'JustCreate':
         testSM = sm('soul',connectnow=0)
@@ -1340,25 +1381,10 @@ if __name__ == "__main__":
     # testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
 
 
-    #mySM = sm('soul')
-
-    #mySM.DoQueryCmd('SET STATE MACHINE %d'%mySM.fsm_id)
-    #mySM.DoQueryCmd('CLIENTVERSION %u'%mySM.MIN_SERVER_VERSION)
     #mySM.handleFSMClient.sendString('VERSION\n')
     #mySM.handleFSMClient.readLine()
     #mySM.handleFSMClient.NetClient.recv(1024)
-    #lines = mySM.handleFSMClient.readLines()
-    #lines = mySM.DoQueryCmd('VERSION')
-    #
-    #mySM.handleFSMClient.NetClient.setblocking(False)
-    #mySM.handleFSMClient.NetClient.settimeout(1)
-    #mySM = sm('soul',connectnow=0)
 
-        '''
-        mat = [14*[0],14*[1]]
-        mat[0][0] = 1
-        mat[1][1] = 0
-        '''
 '''
 /usr/local/lib/python2.6/site-packages/
 sudo ln -s /usr/lib/python2.4/site-packages/pydb /usr/local/lib/python2.5/site-packages/
