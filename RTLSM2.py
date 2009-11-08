@@ -14,11 +14,25 @@ Command, NumberOfOutpuLines, OK, Notes
 'RUN',                  0,   1,   Resume state machine
 'HALT',                 0,   1,   Pause the state machine
 'SET STATE MATRIX',     0,  Returns READY after first line sent
-                            then expects the matrix,
-                            and then it return OK.
-                            Format for the matrix are below.
+                            then expects the matrix. After receiving
+                            matrix it returns OK.
+                            Format for the matrix is described below.
+'FORCE TIME UP'         0,   1,   Force a state time-up.
+'READY TO START TRIAL'  0,   1,  
+'START DAQ %s %s'                 ???
+'STOP DAQ'              0,   1,   ???
+'BYPASS DOUT %d'        0,   1,   ???
+'TRIGSOUND %d'          0,   1,   Triggers sounds bypassing control.
+'GET EVENT COUNTER'     1,   1,
+'GET EVENTS %d %d'     mat,  1,   Request matrix of events (old version)
+'GET EVENTS_II %d %d'  mat,  1,   Request matrix of events (new version)
 
- 
+
+
+Format of state matrix...
+Format of schedule wave matrix (DIO)...
+
+Note that binary data representing matrices is sent column-wise (Matlab way).
 
 
 To fix:
@@ -30,7 +44,6 @@ Author: Santiago
 
 import socket   # For FSMClient
 import struct   # For FSMClient
-import string   # For SetOutputRouting
 
 VERBOSE = True
 
@@ -172,16 +185,18 @@ class sm:
         '''
 
     def ReceiveAck(self,cmd,result,ackstring='OK'):
-        '''Check that FSM server send the acknowledgement for the last command.
+        '''Check that FSM server sent an acknowledgement for the last command.
         The acknowledgement string is either 'OK' or 'READY'
         '''
+        # FIX ME: is it really necessary to have result as arg?
         if result.endswith(ackstring+'\n'):
-            verbose_print('Reveiced %s after %s'%(ackstring,cmd))
+            verbose_print('Received %s after %s'%(ackstring,cmd))
         else:
-            # --- FIXME: This should raise an exception --
-            verbose_print('WARNING: RTLinux FSM Server did not send %s '+\
-                          'after %s command.'%(ackstring,cmd))
+            # --- FIXME: define exception --
             verbose_print('Server returned: %s'%result)
+            raise TypeError(('RTLinux FSM Server did not send %s '+\
+                             'after %s command.')%(ackstring,cmd))
+
 
     def SetInputEvents(self,val,channeltype):
         ### FIXME check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
@@ -415,7 +430,7 @@ class sm:
             if outputdtype in ['dout','trig']:
                 # FIXME: Test for validity of data with format '%d-%d'
                 datalist = oneoutput.data.split('-')
-                (first,last) = map(string.atoi,datalist)
+                (first,last) = map(int,datalist)
                 if (first<0 or first>last or last>31):
                     # FIXME: define exception
                     raise TypeError('Digital outputs have to be values '+
@@ -452,6 +467,561 @@ class sm:
         return self.output_routing;
 
 
+    def SetScheduledWavesDIO(self,sched_matrix):
+        '''
+        sm = SetScheduledWaves(sm, sched_matrix)                            % Digital I/O line schedwave
+ 
+        sm = SetScheduledWaves(sm, sched_wave_id, ao_line, loop_bool,
+        two_by_n_matrix) % Analog I/O line schedwave
+
+        There are two usages of this function, with somewhat different
+        implications.  The first usage is for a DIO-line scheduled
+        wave, the second is for an AO-line scheduled wave.  See
+        descriptions below.
+
+        Note: it is now necessary to call SetOutputRouting() in order
+        to specify a column of the state matrix that actually TRIGGERS
+        these scheduled waves.  See SetOutputRouting.m documentation
+        for more details.
+
+
+        DIGITAL I/O LINE SCHEDULED WAVE
+        -------------------------------
+
+        sm = SetScheduledWaves(sm, sched_matrix)
+
+        Specifies the scheduled waves matrix for a state machine.
+        This is an M by 8 matrix of the following format per row:
+        ID  IN_EVENT_COL  OUT_EVENT_COL  DIO_LINE
+        SOUND_TRIG  PREAMBLE  SUSTAIN  REFRACTION
+
+        Note that this function doesn't actually modify the SchedWaves
+        of the FSM immediately.  Instead, a new SetStateMatrix call
+        needs to be issued for the effects of this function to take
+        effect in the external RTLinux FSM.
+
+        Detailed Explanation of DIO Line Scheduled Wave
+        -----------------------------------------------
+
+        The sched matrix is an M by 8 matrix of the following format:
+        ID  IN_EVENT_COL  OUT_EVENT_COL  DIO_LINE
+        SOUND_TRIG  PREAMBLE  SUSTAIN  REFRACTION
+
+        Note that this function doesn't acrually modify the SchedWaves
+        of the FSM.  Instead, a new SetStateMatrix (or
+        SetStateProgram) call needs to be issued for the effects of
+        this function to actually take effect in the external RTLinux
+        FSM.
+
+        ID - the numeric id of the scheduled wave.  Each wave is
+             numbered from 0-31.  (NOTE: 0 is a valid ID!). The ID is
+             later used in the StateMatrix SCHED_WAVE column as a
+             bitposition.  So for example if you want wave number with
+             ID 10 to fire, you use 2^10 in the SCHED_WAVE column of
+             the state matrix and 10 as the ID in this matrix.  You
+             can *untrigger* scheduled waves by issuing a negative
+             number.  To untrigger wave ID 10, you would issue -(2^10)
+             in your state matrix.
+
+        IN_EVENT_COL - The column of the state matrix (0 being the
+             first column) which is to be used as the INPUT event
+             column when this wave goes HIGH (edge up). Think of this
+             as a WAVE-IN event. Set this value to -1 to have the
+             state machine not trigger a state matrix input event for
+             edge-up transitions.
+ 
+        OUT_EVENT_COL - The column of the state matrix (0 being the
+             first column) which is to be used as the INPUT event
+             column when this wave goes LOW (edge down).  Think of
+             this as a WAVE-OUT event.  Set this value to -1 to have
+             the state machine not trigger a state matrix input event
+             for edge-down transitions.
+
+        DIO_LINE - The DIO line on which to echo the output of this
+             waveform.  Note that not all waves need have a real DIO
+             line associated with them.  Set this value to -1 to not
+             use a DIO line.
+
+        SOUND_TRIG - The sound id to trigger when 'sustain' occurs, and
+             then to untrigger when 'refraction' occurs.  0 for none.
+
+        PREAMBLE (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is triggered in the
+             state matrix SCHED_WAVE column to the time it actually
+             goes high.  Fractional numbers are ok.  Note the
+             granularity of this time specification is the time
+             quantum of the state machine (typically 166 microsecs),
+             so values smaller than this quantum are probably going to
+             get rounded to the nearest quantum.
+
+        SUSTAIN (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is goes high to the time
+             it should go low again.  Stated another way, the amount
+             of time a scheduled wave sustains a high state.
+             Fractional numbers are ok.  Note the granularity of this
+             time specification is the time quantum of the state
+             machine (typically 166 microsecs), so values smaller than
+             this quantum are probably going to get rounded to the
+             nearest quantum
+
+        REFRACTION (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is goes low to the time
+             it can successfully be triggered again by the SCHED_WAVE
+             column of the state matrix. Fractional numbers are ok.
+             Note the granularity of this time specification is the
+             time quantum of the state machine (typically 166
+             microsecs), so values smaller than this quantum are
+             probably going to get rounded to the nearest quantum.
+        '''
+        # -- If only one row, make it a 2d-array --
+        if isinstance(sched_matrix[0],int):
+            sched_matrix = [sched_matrix]
+        (nrows,ncols) = matsize(sched_matrix)
+        if(nrows<1 or ncols!=8):
+            raise TypeError('Matrix with schedule waves has to be m x 8')
+        # -- Check for duplicates by checking IDs --
+        schedwaveIDs = []
+        for schedwave in sched_matrix:
+            if schedwave[0] > 32:  # FIXME: Shouldn't this be 31?
+                raise ValueError('Schedule wave ID has to be less than 32')            
+            if schedwave[0] in self.sched_waves_ao:
+                raise ValueError('There is an analog schedule wave with the '+\
+                                 'same ID as this one')
+            if schedwave[0] in schedwaveIDs:
+                raise ValueError('There is a duplicate schedule wave ID')
+            else:
+                schedwaveIDs.append(schedwave[0])
+        self.sched_waves = sched_matrix
+
+             
+    def SetScheduledWavesAO(self,sched_matrix_id, ao_line, loop_bool, two_by_n_matrix):
+        '''
+        ANALOG I/O LINE SCHEDULED WAVE
+        ------------------------------
+
+        sm = SetScheduledWaves(sm, sched_wave_id, ao_line, loop_bool, two_by_n_matrix)
+                
+        Specifies a scheduled wave using analog I/O for a state
+        machine.  The sched_wave_id is in the same id-space as the
+        digital scheduled waves described above. The ao_line is the
+        analog output channel to use, starting at 1 for the first AO
+        line.  loop_bool, if true, means this is a looping wave (it
+        loops until untriggered).The last parameter, a 2-by-n matrix,
+        is described below.
+
+        Detailed Explanation of AO Line Scheduled Wave
+        ----------------------------------------------
+ 
+        Like a digital scheduled wave described above, an analog
+        scheduled wave is triggered from the SCHED_WAVES column of the
+        state matrix using a 2^sched_wave_id bit position.  Triggering
+        it actually causes samples to be written to the ao_line output
+        channel on the DAQ card (AO lines are indexed from 1). The
+        samples to be written (along with the events in the FSM to
+        trigger) are specified in a two-by-n matrix as the fourth
+        parameter to this function.  As the output wave is played,
+        events to the state machine can be generated to update/notify
+        the state machine of progress during playback (see description
+        of the two-by-n matrix below).
+
+        Note that this function does not actually modify the
+        SchedWaves of the FSM immediately. Instead, a new
+        SetStateMatrix call needs to be issued for the effects of this
+        function to take effect in the external RTLinux FSM.
+
+        Two-by-n-matrix description
+        ---------------------------
+        The actual samples to be written to the ao_line are specified in
+          a two-by-n matrix.
+
+        The first row of this matrix is a row-vector of samples over
+        the range [-1,1].  They get automatically scaled to the output
+        range setting of the DAQ hardware (0-5V for instance, etc).
+        The rate at which these samples get written is usually 6kHz,
+        but it depends on the rate at which the FSM is running, and it
+        cannot be changed from Matlab (it is a parameter to the
+        realtime kernel module implementing the actual FSM).
+
+        The second row of the matrix may be all zeroes.  If any
+        position in the matrix is not zero, then it indicates an input
+        event number in the state machine (indexed at 1) to trigger
+        when the corresponding sample (in the first row) is
+        played. The purpose of this feature is to allow the state
+        machine to be notified when 'interesting' parts of the
+        scheduled analog wave are being played, so that the state
+        machine may do something with that information such as: change
+        its state, jump to a sub-block of states, etc.
+
+        Example:
+
+        SetScheduledWaves(sm, 0, 1, 0, [ -1 -.999 -.988 0.25 0.26; ...
+                                         0     0     0   1    0   ]);
+
+        Would specify a scheduled wave with id 0, on analog line 1
+        (the first line), non-looping.  When wave id 0 is triggered,
+        the state machine is to play the five samples in row 1 of the
+        above matrix (normally your output matrix will contain more
+        than 5 samples -- this is not very useful since it is only 5
+        samples at 6kHz but it is an example after all).  For all but
+        the fourth sample, no event in the state machine is
+        triggered. However, as soon as the fourth sample is played by
+        the state machine, input event column 1 (the first column) of
+        the state matrix is sent an event (which might cause a state
+        transition, depending on the state matrix).
+
+        BUGS & QUIRKS
+        -------------
+
+        Untriggering analog or digital scheduled waves requires you to
+        issue a *negative* bitpattern.  So to untrigger waves 1,2,3
+        and 5 you would need to issue -(2^1+2^2+2^3+2^5) in your state
+        matrix scheduled waves output column.
+
+        Triggering sounds from DIO scheduled waves requires the
+        @RTLSM2 to have a 'sound' or 'ext' output routing spec (see
+        SetOutputRouting).  If it doesn't, the FSM doesn't know which
+        sound card to trigger to, so nothing is triggered.  Also, more
+        than 1 sound output routing spec leads to undefined behavior
+        (as in this case the sound card to trigger is ambiguous).
+
+        The DIO SetScheduledWaves indexes I/O lines at 0 and state
+        event columns at 0 while its analog counterpart indexes I/O
+        lines at 1 and the same state event columns at 1.  This is
+        inconsitent. Let me know which one should win -- ie if you
+        want consistency tell me if you prefer indexing at 1 or at 0.
+        [Probably written by Calin who rarely adds his name to code]
+
+        The DIO SetScheduledWaves specifies *all* DIO sched waves at
+        once as one call, whereas the AO SetScheduledWaves specifies
+        one AO wave per call (thus requiring multiple calls for
+        multiple AO waves).
+
+        If these functions are called and an AO wave has the same id
+        as a pre-existing DIO wave (or vice-versa), the existing wave
+        is discarded and a warning is issued.
+
+        '''
+        # FIXME: finish this
+        pass
+
+    def ClearScheduledWaves(self):
+        '''
+        Clears all scheduled waves.
+
+        Like SetScheduledWaves, this takes effect after the next call
+        to SetStateMatrix.
+        '''
+        self.sched_waves = []     #zeros(0, size(sm.sched_waves,2));
+        self.sched_waves_ao = []  #cell(0, size(sm.sched_waves_ao,2));
+
+    def GetDIOScheduledWaves(self):
+        '''
+        Return the current scheduled waves matrix for Digital I/O
+        lines registered with a state machine.
+
+        Note that only if SetStateMatrix.m has been called will the
+        registered scheduled waves be actually sent to the RT Linux
+        machine, so be careful and don't assume that the
+        ScheduledWaves returned here are already running unless you
+        know that SetStateMatrix has been called.
+        '''
+        return self.sched_waves
+
+    def StartDAQ(self):
+        '''
+        Specify a set of channels for analog data acquisition, and
+        start the acquisition.
+
+        Pass a vector of channel id's which is the set of analog input
+        channels that should appear in each scan.
+               
+        For the purposes of this function, channel id's are indexed
+        from 1.
+
+        RANGE SETTINGS:
+
+        Optionally, there is support for specifying a preferred analog
+        input range (gain) setting for the DAQ card.  This parameter
+        is a vector of the form [minV, maxV] where minV and maxV are
+        the minimum and maximum values of the analog input range
+        desired.  It defaults to [0, 5].  For a 0-5V range.
+               
+        Note that the actual set of analog input ranges that are
+        supported is DAQ card-specific.  There is no guarantee that
+        the specified range can be satisfied, since the card may not
+        actually support the specified range.  Additionally, there is
+        a further restriction to range settings: They cannot conflict
+        with the state machine input channel ranges.  State machine
+        input channels always use the implicit range setting of [0,5],
+        and so if you happen to be using 'ai' input channels (see the
+        SetInputEvents function documentation), and you are using a
+        particular channel for both input events and data acquisition,
+        *and* if your range vector specifies a range other than [0,5],
+        the call to StartDAQ() will fail with an error.
+
+        ACQUISITION SCAN RATE:
+
+        The scan rate (sampling rate) for the data acquisition is the
+        same as the clock rate of the FSM, which actually depends on
+        how the FSM kernel module was loaded into the RTLinux kernel.
+        As a consequence, it is not possible to change the scan rate
+        from Matlab at this time.
+               
+        NOTES:
+
+        The FSM supports data acquisition by reading a set of Analog
+        Input channels from the DAQ hardware and buffering them as a
+        set of scans.  You need to periodically call 'GetDAQScans()'
+        which empties this buffer and returns a matrix of doubles
+        which are the voltages read from the DAQ hardware.  This
+        matrix is M by N where M corresponds to the number of scans in
+        the buffer since the last call to GetDAQScans() and N 1 plus
+        the number of channels in each scan (first column is timestamp
+        in seconds which is the same timestamp returned by the
+        statemachine's GetEvents() function).  Note that the order of
+        the channels in each scan is sorted by channel id (so that if
+        you specified [1,5,3] as your channel spec, you will get them
+        in the order of [1,3,5].
+
+        Since the scans are kept in a finitely-sized buffer, you
+        should call GetDAQScans() relatively frequently to ensure you
+        don't have any dropped scans due to buffer overflows.
+
+        EXAMPLES:
+
+        If you want to capture channels 1, 3, and 8 (in that order)
+        using the default range setting of [0, 5] you would specify:
+
+               sm = StartDAQ(sm, [1, 3, 8]);
+
+
+         To capture channels 1,2,3 using [-5,5] as the range setting
+         you would specify:
+
+               sm = StartDAQ(sm, [1, 2, 3], [-5, 5])
+
+         To retreive the acquired data, later call:
+
+               scans = GetDAQScans(sm);
+        '''
+        # FIXME: write this method
+        pass
+
+    def GetDAQScans(self):
+        '''
+        Retreive the latest block of scans available.
+
+        That is, if the state machine is acquiring data.  See
+        StartDAQ().  The returned matrix is MxN where M is the number
+        of scans available since the last call to GetDAQScans and N is
+        a timestamp column followed by the scan voltage value.
+
+        EXAMPLES:
+
+        To retreive the acquired data call:
+
+                scans = GetDAQScans(sm);
+        '''
+        # FIXME: write this method
+        pass
+
+    def StopDAQ(self):
+        '''Stop the currently-running data acquisition. See StartDAQ().'''
+        DoQueryCmd('STOP DAQ')
+
+    def RegisterEventsCallback(self):
+        '''
+        Enable asynchronous notification as the FSM gets new events
+        (state transitions).
+
+        Your callback code is executed as new events are generated by
+        the FSM.  Your code is evaluated (using the equivalent of an
+        eval).  When your code runs, the event(s) that just occurred
+        are in an Mx4 matrix (as would be returned from GetEvents())
+        as the special variable 'ans'.  Thus, your callback code
+        should save this variable right away lest it be destroyed by
+        subsequent matlab statements.  Pass an empty callback to
+        disable the EventsCallback mechanism (or call
+        StopEventsCallback).
+
+        Optionally you can pass a third parameter, an additional
+        callback to use so that your code can be notified if there is
+        an unexpected TCP connection loss to the FSM server.  This is
+        so that your code can be notified that no more events will
+        come in due to a connection loss.  Otherwise, it would be
+        impossible to know that no more events are possible -- your
+        code might wait forever for events that will never arrive.
+        Possible actions to take in this callback include displaying
+        error messages in matlab and/or trying to restart the
+        connection by calling RegisterEventsCallback again.
+
+        Note: This entire callback mechanism only works under Windows
+        currently and requires that the executable
+        FSM_Event_Notification_Helper_Process.exe be in your Windows
+        PATH or in the current working directory!
+
+        Note 2: The events callback mechanism is highly experimental
+        and as such, only a maximum of 1 callbacks may be registered
+        and enabled at a time globally for all instances of RTLSM2
+        objects in the matlab session.  What does this mean?  That
+        subsequent calls to this function for *any* insance of an
+        @RTLSM2 will actually kill/disable the existing callback that
+        was previously registered/active for any other instance of an
+        @RTLSM2.
+        '''
+        # FIXME: write this method
+        pass
+
+    def StopEventsCallback(self):
+        '''
+        Disables asynchronous notification.
+
+        This method unregisters any previously-regsitered callbacks.
+        See RegisterEventsCallback()
+        '''
+        # FIXME: write this method
+        pass
+
+
+    def Close(self):
+        '''
+        Close connection to server.
+        '''
+        self.handleFSMClient.disconnect()
+
+
+    def BypassDout(self,d):
+        '''
+        Set digital outputs.
+
+        Set outputs to be whatever the state machine would indicate,
+        bitwise or `d with "d." To turn this off, call BypassDout(0).
+        
+        NOTE by sjara (2009-11-07): I don't understand what this does.
+        '''
+        self.DoQueryCmd('BYPASS DOUT %d'%d)
+
+
+    def Trigger(self,d):
+        '''
+        Triggers the sound corresponding to the given ID, bypassing
+        the control over sound triggers.
+        '''
+        self.DoQueryCmd('TRIGSOUND %d'%d)
+
+
+    def GetEventCounter(self):
+        '''
+        Get the number of events that have occurred since the last
+        call to Initialize().
+        '''
+        eventcountstr = self.DoQueryCmd('GET EVENT COUNTER')
+        return int(eventcountstr.split()[0])
+
+
+    def GetEventsOLD(self,startEventNumber,endEventNumber):
+        '''
+         Get a matrix in which each row corresponds to an event.
+         This method has been replaced by a newer GetEvents().
+         
+         The matrix will have EndEventNumber-StartEventNumber+1 rows
+         and 4 columns. (If EndEventNumber is bigger than
+         GetEventCounter(), this produces an error).
+
+         Each of the rows in EventList has 4 columns:
+
+         1. The first is the state that was current when the event
+            occurred.
+
+         2. The second is the event_id, which is 2^(event_column) that
+            occurred. event_column is 0-indexed.  See SetInputEvents()
+            for a description of what we mean by event columns.
+
+            In the default event column configuration
+            SetInputEvents(sm, 6), you would have as possible
+            event_id's:
+
+            1=Cin, 
+            2=Cout, 
+            4=Lin, 
+            8=Lout, 
+            16=Rin,
+            32=Rout, 
+            64=Tup, 
+            0=no detected event, (e.g. when a jump to state 0 is forced)
+        
+         3. The third is the time, in seconds, at which the
+            event occurred.
+
+         4. The fourth is the new state that was entered as a result
+            of the state transition.
+        '''
+        # FIXME: implement this function? it is deprecated.
+        if startEventNumber>endEventNumber:
+            eventList = []
+        else:
+            eventList = self.DoQueryMatrixCmd('GET EVENTS %d %d'%\
+                                               (startEventNumber-1,\
+                                                endEventNumber-1))
+        return eventList
+
+
+    def GetEvents(self,startEventNumber,endEventNumber):
+        '''
+        Get a matrix in which each row corresponds to an event.
+        This improved version replaces GetEventsOLD().
+
+        Improved version of GetEvents.m which supports more than 32
+        input events.  GetEventsOLD had the returned event-id be a
+        bitset where the bit corresponding to the event-column that
+        triggered the state transition would be set.  Use of a bitset
+        meant that the event-id would be 2^FSM_COLUMN_OF_INPUT_EVENT,
+        which effectively limited the maximum event id to 2^31 on
+        32-bit machines.
+
+        This new method fixes that by returning the actual event
+        column number in col2, rather than 2^event_col.
+
+        Gets a matrix in which each row corresponds to an Event; the
+        matrix will have EndEventNumber-StartEventNumber+1 rows and 4
+        columns. (If EndEventNumber is bigger than GetEventCounter(),
+        this produces an error).
+
+        Each of the rows in EventList has 4 columns:
+
+        1. The first is the state that was current when the event
+           occurred.
+
+        2. The second is the event_column number.  See
+           SetInputEvents() for a description of what we mean by event
+           columns. In the default event column configuration
+           SetInputEvents(sm, 6), you would have as possible
+           event_id's:
+
+           0=Cin, 
+           1=Cout, 
+           2=Lin, 
+           3=Lout, 
+           4=Rin,
+           5=Rout, 
+           -1=TIME'S UP EVENT *or* no detected event,
+              (e.g. when a jump to state 0 is forced)
+       
+        3. The third is the time, in seconds, at which the event
+           occurred.
+
+        4. The fourth is the new state that was entered as a result of
+           the state transition.
+        '''
+        if startEventNumber>endEventNumber:
+            eventList = []
+        else:
+            eventList = self.DoQueryMatrixCmd('GET EVENTS_II %d %d'%\
+                                               (startEventNumber-1,\
+                                                endEventNumber-1))
+        return eventList
+
+
     def DoQueryCmd(self,cmd,expect='OK'):
         self.handleFSMClient.sendString(cmd+'\n')
         result = self.handleFSMClient.readLines()
@@ -468,11 +1038,55 @@ class sm:
         '''
         return result
 
+
+    def DoQueryMatrixCmd(self,cmd):
+        self.handleFSMClient.sendString(cmd+'\n')
+        matsizestr = self.handleFSMClient.readLines()
+        if 'ERROR' in matsizestr:
+            raise ValueError('FSM server returned an error after '+\
+                             'command: %s',cmd)
+        if(matsizestr.startswith('MATRIX ')):
+            (nrows,ncols) = map(int,matsizestr.split()[1:3])
+        else:
+            raise ValueError('FSM server returned incorrect string '+\
+                             'for command: %s',cmd)
+        self.handleFSMClient.sendString('READY\n')
+        (mat,ackstr) = self.handleFSMClient.readMatrix(nrows,ncols)
+        self.ReceiveAck(cmd,ackstr,'OK')
+        return mat
+
+
+    def ForceTimeUp():
+        '''
+        Sends a signal to the state machine to force time up.
+
+        This is equivalent to there being a TimeUp event in the state
+        that the machine is in when the ForceTimeUp() signal is
+        received. Note that due to the asynchronous nature of the link
+        between the client and StateMachines, the StateMachine
+        framework itself provides no guarantees as to what state the
+        machine will be in when the ForceTimeUp() signal is received.
+        '''
+        self.DoQueryCmd('FORCE TIME UP')
+
+
+    def ReadyToStartTrial():
+        '''
+        Signals the StateMachine that it is ok to start a new trial.
+
+        After this routine is called, the next time that the
+        StateMachine reaches state 35, it will immediately jump to
+        state 0, and a new trial starts.
+        '''
+        self.DoQueryCmd('READY TO START TRIAL')
+
+
     def SendData(self,mat,expect='OK'):
         dataToSend = packmatrix(mat)
         self.handleFSMClient.sendString(dataToSend)
         result = self.handleFSMClient.readLines()
         self.ReceiveAck('Sending data',result,expect)
+
 
     def Initialize(self):
         '''
@@ -614,6 +1228,10 @@ class sm:
         
         # FIXME: Send AO waves
 
+    def flush(self):
+        '''Read whatever is left on the server's buffer.'''
+        return self.handleFSMClient.readLines()
+
 
 class FSMClient:
     ''' .../Modules/NetClient/FSMClient.cpp starting on line 321'''
@@ -644,10 +1262,14 @@ class FSMClient:
         self.NetClient.connect( (self.host,self.port) )
         pass
     def disconnect(self):
+        self.NetClient.close()
         #closeSocket
-        pass
     def sendString(self,stringToSend):
-        self.NetClient.send(stringToSend)
+        try:
+            self.NetClient.send(stringToSend)
+        except:
+            raise Exception('Failed sending command to FSM server.')
+
     def sendMatrix(self,mat):
         '''The matlab/C++ version in FSMClient.cpp requires sendData
         (see FSMClient.h), which is inherited from Socket.cpp
@@ -659,7 +1281,10 @@ class FSMClient:
         # I replaced this function by sm.SendData()
         dataToSend = packmatrix(mat)
         self.NetClient.send(dataToSend)
+
+
     def readLines(self):
+        # FIXME: Weird implementation. Maybe combine with readMatrix()
         lines = ''
         lastchar = ''
         while True:
@@ -670,14 +1295,50 @@ class FSMClient:
                 break
         return lines
 
-    def readMatrix(self):
-        pass
+
+    def readMatrix(self,nrows,ncols):
+        # FIXME: Weird implementation. Maybe combine with readLines()
+        bytesInDoublePrecFloat = 8
+        sizeInBytes = bytesInDoublePrecFloat*nrows*ncols
+        matdatastr = self.NetClient.recv(sizeInBytes)
+        matdata=struct.unpack(nrows*ncols*'d',matdatastr) # data comes column-wise
+        ackstr = self.readLines()         # Receive the rest (ack string)
+        mat = []
+        for indrow in range(nrows):
+            mat.append(matdata[indrow::2])
+        return (mat,ackstr)
+
+        
     def notifyEvents(self):
         pass
     def stopNotifyEvents(self):
         pass
 
+#def main():
 if __name__ == "__main__":
+    TESTCASES = [1,2,3]
+
+    if 0 in TESTCASES:  #'JustCreate':
+        testSM = sm('soul',connectnow=0)
+    if 1 in TESTCASES:   #'CreateAndConnect':
+        testSM = sm('soul')
+    if 2 in TESTCASES:   #'SendMatrixNoWaves':
+        #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
+        mat = [ [ 0,  0,  0,  0,  0,  0,  1,  1.2,   0,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  1,   1,   1,   1       ] ,\
+                [ 1,  1,  0,  0,  0,  0,  2,   1,   1,   1       ] ]
+        testSM.SetStateMatrix(mat)
+        testSM.Run()
+    if 3 in TESTCASES:   #'Get events':
+        import time
+        time.sleep(2)
+        evs = testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
+        print evs
+
+    # == Other commands ==
+    # testSM.Initialize()
+    # testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
+
 
     #mySM = sm('soul')
 
@@ -693,19 +1354,6 @@ if __name__ == "__main__":
     #mySM.handleFSMClient.NetClient.settimeout(1)
     #mySM = sm('soul',connectnow=0)
 
-    # Send matrix
-    if 1:
-        mySM = sm('soul')
-        #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
-        mat = [ [ 0,  0,  0,  0,  0,  0,  1,  1.2,   0,   0       ] ,\
-                [ 2,  2,  0,  0,  0,  0,  1,   10,   1,   1       ] ,\
-                [ 1,  1,  0,  0,  0,  0,  2,   10,   1,   1       ] ]
-        mySM.SetStateMatrix(mat)
-        mySM.Run()
-        #mySM.Halt()
-        #mySM.Initialize()
-    else:
-        mySM = sm('soul',connectnow=0)
         '''
         mat = [14*[0],14*[1]]
         mat[0][0] = 1

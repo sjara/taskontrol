@@ -2,9 +2,6 @@
 #+STARTUP: odd
 #+STARTUP: showall
 
-* Current tasks:
-*** TODO Check if realines can be done by reading up to a line-break
-
 
 * TASKontrol
 *** RTLSMclient
@@ -12,13 +9,21 @@
 ******* DONE sendmatrix() which uses socket.socket.send()
 ******* DONE basic matrix
 ******* TODO with schedule waves
-***** TODO GetStateProgram() :EMBEDDED_C:
-***** TODO SetStateProgram() :EMBEDDED_C:
+***** TODO [#C] GetStateProgram() :EMBEDDED_C:
+***** TODO [#C] SetStateProgram() :EMBEDDED_C:
 ***** DONE GetStateMachine()
 ***** DONE SetStateMachine()
 ***** DONE GetOutputRouting()
-***** TODO SetOutputRouting()
-
+***** DONE SetOutputRouting()
+***** DONE SetScheduledWavesDIO()
+***** TODO SetScheduledWavesAO()
+***** TODO [#C] StartDAQ()
+***** TODO [#C] GetDAQScans()
+***** DONE [#C] StopDAQ()
+***** TODO [#C] RegisterEventsCallback()
+***** TODO [#C] StopEventsCallback()
+***** DONE GetEvents() (new and old versions)
+***** TODO GetTime()
 *** SoundClient
 *** Solo-like graphical module
 *** Dispatcher-like module
@@ -27,11 +32,18 @@
 * Bugs and fixes:
 *** TODO I have been using =smIDstr.split()[0]= to extract values,
     but maybe this will change if I split things in DoQueryCmd()
+*** DONE I seem to be sending extra strings after GetEvents()
+    The server says: "Got:  " and then "Connection to host ended..."
+    SOLUTION: I just had to restart the FSM server to avoid this.
+*** TODO Check if realines can be done by reading up to a line-break
 
 
 * Questions:
 *** What is the state matrix column called CONT_OUT in SetStateMatrix?
 *** What is the state matrix column called TRIG_OUT in SetStateMatrix?
+*** What does BypassDout() do?
+    The comment says that it sets outputs to be whatever the state
+    machine would indicate, bitwise or `d with "d."
 
 
 * Python style
@@ -41,6 +53,9 @@
 *** DONE endswith() instead of slicing string
 *** DONE Use isinstance(obj, int) instead of comparing types
 *** TODO Don't compare boolean values to True or False using ==
+*** TODO Use code-testing: :CODE_TESTING:
+    http://docs.python.org/library/doctest.html
+    http://docs.python.org/library/unittest.html
 
 
 * Notes on developing in python:
@@ -56,6 +71,9 @@
       It adds a blank space after the completion, very annoying.
       Try for example: cd /hom<TAB>
       http://mail.scipy.org/pipermail/ipython-user/2005-March/002612.html
+***** Profiler has to be installed separately because of its license:
+      The Debian package is called 'python-profiler'.
+      In any case, it didn't really work the way I wanted. Gotta try again.
 
 
 * Links and tips on tools:
@@ -65,10 +83,19 @@
     In emacs    : http://parijatmishra.wordpress.com/2008/09/06/up-and-running-with-emacs-and-git/
     In Ubuntu   : https://help.ubuntu.com/community/Git
 *** Org-mode:
-    http://orgmode.org/manual
+    Manual: http://orgmode.org/manual
 *** Matlab (C++ API)
     http://www.mathworks.com/access/helpdesk/help/techdoc/index.html?/access/helpdesk/help/techdoc/apiref/mxgetpr.html&http://www.google.com/search?q=mxGetPr&ie=utf-8&oe=utf-8
 *** Python
-***** http://docs.python.org/tutorial/
-***** http://docs.python.org/reference/
-***** range(*args)   # call with arguments unpacked from a list
+    Tutorial: http://docs.python.org/tutorial/
+    Reference: http://docs.python.org/reference/
+    TIP: range(*args)   # call with arguments unpacked from a list
+    Struct (and info on type sizes): http://docs.python.org/library/struct.html
+*** Emacs
+    Hideshow minor mode: http://www.gnu.org/software/emacs/manual/html_node/emacs/Hideshow.html
+
+
+* Misc:
+*** I can't run the emulator on Ubuntu 9.10 because of a bug (in glibc?) about threads.
+    It run fine on Ubuntu 9.04. I think the bug is related to:
+    https://bugs.launchpad.net/ubuntu/+source/glib2.0/+bug/453898
