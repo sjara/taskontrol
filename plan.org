@@ -25,6 +25,10 @@
 ***** DONE GetEvents() (new and old versions)
 ***** DONE GetTime()
 ***** DONE GetTimeEventsAndState()
+***** TODO GetAIMode()
+***** TODO SetAIMode()
+***** TODO *ForceState() and similar ones *
+***** TODO SetStateProgram(), GetStateProgram()
 *** SoundClient
 *** Solo-like graphical module
 *** Dispatcher-like module

@@ -509,7 +509,7 @@ class sm:
         ID  IN_EVENT_COL  OUT_EVENT_COL  DIO_LINE
         SOUND_TRIG  PREAMBLE  SUSTAIN  REFRACTION
 
-        Note that this function doesn't acrually modify the SchedWaves
+        Note that this function doesn't actually modify the SchedWaves
         of the FSM.  Instead, a new SetStateMatrix (or
         SetStateProgram) call needs to be issued for the effects of
         this function to actually take effect in the external RTLinux
@@ -1066,10 +1066,28 @@ class sm:
 
 
     def IsRunning(self):
-        '''Return True if state machine is running, False if halted'''
+        '''Return True if state machine is running, False if halted.'''
         runningstr = self.DoQueryCmd('IS RUNNING')
         running = bool(int(runningstr.split()[0]))
         return running
+
+
+    def GetVarLogCounter(self):
+        '''Get the number of variables that have been logged since the
+           last call to Initialize().'''
+        varlogcountstr = self.DoQueryCmd('GET VARLOG COUNTER')
+        varlogcount = int(varlogcountstr.split()[0])
+        return varlogcount
+
+
+    def GetAIMode(self):
+        # FIXME: write this method
+        pass
+
+
+    def SetAIMode(self,mode):
+        # FIXME: write this method
+        pass
 
 
     def DoQueryCmd(self,cmd,expect='OK'):
@@ -1277,6 +1295,32 @@ class sm:
         self.SendData(state_matrix,expect='OK')
         
         # FIXME: Send AO waves
+
+
+    def FlushQueue(self):
+        '''
+        Not applicable to this client. It does nothing.
+
+        Some state machines (e.g., RM1s, RTLinux boxes) will be
+        self-running; others need a periodic ping to operate on events
+        in their incoming events queue. This function is used for the
+        latter type of StateMachines. In self-running state machines,
+        it is o.k. to define this function to do nothing.
+        '''
+        pass
+
+
+    def PreferredPollingInterval(self):
+        '''
+        Not applicable to this client. It does nothing.
+
+        For machines that require FlushQueue() calls, this function
+        returns the preferred interval between calls. Note that there
+        is no guarantee that this preferred interval will be
+        respected. intvl_ms is in milliseconds.
+        '''
+        pass
+
 
     def flush(self):
         '''Read whatever is left on the server's buffer.'''
