@@ -28,6 +28,8 @@ Command, NumberOfOutpuLines, OK, Notes
 'GET EVENTS_II %d %d'  mat,  1,   Request matrix of events (new version)
 'GET TIME'              1,   1,   Request time since Initialize()
 'GET TIME, EVENTS, AND STATE %d\n'
+'IS RUNNING'            1,   1,   Return 1 if running, 0 if halted
+
 
 Format of state matrix...
 Format of schedule wave matrix (DIO)...
@@ -1063,6 +1065,13 @@ class sm:
         return allresults
 
 
+    def IsRunning(self):
+        '''Return True if state machine is running, False if halted'''
+        runningstr = self.DoQueryCmd('IS RUNNING')
+        running = bool(int(runningstr.split()[0]))
+        return running
+
+
     def DoQueryCmd(self,cmd,expect='OK'):
         self.handleFSMClient.sendString(cmd+'\n')
         result = self.handleFSMClient.readLines()
@@ -1357,7 +1366,13 @@ class FSMClient:
 
 #def main():
 if __name__ == "__main__":
-    TESTCASES = [1,2]
+
+    # This does not work because script can't access interactive scope
+    try:
+        testSM              # Test if it is defined
+        TESTCASES = [2]
+    except:
+        TESTCASES = [1,2]
 
     if 0 in TESTCASES:  #'JustCreate':
         testSM = sm('soul',connectnow=0)

@@ -37,6 +37,10 @@
     The server says: "Got:  " and then "Connection to host ended..."
     SOLUTION: I just had to restart the FSM server to avoid this.
 *** TODO Check if realines can be done by reading up to a line-break
+*** TODO GetTimeEventsAndState repeats code from DoQueryMatrixCmd
+    It should be more modular.
+*** TODO Many methods request one parameter (bool, int or float) and OK.
+    There should be a method for this.
 
 
 * Questions:
