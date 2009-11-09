@@ -70,6 +70,7 @@
 
 * Python style
 *** Style guide: http://www.python.org/dev/peps/pep-0008/
+*** Unofficial guide: http://jaynes.colorado.edu/PythonGuidelines.html
 *** TODO Do not compare with == (singleton), use 'is'
 *** DONE Use .join() instead of +=
 *** TODO Be explicit about which exception is catched
