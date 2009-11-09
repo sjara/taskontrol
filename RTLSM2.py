@@ -6,11 +6,14 @@ RT-Linux state machine client.
 Based largely on Modules/@RTLSM2 from the matlab client provided by
 http://code.google.com/p/rt-fsm/
 It is therefore a client for the RTAI version of the FSM, c. 2009.
+
+Most comments describing the methods are pasted from the Matlab code,
+so they may include non-python syntax.
 '''
 
 __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__date__ = ''
+__created__ = '2009-11-01'
 
 
 import socket
@@ -76,11 +79,11 @@ class orouting:
 
 class StateMachineClient:
     '''
-    Create a new RTLinux state machine that connects to the state
-    machine server running on host, port.  Since a state machine
-    server can handle more than one virtual state machine, fsm_id
-    specifies which of the 6 state machines on the server to use.  See
-    method GetStateMachine() for more details.
+    Create a new client that connects to the state machine server
+    running on host, port.  Since a state machine server can handle
+    more than one virtual state machine, fsm_id specifies which of the
+    6 state machines on the server to use.  See method
+    GetStateMachine() for more details.
 
     The new state machine will have the following default properties:
     Output Routing:
@@ -106,12 +109,99 @@ class StateMachineClient:
                                 orouting(dtype='ext',data=str(self.fsm_id)) ]
 
         if connectnow:
-            self.handleNetClient = NetClient(self.host, self.port)
-            self.handleNetClient.connect()
+            #self.handleNetClient = NetClient(self.host, self.port)
+            #self.handleNetClient.connect()
+            self.Connect()
             self.ChkConn()
             self.ChkVersion()
             self.SetStateMachine();
         self.SetInputEvents(6, 'ai') # 6 input events, two for each nosecone
+
+
+    def Connect(self):
+        '''
+        Connect to the state machine server.
+
+        Create a network socket to communicate with the RT-Linux state
+        machine server.
+
+        Based on Modules/NetClient/FSMClient.cpp and NetClient.cpp from
+        the matlab client provided by: http://code.google.com/p/rt-fsm/
+        '''
+        verbose_print('Creating network socket')
+        self.socketClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socketClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
+        # -- Set timeout to 10ms for self.readLines() (it failed if 1ms) --
+        self.socketClient.settimeout(0.1)
+        verbose_print('Connecting socketClient')
+        self.socketClient.connect( (self.host,self.port) )
+        
+
+    def Disconnect(self):
+        '''NOTE: this is implemented by Close()'''
+        self.Close()
+
+
+    def SendString(self,stringToSend):
+        '''Send string to the state matrix server.'''
+        try:
+            self.socketClient.send(stringToSend)
+        except:
+            raise Exception('Failed sending command to FSM server.')
+
+
+    def sendMatrix(self,mat):
+        '''
+        Send matrix (column-wise) to state matrix server.
+
+        The matlab/C++ version in FSMClient.cpp requires sendData
+        (see FSMClient.h), which is inherited from Socket.cpp
+        I'm not gonna assume TCP (ignore UDP).
+        '''
+        ## See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
+        ##       unsigned Socket::sendData
+        dataToSend = packmatrix(mat)
+        self.socketClient.send(dataToSend)
+
+
+    def readLines(self):
+        '''Read strings sent by state matrix server.'''
+        # FIXME: Weird implementation. Maybe combine with readMatrix()
+        lines = ''
+        lastchar = ''
+        while True:
+            try:
+                lines = ''.join((lines,lastchar))
+                lastchar = self.socketClient.recv(1)
+            except socket.timeout:
+                break
+        return lines
+
+
+    def readMatrix(self,nrows,ncols):
+        '''Read matrixof data sent by state matrix server.'''
+        # FIXME: Weird implementation. Maybe combine with readLines()
+        bytesInDoublePrecFloat = 8
+        sizeInBytes = bytesInDoublePrecFloat*nrows*ncols
+        matdatastr = self.socketClient.recv(sizeInBytes)
+        matdata=struct.unpack(nrows*ncols*'d',matdatastr) # data comes column-wise
+        ackstr = self.readLines()         # Receive the rest (ack string)
+        mat = []
+        for indrow in range(nrows):
+            mat.append(matdata[indrow::2])
+        return (mat,ackstr)
+
+        
+    def notifyEvents(self):
+        '''Not implemented.'''
+        #FIX ME: implement this method
+        pass
+
+
+    def stopNotifyEvents(self):
+        '''Not implemented.'''
+        #FIX ME: implement this method
+        pass
 
 
     def ChkConn(self):
@@ -121,6 +211,7 @@ class StateMachineClient:
         '''
         verbose_print('Checking connection to FSM server')
         self.DoQueryCmd('NOOP')
+
 
     def ChkVersion(self):
         verbose_print('Checking version of FSM server')
@@ -157,7 +248,7 @@ class StateMachineClient:
         '''
     def DoSimpleCmd(self,cmd):
         self.ChkConn()
-        self.handleNetClient.sendString(cmd+'\n')
+        self.SendString(cmd+'\n')
         self.ReceiveOK(cmd)
         '''
 
@@ -864,7 +955,7 @@ class StateMachineClient:
         '''
         Close connection to server.
         '''
-        self.handleNetClient.disconnect()
+        self.socketClient.close()
 
 
     def BypassDout(self,d):
@@ -1031,8 +1122,8 @@ class StateMachineClient:
         (nrows,ncols) = map(int,resultsbyline[3].split()[1:3])  # MATRIX %d %d
         # FIXME: this code is repeated in DoQueryMatrixCmd()
         #        they should be split/recombined/merged
-        self.handleNetClient.sendString('READY\n')
-        (mat,ackstr) = self.handleNetClient.readMatrix(nrows,ncols)
+        self.SendString('READY\n')
+        (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.ReceiveAck(cmd,ackstr,'OK')
         # FIXME: make this dict into an object
         allresults = {'etime':etime,'state':state,\
@@ -1071,8 +1162,8 @@ class StateMachineClient:
 
 
     def DoQueryCmd(self,cmd,expect='OK'):
-        self.handleNetClient.sendString(cmd+'\n')
-        result = self.handleNetClient.readLines()
+        self.SendString(cmd+'\n')
+        result = self.readLines()
         self.ReceiveAck(cmd,result,expect)
             
         '''
@@ -1088,8 +1179,8 @@ class StateMachineClient:
 
 
     def DoQueryMatrixCmd(self,cmd):
-        self.handleNetClient.sendString(cmd+'\n')
-        matsizestr = self.handleNetClient.readLines()
+        self.SendString(cmd+'\n')
+        matsizestr = self.readLines()
         if 'ERROR' in matsizestr:
             raise ValueError('FSM server returned an error after '+\
                              'command: %s',cmd)
@@ -1098,8 +1189,8 @@ class StateMachineClient:
         else:
             raise ValueError('FSM server returned incorrect string '+\
                              'for command: %s',cmd)
-        self.handleNetClient.sendString('READY\n')
-        (mat,ackstr) = self.handleNetClient.readMatrix(nrows,ncols)
+        self.SendString('READY\n')
+        (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.ReceiveAck(cmd,ackstr,'OK')
         return mat
 
@@ -1131,8 +1222,8 @@ class StateMachineClient:
 
     def SendData(self,mat,expect='OK'):
         dataToSend = packmatrix(mat)
-        self.handleNetClient.sendString(dataToSend)
-        result = self.handleNetClient.readLines()
+        self.SendString(dataToSend)
+        result = self.readLines()
         self.ReceiveAck('Sending data',result,expect)
 
 
@@ -1304,96 +1395,13 @@ class StateMachineClient:
 
     def flush(self):
         '''Read whatever is left on the server's buffer.'''
-        return self.handleNetClient.readLines()
+        return self.readLines()
 
 
-class NetClient:
-    '''
-    Network socket to communicate with the RT-Linux state machine server.
 
-    Based on Modules/NetClient/FSMClient.cpp and NetClient.cpp from
-    the matlab client provided by: http://code.google.com/p/rt-fsm/
-    '''
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        verbose_print('Creating network socket')
-        #createNewClient
-        self.socketClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socketClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
-        # -- Set timeout to 10ms for self.readLines() (it failed if 1ms) --
-        self.socketClient.settimeout(0.1)
-    def destroy(self):
-        # FIXME: write this method
-        pass
-    def connect(self):
-        verbose_print('Connecting socketClient')
-        #tryConnection
-        self.socketClient.connect( (self.host,self.port) )
-        pass
-    def disconnect(self):
-        self.socketClient.close()
-        #closeSocket
-    def sendString(self,stringToSend):
-        try:
-            self.socketClient.send(stringToSend)
-        except:
-            raise Exception('Failed sending command to FSM server.')
-
-    def sendMatrix(self,mat):
-        '''The matlab/C++ version in FSMClient.cpp requires sendData
-        (see FSMClient.h), which is inherited from Socket.cpp
-        I'm not gonna assume TCP (ignore UDP).
-        '''
-        ### See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
-        ###       unsigned Socket::sendData
-        #
-        # I replaced this function by sm.SendData()
-        dataToSend = packmatrix(mat)
-        self.socketClient.send(dataToSend)
-
-
-    def readLines(self):
-        # FIXME: Weird implementation. Maybe combine with readMatrix()
-        lines = ''
-        lastchar = ''
-        while True:
-            try:
-                lines = ''.join((lines,lastchar))
-                lastchar = self.socketClient.recv(1)
-            except socket.timeout:
-                break
-        return lines
-
-
-    def readMatrix(self,nrows,ncols):
-        # FIXME: Weird implementation. Maybe combine with readLines()
-        bytesInDoublePrecFloat = 8
-        sizeInBytes = bytesInDoublePrecFloat*nrows*ncols
-        matdatastr = self.socketClient.recv(sizeInBytes)
-        matdata=struct.unpack(nrows*ncols*'d',matdatastr) # data comes column-wise
-        ackstr = self.readLines()         # Receive the rest (ack string)
-        mat = []
-        for indrow in range(nrows):
-            mat.append(matdata[indrow::2])
-        return (mat,ackstr)
-
-        
-    def notifyEvents(self):
-        pass
-    def stopNotifyEvents(self):
-        pass
-
-
-#def main():
 if __name__ == "__main__":
 
-    # This does not work because script can't access interactive scope
-    try:
-        testSM              # Test if it is defined
-        TESTCASES = [2]
-    except:
-        TESTCASES = [1,2]
+    TESTCASES = [1,2]
 
     if 0 in TESTCASES:  #'JustCreate':
         testSM = StateMachineClient('soul',connectnow=0)
@@ -1415,14 +1423,5 @@ if __name__ == "__main__":
     # == Other commands ==
     # testSM.Initialize()
     # testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
-
-
-    #mySM.handleFSMClient.sendString('VERSION\n')
-    #mySM.handleFSMClient.readLine()
-    #mySM.handleFSMClient.NetClient.recv(1024)
-
-'''
-/usr/local/lib/python2.6/site-packages/
-sudo ln -s /usr/lib/python2.4/site-packages/pydb /usr/local/lib/python2.5/site-packages/
-
-'''
+    # testSM.SendString('VERSION\n')
+    # testSM.readLines()
