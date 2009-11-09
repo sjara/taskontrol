@@ -4,7 +4,7 @@
 
 
 * TASKontrol
-*** RTLSMclient
+*** SMclient/RTLSMclient
 ***** TODO SetStateMatrix() [2/3]
 ******* DONE sendmatrix() which uses socket.socket.send()
 ******* DONE basic matrix
@@ -27,7 +27,8 @@
 ***** DONE GetTimeEventsAndState()
 ***** TODO GetAIMode()
 ***** TODO SetAIMode()
-***** TODO *ForceState() and similar ones *
+***** DONE ForceState() and similar ones
+      I will not implement any other besides the generic ForceState().
 ***** TODO SetStateProgram(), GetStateProgram()
 *** SoundClient
 *** Solo-like graphical module
@@ -41,10 +42,22 @@
     The server says: "Got:  " and then "Connection to host ended..."
     SOLUTION: I just had to restart the FSM server to avoid this.
 *** TODO Check if realines can be done by reading up to a line-break
+    Probably not, because if server sends a byte representing the same
+    as a '\n', there is no way to tell which one of the two it was.
+*** TODO Socket timeout is a weird way of stop receiving from socket.
+    Although I don't know if there is a better way.  Note: I had to
+    increase the timeout to avoid raising exceptions all time. So
+    while in the C code it was 1ms, in the python client it is
+    100ms. See NetClient.cpp: NetClient::receiveLines()
 *** TODO GetTimeEventsAndState repeats code from DoQueryMatrixCmd
     It should be more modular.
 *** TODO Many methods request one parameter (bool, int or float) and OK.
     There should be a method for this.
+*** TODO Make orouting a dict instead of a class
+*** TODO Antipatterns:
+***** http://en.wikipedia.org/wiki/Sequential_coupling (on smclient)
+***** http://en.wikipedia.org/wiki/BaseBean (on netclient)
+
 
 
 * Questions:
@@ -56,6 +69,7 @@
 
 
 * Python style
+*** Style guide: http://www.python.org/dev/peps/pep-0008/
 *** TODO Do not compare with == (singleton), use 'is'
 *** DONE Use .join() instead of +=
 *** TODO Be explicit about which exception is catched
