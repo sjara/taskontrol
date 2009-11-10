@@ -18,6 +18,7 @@ __created__ = '2009-11-01'
 
 import socket
 import struct
+import math
 
 VERBOSE = True
 MIN_SERVER_VERSION = 220080319  # Update this on protocol change
@@ -31,7 +32,10 @@ def verbose_print(msg):
 def matsize(array2d):
     '''Get size of array. Not robust, it assumes all rows have same size.'''
     ncols = len(array2d)
-    nrows = len(array2d[0])
+    if ncols==0:
+        nrows=0
+    else:
+        nrows = len(array2d[0])
     return (ncols,nrows)
 
 
@@ -95,8 +99,8 @@ class StateMachineClient:
         self.in_chan_type = 'ai'             # Use analog input for input
         self.sched_waves = [] #zeros(0,8)    # Default to no scheduled waves
         self.sched_waves_ao = [] #cell(0,4)  # Default to no ao sched waves
-        self.input_event_mapping = []        # Written-to by SetInputEvents
-        self.ready_for_trial_jumpstate = 35  
+        self.input_event_mapping = []        # Written-to by setInputEvents
+        self.ready_for_trial_jumpstate = 1   # Traditionally state 35 
 
         # 'ext' is used in this case for sound
         self.output_routing = [ {'dtype':'dout', 'data':'0-15'},\
@@ -578,11 +582,12 @@ class StateMachineClient:
              number.  To untrigger wave ID 10, you would issue -(2^10)
              in your state matrix.
 
-        IN_EVENT_COL - The column of the state matrix (0 being the
-             first column) which is to be used as the INPUT event
-             column when this wave goes HIGH (edge up). Think of this
-             as a WAVE-IN event. Set this value to -1 to have the
-             state machine not trigger a state matrix input event for
+        IN_EVENT_COL - The column of the state matrix (not counting
+             existing columns, so that 0 should be used for the first
+             sched wave) which is to be used as the INPUT event column
+             when this wave goes HIGH (edge up). Think of this as a
+             WAVE-IN event. Set this value to -1 to have the state
+             machine not trigger a state matrix input event for
              edge-up transitions.
  
         OUT_EVENT_COL - The column of the state matrix (0 being the
@@ -628,6 +633,7 @@ class StateMachineClient:
              microsecs), so values smaller than this quantum are
              probably going to get rounded to the nearest quantum.
         '''
+        # FIXME: what happends if input is empty matrix?
         # -- If only one row, make it a 2d-array --
         if isinstance(sched_matrix[0],int):
             sched_matrix = [sched_matrix]
@@ -1284,12 +1290,8 @@ class StateMachineClient:
         # FIXME: Check the validity of the matrix
         (nStates, nEvents) = matsize(state_matrix)
         nInputEvents = len(self.input_event_mapping)
-
-
-        # FIXME: Is it needed to define another var for output_routing?
-
-
-        endCols = 2 + len(self.output_routing)  # 2 cols for timer
+        nColsForTimer = 2                      # TIMEOUT_STATE, TIMEOUT_TIME
+        nColsForOutputs = len(self.output_routing)
 
         if(len(self.sched_waves)>0 or len(self.sched_waves_ao)>0):
             # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
@@ -1310,18 +1312,20 @@ class StateMachineClient:
 
 
         # Verify matrix is sane with respect to number of columns
-        if(nEvents != nInputEvents+endCols):
-            print '%d = %d + %d'%(nEvents,nInputEvents,endCols)
+        if(nEvents != nInputEvents+nColsForTimer+nColsForOutputs):
+            nstr = '%d(cols) = %d(input) + %d(timer) + %d(outputs)'%\
+                   (nEvents,nInputEvents,nColsForTimer,nColsForOutputs)
             raise TypeError('Number of columns is not consistent '+
-                            'with number of events.')
+                            'with number of events: %s'%nstr)
             # FIXME: define this exception
 
         # Concatenate the input_event_mapping vector as the last row
         #  of the matrix, server side will deconcatenate it.
-        extraVector = nEvents*[0]
-        extraVector[0:nInputEvents] = self.input_event_mapping
-        state_matrix.append(extraVector)
+        extraRow = nEvents*[0]
+        extraRow[0:nInputEvents] = self.input_event_mapping
+        state_matrix.append(extraRow)
 
+        # The matlab client did the following:
         # For each scheduled wave, simply add the spec as elements to
         # the matrix -- note these elements are not at all row-aligned
         # and you can end up with multiple sched_waves per matrix row,
@@ -1329,11 +1333,32 @@ class StateMachineClient:
         # server-side will just pop these out in FIFO order to build
         # its own sched_waves data structure.  It just knows there are
         # 8 columns per scheduled wave.
-        #
-        # FIXME finish this section
         # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
+        #
+        # NOTE: In this version of the client, I tried to send the
+        # state matrix first, then the matrix of sched_waves, but it
+        # did not work because matrices are send column-wise (and the
+        # padding seems to be necessary).
+        #
+        # The next piece of code converts (if :
+        #  sched_waves = [ [1,2,3,4,5,6,7,8], [9,10,11,12,13,14,15,16] ]
+        # into:
+        #  extraRows = [ [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        #                [12,13,14,15,16, 0, 0, 0, 0, 0 , 0 ] ]
+        # and appends those rows to the state matrix
         nSchedWaves = len(self.sched_waves)
-
+        if nSchedWaves>0:
+            oneExtraRow = []
+            for oneSchedWave in self.sched_waves:
+                for value in oneSchedWave:
+                    oneExtraRow.append(value)
+                    if len(oneExtraRow)==nEvents:
+                        state_matrix.append(oneExtraRow)
+                        oneExtraRow = []
+            nPadZeros = nEvents-len(oneExtraRow)
+            LastRow = oneExtraRow + nPadZeros*[0]
+            state_matrix.append(LastRow)
+        
         # Format and urlencode the output_spec_str with format:
         # \1.dtype\2.data\1.dtype\2.data... where everything is
         # urlencoded (so \1 becomes %01, \2 becomes %02, etc)
@@ -1354,9 +1379,10 @@ class StateMachineClient:
         # FIXME: Check if schedwave but no sound
 
         # Format for SET STATE MATRIX command is:
-        # SET STATE MATRIX nRows nCols nInEvents nSchedWaves
-        #                  InChanType ReadyForTrialJumpstate
-        #                  IGNORED IGNORED IGNORED OUTPUT_SPEC_STR_URL_ENCODED
+        # SET STATE MATRIX nRows  nCols  nInEvents  nSchedWaves
+        #                  InChanType  ReadyForTrialJumpstate
+        #                  IGNORED   IGNORED   IGNORED 
+        #                  OutputSpecUrlEncoded  PendSMswap
         (nStates, nEvents) = matsize(state_matrix)
         stringpieces = 5*[0]
         stringpieces[0] = 'SET STATE MATRIX %u %u %u'%(nStates, nEvents, nInputEvents)
@@ -1368,7 +1394,7 @@ class StateMachineClient:
 
         self.doQueryCmd(stringtosend,expect='READY')
         self.sendData(state_matrix,expect='OK')
-        
+
         # FIXME: Send AO waves
 
 
@@ -1405,7 +1431,7 @@ class StateMachineClient:
 
 if __name__ == "__main__":
 
-    TESTCASES = [1,2]
+    TESTCASES = [1,4]
 
     if 0 in TESTCASES:  #'JustCreate':
         testSM = StateMachineClient('soul',connectnow=0)
@@ -1413,9 +1439,10 @@ if __name__ == "__main__":
         testSM = StateMachineClient('soul')
     if 2 in TESTCASES:   #'SendMatrixNoWaves':
         #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
-        mat = [ [ 0,  0,  0,  0,  0,  0,  1,  1.2,   0,   0       ] ,\
-                [ 2,  2,  0,  0,  0,  0,  1,   1,   1,   1       ] ,\
-                [ 1,  1,  0,  0,  0,  0,  2,   1,   1,   1       ] ]
+        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
+                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
+                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
         testSM.setStateMatrix(mat)
         testSM.run()
     if 3 in TESTCASES:   #'Get events':
@@ -1423,6 +1450,21 @@ if __name__ == "__main__":
         time.sleep(2)
         evs = testSM.doQueryMatrixCmd('GET EVENTS 1 2')
         print evs
+    if 4 in TESTCASES:   #'Add sched waves':
+        ### STILL DON'T KNOW HOW TO TRIGGER SCHED WAVES!!!
+        testSM.output_routing.append({'dtype':'sched_wave', 'data':''})
+        #               ID  In Out DIO Sound Pre Sus Refr
+        schedwaves = [ [ 0, 6, 7,   1,   0,  0.5, 1,  0] ]
+        testSM.setScheduledWavesDIO(schedwaves)
+        testSM.input_event_mapping = [1,-1, 2,-2, 3,-3, 0, 0]
+        #        Ci  Co  Li  Lo  Ri  Ro  SWi SWo Tup   t  CONTo TRIGo SWo
+        mat = [ [ 0,  0,  0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0,   0  ] ,\
+                [ 1,  1,  1,  1,  1,  1,  0,  0,  1,   0,   0,   0,   0  ] ,\
+                [ 3,  3,  0,  0,  0,  0,  1,  1,  2,  100,  1,   1,   1  ] ,\
+                [ 2,  2,  0,  0,  0,  0,  1,  1,  3,  100,  2,   1,   1  ] ]
+        testSM.setStateMatrix(mat)
+        testSM.run()
+
 
     # == Other commands ==
     # testSM.initialize()

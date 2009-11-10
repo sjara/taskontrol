@@ -53,11 +53,12 @@
     It should be more modular.
 *** TODO Many methods request one parameter (bool, int or float) and OK.
     There should be a method for this.
-*** TODO Make orouting a dict instead of a class
+*** DONE Make orouting a dict instead of a class
 *** TODO Antipatterns:
 ***** http://en.wikipedia.org/wiki/Sequential_coupling (on smclient)
 ***** http://en.wikipedia.org/wiki/BaseBean (on netclient)
-
+*** Why are sched waves an attribute of the class?
+    but the state matrix is not?
 
 
 * Questions:
@@ -66,8 +67,12 @@
 *** What does BypassDout() do?
     The comment says that it sets outputs to be whatever the state
     machine would indicate, bitwise or `d with "d."
+*** How are sched waves sent to the server?
+    The comments seem to indicate that they get concatenated to the
+    state matrix, but is this column or row-wise? Couldn't we just
+    send the state matrix first and then the sched waves?
 
-
+    
 * Python style
 *** Style guide: http://www.python.org/dev/peps/pep-0008/
 *** Unofficial guide: http://jaynes.colorado.edu/PythonGuidelines.html
