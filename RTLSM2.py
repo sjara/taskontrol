@@ -71,12 +71,6 @@ def OLDpackmatrix(mat):
             packedMatrix = ''.join((packedMatrix,packedvalue))
 
 
-class orouting:
-    def __init__(self,dtype='',data=''):
-        self.dtype = dtype
-        self.data = data
-
-
 class StateMachineClient:
     '''
     Create a new client that connects to the state machine server
@@ -105,8 +99,8 @@ class StateMachineClient:
         self.ready_for_trial_jumpstate = 35  
 
         # 'ext' is used in this case for sound
-        self.output_routing = [ orouting(dtype='dout',data='0-15'),
-                                orouting(dtype='ext',data=str(self.fsm_id)) ]
+        self.output_routing = [ {'dtype':'dout', 'data':'0-15'},\
+                                {'dtype':'ext',  'data':str(self.fsm_id)} ]
 
         if connectnow:
             #self.handleNetClient = NetClient(self.host, self.port)
@@ -489,15 +483,12 @@ class StateMachineClient:
                  other than to take up space in the state matrix.
         '''
         # FIXME: Check validity of input 
-        #self.output_routing = [ orouting(dtype='dout',data='0-15'),
-        #                        orouting(dtype='ext',data=str(self.fsm_id)) ]
-
         # Loop through specified outputs
         for oneoutput in routing:
-            outputdtype = oneoutput.dtype.lower()
+            outputdtype = oneoutput['dtype'].lower()
             if outputdtype in ['dout','trig']:
                 # FIXME: Test for validity of data with format '%d-%d'
-                datalist = oneoutput.data.split('-')
+                datalist = oneoutput['data'].split('-')
                 (first,last) = map(int,datalist)
                 if (first<0 or first>last or last>31):
                     # FIXME: define exception
@@ -521,7 +512,8 @@ class StateMachineClient:
             else:
                 # FIXME: define exception
                 raise TypeError("Routing type '%s' is invalid."%outputdtype)
-        self.output_routing = routing
+        # FIXME: is the next line necessary? only if routing changed
+        #self.output_routing = routing
 
 
     def GetOutputRouting(self):
@@ -537,7 +529,9 @@ class StateMachineClient:
 
     def SetScheduledWavesDIO(self,sched_matrix):
         '''
-        sm = SetScheduledWaves(sm, sched_matrix)                            % Digital I/O line schedwave
+        Set the schedule waves matrix, without sending it to server.
+
+        sm = SetScheduledWaves(sm, sched_matrix)  % Digital I/O line schedwave
  
         sm = SetScheduledWaves(sm, sched_wave_id, ao_line, loop_bool,
         two_by_n_matrix) % Analog I/O line schedwave
@@ -646,17 +640,17 @@ class StateMachineClient:
             sched_matrix = [sched_matrix]
         (nrows,ncols) = matsize(sched_matrix)
         if(nrows<1 or ncols!=8):
-            raise TypeError('Matrix with schedule waves has to be m x 8')
+            raise TypeError('Matrix with schedule waves has to be m x 8.')
         # -- Check for duplicates by checking IDs --
         schedwaveIDs = []
         for schedwave in sched_matrix:
             if schedwave[0] > 32:  # FIXME: Shouldn't this be 31?
-                raise ValueError('Schedule wave ID has to be less than 32')            
+                raise ValueError('Schedule wave ID has to be less than 32.')            
             if schedwave[0] in self.sched_waves_ao:
                 raise ValueError('There is an analog schedule wave with the '+\
-                                 'same ID as this one')
+                                 'same ID as this one.')
             if schedwave[0] in schedwaveIDs:
-                raise ValueError('There is a duplicate schedule wave ID')
+                raise ValueError('There is a duplicate schedule wave ID.')
             else:
                 schedwaveIDs.append(schedwave[0])
         self.sched_waves = sched_matrix
@@ -1294,24 +1288,40 @@ class StateMachineClient:
         - SetStateMatrix() should only be called in-between trials.
         '''
 
-        # Check the validity of the matris
-        # Get size of state_matrix
+        # FIXME: Check the validity of the matrix
         (nStates, nEvents) = matsize(state_matrix)
         nInputEvents = len(self.input_event_mapping)
-        # Define orouting as output_routing
+
+
+        # FIXME: Is it needed to define another var for output_routing?
+
+
         endCols = 2 + len(self.output_routing)  # 2 cols for timer
 
         if(len(self.sched_waves)>0 or len(self.sched_waves_ao)>0):
-            # FIXME
-            # Do stuff about sche_waves
             # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
-            pass
+            # Verify that outputs for sched_waves are defined
+            found=False
+            for oneoutput in self.output_routing:
+                if oneoutput['dtype']=='sched_wave':
+                    found=True
+                    break
+            if(not found):
+                errstr='The state machine has a sched_waves specification but\n'+\
+                       'no sched_wave output routing defined!\n'+\
+                       'Please specify a sched_wave output column '+\
+                       'using SetOutputRouting!\n'
+                raise TypeError(errstr)
+            # FIXME: Original code could auto-add output routing
+            #        Here I just raise an exception.
+
 
         # Verify matrix is sane with respect to number of columns
         if(nEvents != nInputEvents+endCols):
             print '%d = %d + %d'%(nEvents,nInputEvents,endCols)
-            raise TypeError
-            # FIXME: define this exception (add description)
+            raise TypeError('Number of columns is not consistent '+
+                            'with number of events.')
+            # FIXME: define this exception
 
         # Concatenate the input_event_mapping vector as the last row
         #  of the matrix, server side will deconcatenate it.
@@ -1337,11 +1347,11 @@ class StateMachineClient:
         hasSound = False
         outputSpecStr = ''
         for oneoutput in self.output_routing:
-            if oneoutput.dtype in ['tcp', 'udp']:
+            if oneoutput['dtype'] in ['tcp', 'udp']:
                 # Force trailing newline for tcp/udp text packets.
                 # FIXME: need to add '\n' at the end of data
                 pass
-            elif oneoutput.dtype in ['sound', 'ext']:
+            elif oneoutput['dtype'] in ['sound', 'ext']:
                 hasSound = True
             stringThisOutput = '\\1%s\\2%s'%(oneoutput.dtype,oneoutput.data)
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
