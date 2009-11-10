@@ -20,6 +20,7 @@ import socket
 import struct
 
 VERBOSE = True
+MIN_SERVER_VERSION = 220080319  # Update this on protocol change
 
 
 def verbose_print(msg):
@@ -88,7 +89,6 @@ class StateMachineClient:
     The sm will not have any SchedWave matrix, or any state matrix.
     '''
     def __init__(self, host='localhost', port=3333, fsm_id=0, connectnow=True):
-        self.MIN_SERVER_VERSION = 220080319  # Update this on protocol change
         self.host = host
         self.port = port
         self.fsm_id = fsm_id
@@ -103,16 +103,14 @@ class StateMachineClient:
                                 {'dtype':'ext',  'data':str(self.fsm_id)} ]
 
         if connectnow:
-            #self.handleNetClient = NetClient(self.host, self.port)
-            #self.handleNetClient.connect()
-            self.Connect()
-            self.ChkConn()
-            self.ChkVersion()
-            self.SetStateMachine();
-        self.SetInputEvents(6, 'ai') # 6 input events, two for each nosecone
+            self.connect()
+            self.chkConn()
+            self.chkVersion()
+            self.setStateMachine(self.fsm_id);
+        self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
 
-    def Connect(self):
+    def connect(self):
         '''
         Connect to the state machine server.
 
@@ -131,12 +129,12 @@ class StateMachineClient:
         self.socketClient.connect( (self.host,self.port) )
         
 
-    def Disconnect(self):
+    def disconnect(self):
         '''NOTE: this is implemented by Close()'''
-        self.Close()
+        self.close()
 
 
-    def SendString(self,stringToSend):
+    def sendString(self,stringToSend):
         '''Send string to the state matrix server.'''
         try:
             self.socketClient.send(stringToSend)
@@ -198,30 +196,30 @@ class StateMachineClient:
         pass
 
 
-    def ChkConn(self):
+    def chkConn(self):
         '''Check connection to FSM server
            This should probably be implented by catching exceptions.
            And it should not repeat code from DoSimpleCmd+ReceiveOK
         '''
         verbose_print('Checking connection to FSM server')
-        self.DoQueryCmd('NOOP')
+        self.doQueryCmd('NOOP')
 
 
-    def ChkVersion(self):
+    def chkVersion(self):
         verbose_print('Checking version of FSM server')
-        verstr = self.DoQueryCmd('VERSION')
+        verstr = self.doQueryCmd('VERSION')
         ver = int(verstr.split()[0])
-        if (ver >= self.MIN_SERVER_VERSION):
+        if (ver >= MIN_SERVER_VERSION):
             okversion = True
             verbose_print('FSM server protocol version %s\n'%verstr.split('\n')[0])
         else:
             # --- FIXME: This should raise an exception --
             okversion = False
             verbose_print('The FSM server does not meet the minimum protocol'+\
-                  ' version requirement of %u'%self.MIN_SERVER_VERSION)
-        self.DoQueryCmd('CLIENTVERSION %u'%self.MIN_SERVER_VERSION)
+                  ' version requirement of %u'%MIN_SERVER_VERSION)
+        self.doQueryCmd('CLIENTVERSION %u'%MIN_SERVER_VERSION)
 
-    def SetStateMachine(self):
+    def setStateMachine(self,fsmID):
         '''
         Assign an ID on the FSM server to the current state machine.
 
@@ -231,22 +229,17 @@ class StateMachineClient:
         corresponds to the number of the soundcard used for sound
         triggering.
         '''
-        self.DoQueryCmd('SET STATE MACHINE %d'%self.fsm_id)
+        self.fsm_id = fsmID
+        self.doQueryCmd('SET STATE MACHINE %d'%fsmID)
 
-    def GetStateMachine(self):
+    def getStateMachine(self):
         '''Query the FSM server about the current state machine ID (out of 6).'''
-        smIDstr = self.DoQueryCmd('GET STATE MACHINE')
+        smIDstr = self.doQueryCmd('GET STATE MACHINE')
         smID = int(smIDstr.split()[0])
         return smID
 
-        '''
-    def DoSimpleCmd(self,cmd):
-        self.ChkConn()
-        self.SendString(cmd+'\n')
-        self.ReceiveOK(cmd)
-        '''
 
-    def ReceiveAck(self,cmd,result,ackstring='OK'):
+    def receiveAck(self,cmd,result,ackstring='OK'):
         '''Check that FSM server sent an acknowledgement for the last command.
         The acknowledgement string is either 'OK' or 'READY'
         '''
@@ -260,7 +253,7 @@ class StateMachineClient:
                              'after %s command.')%(ackstring,cmd))
 
 
-    def SetInputEvents(self,val,channeltype):
+    def setInputEvents(self,val,channeltype):
         ### FIXME check .../Modules/@RTLSM2/SetInputEvents.m for what should go here
         # Check validity of 'val': positive scalar or ?
         # Check validity of 'channeltype': either 'ai' or 'dio'
@@ -315,7 +308,7 @@ class StateMachineClient:
         self.input_event_mapping = val
         self.in_chan_type = channeltype
 
-    def GetInputEvents(self):
+    def getInputEvents(self):
         '''
         Returns the input event mapping vector for this FSM.
 
@@ -325,7 +318,7 @@ class StateMachineClient:
         '''
         return self.input_event_mapping;
 
-    def SetOutputRouting(self,routing):
+    def setOutputRouting(self,routing):
         '''
         Modify the output routing for a state machine.
 
@@ -516,7 +509,7 @@ class StateMachineClient:
         #self.output_routing = routing
 
 
-    def GetOutputRouting(self):
+    def getOutputRouting(self):
         '''
         Retreive the currently specified output routing for the fsm.
 
@@ -527,7 +520,7 @@ class StateMachineClient:
         return self.output_routing;
 
 
-    def SetScheduledWavesDIO(self,sched_matrix):
+    def setScheduledWavesDIO(self,sched_matrix):
         '''
         Set the schedule waves matrix, without sending it to server.
 
@@ -656,7 +649,7 @@ class StateMachineClient:
         self.sched_waves = sched_matrix
 
              
-    def SetScheduledWavesAO(self,sched_matrix_id, ao_line, loop_bool, two_by_n_matrix):
+    def setScheduledWavesAO(self,sched_matrix_id, ao_line, loop_bool, two_by_n_matrix):
         '''
         ANALOG I/O LINE SCHEDULED WAVE
         ------------------------------
@@ -766,7 +759,7 @@ class StateMachineClient:
         # FIXME: finish this
         pass
 
-    def ClearScheduledWaves(self):
+    def clearScheduledWaves(self):
         '''
         Clears all scheduled waves.
 
@@ -776,7 +769,7 @@ class StateMachineClient:
         self.sched_waves = []     #zeros(0, size(sm.sched_waves,2));
         self.sched_waves_ao = []  #cell(0, size(sm.sched_waves_ao,2));
 
-    def GetDIOScheduledWaves(self):
+    def getScheduledWavesDIO(self):
         '''
         Return the current scheduled waves matrix for Digital I/O
         lines registered with a state machine.
@@ -789,7 +782,7 @@ class StateMachineClient:
         '''
         return self.sched_waves
 
-    def StartDAQ(self):
+    def startDAQ(self):
         '''
         Specify a set of channels for analog data acquisition, and
         start the acquisition.
@@ -869,7 +862,7 @@ class StateMachineClient:
         # FIXME: write this method
         pass
 
-    def GetDAQScans(self):
+    def getDAQScans(self):
         '''
         Retreive the latest block of scans available.
 
@@ -887,11 +880,11 @@ class StateMachineClient:
         # FIXME: write this method
         pass
 
-    def StopDAQ(self):
+    def stopDAQ(self):
         '''Stop the currently-running data acquisition. See StartDAQ().'''
-        DoQueryCmd('STOP DAQ')
+        doQueryCmd('STOP DAQ')
 
-    def RegisterEventsCallback(self):
+    def registerEventsCallback(self):
         '''
         Enable asynchronous notification as the FSM gets new events
         (state transitions).
@@ -934,7 +927,7 @@ class StateMachineClient:
         # FIXME: write this method
         pass
 
-    def StopEventsCallback(self):
+    def stopEventsCallback(self):
         '''
         Disables asynchronous notification.
 
@@ -945,14 +938,14 @@ class StateMachineClient:
         pass
 
 
-    def Close(self):
+    def close(self):
         '''
         Close connection to server.
         '''
         self.socketClient.close()
 
 
-    def BypassDout(self,d):
+    def bypassDout(self,d):
         '''
         Set digital outputs.
 
@@ -961,27 +954,27 @@ class StateMachineClient:
         
         NOTE by sjara (2009-11-07): I don't understand what this does.
         '''
-        self.DoQueryCmd('BYPASS DOUT %d'%d)
+        self.doQueryCmd('BYPASS DOUT %d'%d)
 
 
-    def Trigger(self,d):
+    def triggerSound(self,d):
         '''
         Triggers the sound corresponding to the given ID, bypassing
         the control over sound triggers.
         '''
-        self.DoQueryCmd('TRIGSOUND %d'%d)
+        self.doQueryCmd('TRIGSOUND %d'%d)
 
 
-    def GetEventCounter(self):
+    def getEventCounter(self):
         '''
         Get the number of events that have occurred since the last
         call to Initialize().
         '''
-        eventcountstr = self.DoQueryCmd('GET EVENT COUNTER')
+        eventcountstr = self.doQueryCmd('GET EVENT COUNTER')
         return int(eventcountstr.split()[0])
 
 
-    def GetEventsOLD(self,startEventNumber,endEventNumber):
+    def getEventsOLD(self,startEventNumber,endEventNumber):
         '''
          Get a matrix in which each row corresponds to an event.
          This method has been replaced by a newer GetEvents().
@@ -1022,13 +1015,13 @@ class StateMachineClient:
         if startEventNumber>endEventNumber:
             eventList = []
         else:
-            eventList = self.DoQueryMatrixCmd('GET EVENTS %d %d'%\
+            eventList = self.doQueryMatrixCmd('GET EVENTS %d %d'%\
                                                (startEventNumber-1,\
                                                 endEventNumber-1))
         return eventList
 
 
-    def GetEvents(self,startEventNumber,endEventNumber):
+    def getEvents(self,startEventNumber,endEventNumber):
         '''
         Get a matrix in which each row corresponds to an event.
         This improved version replaces GetEventsOLD().
@@ -1078,20 +1071,20 @@ class StateMachineClient:
         if startEventNumber>endEventNumber:
             eventList = []
         else:
-            eventList = self.DoQueryMatrixCmd('GET EVENTS_II %d %d'%\
+            eventList = self.doQueryMatrixCmd('GET EVENTS_II %d %d'%\
                                                (startEventNumber-1,\
                                                 endEventNumber-1))
         return eventList
 
 
-    def GetTime(self):
+    def getTime(self):
         '''Get times elapsed (in sec) since last call to Initialize()'''
-        etimestr = self.DoQueryCmd('GET TIME')
+        etimestr = self.doQueryCmd('GET TIME')
         etime = float(etimestr.split()[0])
         return etime
 
 
-    def GetTimeEventsAndState(self,firstEvent):
+    def getTimeEventsAndState(self,firstEvent):
         '''
         Request both the time and the events matrix.
 
@@ -1106,7 +1099,7 @@ class StateMachineClient:
                 events: (m by 5 matrix of events)
         '''
         cmd = 'GET TIME, EVENTS, AND STATE %d'%firstEvent
-        resultstr = self.DoQueryCmd(cmd,expect='')
+        resultstr = self.doQueryCmd(cmd,expect='')
         resultsbyline = resultstr.splitlines()
         if(len(resultsbyline) != 4):
             raise TypeError('FSM server did not return the correct values.')
@@ -1114,51 +1107,51 @@ class StateMachineClient:
         state = int(resultsbyline[1].split()[1])                # STATE %d
         eventcount = int(resultsbyline[2].split()[2])           # EVENT COUNTER %d
         (nrows,ncols) = map(int,resultsbyline[3].split()[1:3])  # MATRIX %d %d
-        # FIXME: this code is repeated in DoQueryMatrixCmd()
+        # FIXME: this code is repeated in doQueryMatrixCmd()
         #        they should be split/recombined/merged
-        self.SendString('READY\n')
+        self.sendString('READY\n')
         (mat,ackstr) = self.readMatrix(nrows,ncols)
-        self.ReceiveAck(cmd,ackstr,'OK')
+        self.receiveAck(cmd,ackstr,'OK')
         # FIXME: make this dict into an object
         allresults = {'etime':etime,'state':state,\
                       'eventcount':eventcount+firstEvent,'events':mat}
         return allresults
 
 
-    def IsRunning(self):
+    def isRunning(self):
         '''Return True if state machine is running, False if halted.'''
-        runningstr = self.DoQueryCmd('IS RUNNING')
+        runningstr = self.doQueryCmd('IS RUNNING')
         running = bool(int(runningstr.split()[0]))
         return running
 
 
-    def GetVarLogCounter(self):
+    def getVarLogCounter(self):
         '''Get the number of variables that have been logged since the
            last call to Initialize().'''
-        varlogcountstr = self.DoQueryCmd('GET VARLOG COUNTER')
+        varlogcountstr = self.doQueryCmd('GET VARLOG COUNTER')
         varlogcount = int(varlogcountstr.split()[0])
         return varlogcount
 
 
-    def GetAIMode(self):
+    def getAIMode(self):
         # FIXME: write this method
         pass
 
 
-    def SetAIMode(self,mode):
+    def setAIMode(self,mode):
         # FIXME: write this method
         pass
 
  
-    def ForceState(self, state):
+    def forceState(self, state):
         '''Force an immediate jump to a state.'''
-        self.DoQueryCmd('FORCE STATE %d'%state)
+        self.doQueryCmd('FORCE STATE %d'%state)
 
 
-    def DoQueryCmd(self,cmd,expect='OK'):
-        self.SendString(cmd+'\n')
+    def doQueryCmd(self,cmd,expect='OK'):
+        self.sendString(cmd+'\n')
         result = self.readLines()
-        self.ReceiveAck(cmd,result,expect)
+        self.receiveAck(cmd,result,expect)
             
         '''
         --- SHOULD I SPLIT LINES HERE? ---
@@ -1172,8 +1165,8 @@ class StateMachineClient:
         return result
 
 
-    def DoQueryMatrixCmd(self,cmd):
-        self.SendString(cmd+'\n')
+    def doQueryMatrixCmd(self,cmd):
+        self.sendString(cmd+'\n')
         matsizestr = self.readLines()
         if 'ERROR' in matsizestr:
             raise ValueError('FSM server returned an error after '+\
@@ -1183,13 +1176,13 @@ class StateMachineClient:
         else:
             raise ValueError('FSM server returned incorrect string '+\
                              'for command: %s',cmd)
-        self.SendString('READY\n')
+        self.sendString('READY\n')
         (mat,ackstr) = self.readMatrix(nrows,ncols)
-        self.ReceiveAck(cmd,ackstr,'OK')
+        self.receiveAck(cmd,ackstr,'OK')
         return mat
 
 
-    def ForceTimeUp():
+    def forceTimeUp():
         '''
         Sends a signal to the state machine to force time up.
 
@@ -1200,10 +1193,10 @@ class StateMachineClient:
         framework itself provides no guarantees as to what state the
         machine will be in when the ForceTimeUp() signal is received.
         '''
-        self.DoQueryCmd('FORCE TIME UP')
+        self.doQueryCmd('FORCE TIME UP')
 
 
-    def ReadyToStartTrial():
+    def readyToStartTrial():
         '''
         Signals the StateMachine that it is ok to start a new trial.
 
@@ -1211,17 +1204,17 @@ class StateMachineClient:
         StateMachine reaches state 35, it will immediately jump to
         state 0, and a new trial starts.
         '''
-        self.DoQueryCmd('READY TO START TRIAL')
+        self.doQueryCmd('READY TO START TRIAL')
 
 
-    def SendData(self,mat,expect='OK'):
+    def sendData(self,mat,expect='OK'):
         dataToSend = packmatrix(mat)
-        self.SendString(dataToSend)
+        self.sendString(dataToSend)
         result = self.readLines()
-        self.ReceiveAck('Sending data',result,expect)
+        self.receiveAck('Sending data',result,expect)
 
 
-    def Initialize(self):
+    def initialize(self):
         '''
         Clear all variables, including the state matrices, and
         initializes the state machine.
@@ -1229,9 +1222,9 @@ class StateMachineClient:
         Initialize() does not start the StateMachine running.  It is
         necessary to call Run() to do that.
         '''
-        self.DoQueryCmd('INITIALIZE')
+        self.doQueryCmd('INITIALIZE')
 
-    def Run(self):
+    def run(self):
         '''
         Resume a halted StateMachine, so that events have an effect
         again.
@@ -1242,9 +1235,9 @@ class StateMachineClient:
         matrices have been defined produces undefined behavior and
         should be avoided.
         '''
-        self.DoQueryCmd('RUN')
+        self.doQueryCmd('RUN')
 
-    def Halt(self):
+    def halt(self):
         '''
         Pauses the StateMachine, putting it in a halted state.
 
@@ -1253,9 +1246,9 @@ class StateMachineClient:
         and so they can be read by other programs.
         Calling Run() will resume a halted state machine.
         '''
-        self.DoQueryCmd('HALT')
+        self.doQueryCmd('HALT')
 
-    def SetStateMatrix(self, state_matrix, pend_sm_swap=False):
+    def setStateMatrix(self, state_matrix, pend_sm_swap=False):
         '''
         Define the state matrix that governs the control algorithm
         during behavior trials.
@@ -1353,7 +1346,8 @@ class StateMachineClient:
                 pass
             elif oneoutput['dtype'] in ['sound', 'ext']:
                 hasSound = True
-            stringThisOutput = '\\1%s\\2%s'%(oneoutput.dtype,oneoutput.data)
+            stringThisOutput = '\\1%s\\2%s'%\
+                               (oneoutput['dtype'],oneoutput['data'])
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
         outputSpecStrUrlEnc = url_encode(outputSpecStr)
  
@@ -1372,13 +1366,13 @@ class StateMachineClient:
         stringpieces[4] = '%s %u'%(outputSpecStrUrlEnc, pend_sm_swap)
         stringtosend = ' '.join(stringpieces)
 
-        self.DoQueryCmd(stringtosend,expect='READY')
-        self.SendData(state_matrix,expect='OK')
+        self.doQueryCmd(stringtosend,expect='READY')
+        self.sendData(state_matrix,expect='OK')
         
         # FIXME: Send AO waves
 
 
-    def FlushQueue(self):
+    def flushQueue(self):
         '''
         Not applicable to this client. It does nothing.
 
@@ -1391,7 +1385,7 @@ class StateMachineClient:
         pass
 
 
-    def PreferredPollingInterval(self):
+    def preferredPollingInterval(self):
         '''
         Not applicable to this client. It does nothing.
 
@@ -1403,7 +1397,7 @@ class StateMachineClient:
         pass
 
 
-    def flush(self):
+    def flushSocket(self):
         '''Read whatever is left on the server's buffer.'''
         return self.readLines()
 
@@ -1422,16 +1416,16 @@ if __name__ == "__main__":
         mat = [ [ 0,  0,  0,  0,  0,  0,  1,  1.2,   0,   0       ] ,\
                 [ 2,  2,  0,  0,  0,  0,  1,   1,   1,   1       ] ,\
                 [ 1,  1,  0,  0,  0,  0,  2,   1,   1,   1       ] ]
-        testSM.SetStateMatrix(mat)
-        testSM.Run()
+        testSM.setStateMatrix(mat)
+        testSM.run()
     if 3 in TESTCASES:   #'Get events':
         import time
         time.sleep(2)
-        evs = testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
+        evs = testSM.doQueryMatrixCmd('GET EVENTS 1 2')
         print evs
 
     # == Other commands ==
-    # testSM.Initialize()
-    # testSM.DoQueryMatrixCmd('GET EVENTS 1 2')
-    # testSM.SendString('VERSION\n')
+    # testSM.initialize()
+    # testSM.doQueryMatrixCmd('GET EVENTS 1 2')
+    # testSM.sendString('VERSION\n')
     # testSM.readLines()

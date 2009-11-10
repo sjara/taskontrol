@@ -110,13 +110,16 @@
     Manual: http://orgmode.org/manual
 *** Matlab (C++ API)
     http://www.mathworks.com/access/helpdesk/help/techdoc/index.html?/access/helpdesk/help/techdoc/apiref/mxgetpr.html&http://www.google.com/search?q=mxGetPr&ie=utf-8&oe=utf-8
-*** Python
+*** Python:
     Tutorial: http://docs.python.org/tutorial/
     Reference: http://docs.python.org/reference/
     TIP: range(*args)   # call with arguments unpacked from a list
     Struct (and info on type sizes): http://docs.python.org/library/struct.html
-*** Emacs
+*** Emacs:
     Hideshow minor mode: http://www.gnu.org/software/emacs/manual/html_node/emacs/Hideshow.html
+*** PyQt:
+    http://eli.thegreenplace.net/2009/01/20/matplotlib-with-pyqt-guis/
+    http://eli.thegreenplace.net/2009/05/23/more-pyqt-plotting-demos/
 
 
 * Misc:
