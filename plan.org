@@ -89,17 +89,20 @@
 
 * Notes on developing in python:
 *** Ipython:
-***** Debugger:
+***** DONE Debugger:
 ******* Running 'run -d script' did not work:
 	"AttributeError: Pdb instance has no attribute 'curframe'"
 	https://bugs.launchpad.net/ubuntu/+source/ipython/+bug/381069
 	But running "ipython -pdb" worked.
 ******* Trying to use pydb failed because it installed only for python2.4
 ******* SOLUTION: running 'ipython -pdb' worked fine.
-***** TAB-autocompletion:
+***** TODO TAB-autocompletion:
       It adds a blank space after the completion, very annoying.
       Try for example: cd /hom<TAB>
       http://mail.scipy.org/pipermail/ipython-user/2005-March/002612.html
+      https://bugs.launchpad.net/ipython/+bug/470824
+******* SOLUTION: link  libreadline.so.6 to libreadline.so.5.2
+	instead of linking to libreadline.so.6.0
 ***** Profiler has to be installed separately because of its license:
       The Debian package is called 'python-profiler'.
       In any case, it didn't really work the way I wanted. Gotta try again.
@@ -123,11 +126,26 @@
 *** Emacs:
     Hideshow minor mode: http://www.gnu.org/software/emacs/manual/html_node/emacs/Hideshow.html
 *** PyQt:
-    http://eli.thegreenplace.net/2009/01/20/matplotlib-with-pyqt-guis/
-    http://eli.thegreenplace.net/2009/05/23/more-pyqt-plotting-demos/
+***** Reference:
+      http://www.riverbankcomputing.co.uk/static/Docs/PyQt4/html/classes.html
+***** Matplotlib:
+      http://eli.thegreenplace.net/2009/01/20/matplotlib-with-pyqt-guis/
+      http://eli.thegreenplace.net/2009/05/23/more-pyqt-plotting-demos/
+***** File dialog:      	
+      http://zetcode.com/tutorials/pyqt4/dialogs/
 
 
 * Misc:
 *** I can't run the emulator on Ubuntu 9.10 because of a bug (in glibc?) about threads.
     It run fine on Ubuntu 9.04. I think the bug is related to:
     https://bugs.launchpad.net/ubuntu/+source/glib2.0/+bug/453898
+
+
+* Design:
+*** SMclient
+    setStateMatrix, run, halt, getEvents, readyToStartTrial
+*** dispatcher
+***** TODO Write a Qt dialog with a run button and a printout of the time and state of the SM.
+      keep time and trial count, interface to assemble matrix and get events back.
+*** protocol
+    design state matrix and parameters, send to dispatcher.
