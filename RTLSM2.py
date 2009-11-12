@@ -76,7 +76,7 @@ def OLDpackmatrix(mat):
             packedMatrix = ''.join((packedMatrix,packedvalue))
 
 
-class StateMachineClient:
+class StateMachineClient(object):
     '''
     Create a new client that connects to the state machine server
     running on host, port.  Since a state machine server can handle
