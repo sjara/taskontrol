@@ -66,8 +66,9 @@ def packmatrix(mat):
     return packedMatrix
 
 
-def OLDpackmatrix(mat):
+def _OLDpackmatrix(mat):
     '''Flatten by rows'''
+    # FIXME: OLDCODE
     packedMatrix = ''
     packer = struct.Struct('d')
     for onerow in mat:
@@ -133,8 +134,9 @@ class StateMachineClient(object):
         self.socketClient.connect( (self.host,self.port) )
         
 
-    def disconnect(self):
+    def _disconnect(self):
         '''NOTE: this is implemented by Close()'''
+        # FIXME: OLDCODE
         self.close()
 
 
@@ -948,6 +950,7 @@ class StateMachineClient(object):
         '''
         Close connection to server.
         '''
+        self.halt()
         self.socketClient.close()
 
 
@@ -956,9 +959,10 @@ class StateMachineClient(object):
         Set digital outputs.
 
         Set outputs to be whatever the state machine would indicate,
-        bitwise or `d with "d." To turn this off, call BypassDout(0).
+        bitwise or `d with "d." To turn this off, call bypassDout(0).
         
-        NOTE by sjara (2009-11-07): I don't understand what this does.
+        NOTE by sjara (2009-11-07): This is the comment from the
+        Matlab version, I don't understand what this does.
         '''
         self.doQueryCmd('BYPASS DOUT %d'%d)
 
@@ -974,7 +978,7 @@ class StateMachineClient(object):
     def getEventCounter(self):
         '''
         Get the number of events that have occurred since the last
-        call to Initialize().
+        call to initialize().
         '''
         eventcountstr = self.doQueryCmd('GET EVENT COUNTER')
         return int(eventcountstr.split()[0])
@@ -1084,7 +1088,11 @@ class StateMachineClient(object):
 
 
     def getTime(self):
-        '''Get times elapsed (in sec) since last call to Initialize()'''
+        '''
+        Get time elapsed (in sec) since last call to initialize().
+
+        Returns: etime
+        '''
         etimestr = self.doQueryCmd('GET TIME')
         etime = float(etimestr.split()[0])
         return etime
@@ -1095,15 +1103,16 @@ class StateMachineClient(object):
         Request both the time and the events matrix.
 
         Gets the time, in seconds, that has elapsed since the last
-        call to Initialize(), as well as the Events matrix starting
-        from first_event_num up until the present.
+        call to initialize(), as well as the Events matrix starting
+        from firstEvent up until the present.
  
         The returned struct has the following 4 fields:
-                time: (time in seconds)
-                state: (state number state machine is currently in)
-                event_ct: (event number of the latest event)
-                events: (m by 5 matrix of events)
+                time:       time in seconds.
+                state:      state number the state machine is currently in.
+                eventcount: event number of the latest event.
+                events:     m by 5 matrix of events.
         '''
+        # FIXME: is eventcount correct? or shifted by +1?
         cmd = 'GET TIME, EVENTS, AND STATE %d'%firstEvent
         resultstr = self.doQueryCmd(cmd,expect='')
         resultsbyline = resultstr.splitlines()
@@ -1133,7 +1142,7 @@ class StateMachineClient(object):
 
     def getVarLogCounter(self):
         '''Get the number of variables that have been logged since the
-           last call to Initialize().'''
+           last call to initialize().'''
         varlogcountstr = self.doQueryCmd('GET VARLOG COUNTER')
         varlogcount = int(varlogcountstr.split()[0])
         return varlogcount
@@ -1225,7 +1234,7 @@ class StateMachineClient(object):
         Clear all variables, including the state matrices, and
         initializes the state machine.
 
-        Initialize() does not start the StateMachine running.  It is
+        initialize() does not start the StateMachine running.  It is
         necessary to call Run() to do that.
         '''
         self.doQueryCmd('INITIALIZE')
@@ -1235,7 +1244,7 @@ class StateMachineClient(object):
         Resume a halted StateMachine, so that events have an effect
         again.
 
-        After an Initialize(), Run() starts the machine in state
+        After an initialize(), Run() starts the machine in state
         0. After a Halt(), Run() restarts the machine in whatever
         state is was halted. Note that calling Run() before the state
         matrices have been defined produces undefined behavior and
@@ -1283,8 +1292,8 @@ class StateMachineClient(object):
         Notes:
         - The part of the state matrix that is being run during
           intertrial intervals should remain constant in between any
-          two calls of Initialize()
-        - SetStateMatrix() should only be called in-between trials.
+          two calls of initialize()
+        - setStateMatrix() should only be called in-between trials.
         '''
 
         # FIXME: Check the validity of the matrix
@@ -1431,7 +1440,7 @@ class StateMachineClient(object):
 
 if __name__ == "__main__":
 
-    TESTCASES = [1,4]
+    TESTCASES = [1,2]
 
     if 0 in TESTCASES:  #'JustCreate':
         testSM = StateMachineClient('soul',connectnow=0)
@@ -1439,6 +1448,7 @@ if __name__ == "__main__":
         testSM = StateMachineClient('soul')
     if 2 in TESTCASES:   #'SendMatrixNoWaves':
         #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
+        testSM.initialize()
         mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
                 [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
                 [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\

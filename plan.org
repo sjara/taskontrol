@@ -33,6 +33,7 @@
 *** SoundClient
 *** Solo-like graphical module
 *** Dispatcher-like module
+***** Receive time, states and events.
 
 
 * Bugs and fixes:

@@ -11,6 +11,7 @@ NOTES:
 - Should I implement it with QThread instead?
 - If running on Windows I may need to change name to *.pyw
 - Does the time keep going even if close the window?
+- Crashing should be graceful (for example close connection to statemachine)
 '''
 
 
@@ -21,21 +22,36 @@ __created__ = '2009-11-11'
 import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
+import smclient
 
 class Dispatcher(QtGui.QDialog):
     def __init__(self, parent=None):
         super(Dispatcher, self).__init__(parent)
 
         self.__buttonColors = {'start':'green','stop':'red'}
+
+        # -- Create a state machine client --
+        self.host = 'soul'
+        self.port = 3333
+        self.statemachine = smclient.StateMachineClient(self.host,self.port)
+
+        self.mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
+                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
+                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+
+
         # -- Create timer --
-        self.interval = 1000
-        self.counter = 0
+        self.interval = 300
+        self.time = 0.0         # Time on the state machine
+        self.state = 0          # State of the state machine
         self.timer = QtCore.QTimer(self)
         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.timeout)
 
         # -- Create graphical objects --
         #self.resize(400,300)
-        self.timeLabel = QtGui.QLabel("Time: %d"%self.counter)
+        self.stateLabel = QtGui.QLabel("State: %d"%self.state)
+        self.timeLabel = QtGui.QLabel("Time: %d"%self.time)
         self.buttonStartStop = QtGui.QPushButton("&Push")
         self.buttonStartStop.setMinimumSize(200,100)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
@@ -44,6 +60,7 @@ class Dispatcher(QtGui.QDialog):
 
         # -- Create layouts --
         layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.stateLabel)
         layout.addWidget(self.timeLabel)
         layout.addWidget(self.buttonStartStop)
         self.setLayout(layout)
@@ -52,7 +69,7 @@ class Dispatcher(QtGui.QDialog):
         self.connect(self.buttonStartStop, QtCore.SIGNAL("clicked()"),
                      self.startOrStop)
 
-        self.stopTimer()
+        self.stop()
 
 
     def timeout(self):
@@ -60,29 +77,37 @@ class Dispatcher(QtGui.QDialog):
         
 
     def queryStateMachine(self):
-        self.counter +=1
-        print self.counter
-        self.timeLabel.setText("Time: %d"%self.counter)
+        self.time = self.statemachine.getTime()
+        self.timeLabel.setText("Time: %0.2f"%self.time)
 
 
     def startOrStop(self):
+        '''Toggle (start or stop) state machine and dispatcher timer.'''
         if(self.timer.isActive()):
-            self.stopTimer()
+            self.stop()
         else:
-            self.startTimer()
+            self.start()
 
 
-    def startTimer(self):
-        '''Stop timer.'''
+    def start(self):
+        '''Start timer.'''
         self.timer.start(self.interval)
+        # -- Start state machine --
+        self.statemachine.initialize()
+        self.statemachine.setStateMatrix(self.mat)        
+        self.statemachine.run()
+        # -- Change button appearance --
         stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
 
 
-    def stopTimer(self):
+    def stop(self):
         '''Stop timer.'''
         self.timer.stop()
+        # -- Start state machine --
+        self.statemachine.halt()
+        # -- Change button appearance --
         stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['start']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Start')
@@ -97,7 +122,8 @@ class Dispatcher(QtGui.QDialog):
 
     def closeEvent(self, event):
         '''Make sure timer stops when user closes the dispatcher.'''
-        self.stopTimer()
+        self.stop()
+        self.statemachine.close()
         event.accept()
 
 '''
