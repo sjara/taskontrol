@@ -110,6 +110,7 @@
 
 * Links and tips on tools:
 *** Git:
+    Manual: http://www.kernel.org/pub/software/scm/git/docs/user-manual.html
     Crash course: http://git-scm.com/course/svn.html 
     For the lazy: http://www.spheredev.org/wiki/Git_for_the_lazy
     In emacs    : http://parijatmishra.wordpress.com/2008/09/06/up-and-running-with-emacs-and-git/
