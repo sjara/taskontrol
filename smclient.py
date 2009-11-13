@@ -3,9 +3,9 @@
 '''
 RT-Linux state machine client.
 
+This is a client for the RTAI version of the FSM, c. 2009.
 Based largely on Modules/@RTLSM2 from the matlab client provided by
 http://code.google.com/p/rt-fsm/
-It is therefore a client for the RTAI version of the FSM, c. 2009.
 
 Most comments describing the methods are pasted from the Matlab code,
 so they may include non-python syntax.
