@@ -151,3 +151,7 @@
       keep time and trial count, interface to assemble matrix and get events back.
 *** protocol
     design state matrix and parameters, send to dispatcher.
+*** parameters
+    Object holding a label and value. It will be saved for each trial.
+    It can be: label+editbox or menu
+

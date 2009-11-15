@@ -8,10 +8,12 @@ and the state machine. It will for example halt the state machine
 until the next trial has been prepared and ready to start.
 
 NOTES:
+- Should I separate GUI from trial structure control?
 - Should I implement it with QThread instead?
 - If running on Windows I may need to change name to *.pyw
 - Does the time keep going even if close the window?
 - Crashing should be graceful (for example close connection to statemachine)
+- Style sheets (used for changing color) may not be supported on MacOSX
 '''
 
 
@@ -25,6 +27,12 @@ from PyQt4 import QtGui
 import smclient
 
 class Dispatcher(QtGui.QDialog):
+    '''
+    Dispatcher graphical widget: Interface with state machine.
+    
+    This widget allows querying the state machine about time, state
+    and events. It also sets the trial structure of the protocol.
+    '''
     def __init__(self, parent=None):
         super(Dispatcher, self).__init__(parent)
 
