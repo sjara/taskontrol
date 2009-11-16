@@ -2,6 +2,9 @@
 #+STARTUP: odd
 #+STARTUP: showall
 
+* To do next:
+*** TODO A simple protocol with one parameter defining the time of a clock.
+*** TODO A simple protocol organized by trials.
 
 * TASKontrol
 *** SMclient/RTLSMclient
@@ -31,6 +34,9 @@
       I will not implement any other besides the generic ForceState().
 ***** TODO SetStateProgram(), GetStateProgram()
 *** SoundClient
+***** TODO Write the client
+      ~/tmp/newbcontrol/Modules/@RTLSoundMachine
+      /SoundTrigClient/SoundTrigClient.cpp
 *** Solo-like graphical module
 *** Dispatcher-like module
 ***** Receive time, states and events.
@@ -97,7 +103,7 @@
 	But running "ipython -pdb" worked.
 ******* Trying to use pydb failed because it installed only for python2.4
 ******* SOLUTION: running 'ipython -pdb' worked fine.
-***** TODO TAB-autocompletion:
+***** DONE TAB-autocompletion:
       It adds a blank space after the completion, very annoying.
       Try for example: cd /hom<TAB>
       http://mail.scipy.org/pipermail/ipython-user/2005-March/002612.html
@@ -146,9 +152,10 @@
 * Design:
 *** SMclient
     setStateMatrix, run, halt, getEvents, readyToStartTrial
+*** SoundClient
 *** dispatcher
-***** TODO Write a Qt dialog with a run button and a printout of the time and state of the SM.
-      keep time and trial count, interface to assemble matrix and get events back.
+    Qt widget with a run button and a printout of the time and state of the SM.
+    keep time and trial count, interface to assemble matrix and get events back.
 *** protocol
     design state matrix and parameters, send to dispatcher.
 *** parameters

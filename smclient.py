@@ -9,6 +9,10 @@ http://code.google.com/p/rt-fsm/
 
 Most comments describing the methods are pasted from the Matlab code,
 so they may include non-python syntax.
+
+TODO:
+- Graceful response if trying to send command to server while not
+  connected.
 '''
 
 __version__ = '0.1'
@@ -106,16 +110,23 @@ class StateMachineClient(object):
         # 'ext' is used in this case for sound
         self.output_routing = [ {'dtype':'dout', 'data':'0-15'},\
                                 {'dtype':'ext',  'data':str(self.fsm_id)} ]
+        self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
         if connectnow:
             self.connect()
-            self.chkConn()
-            self.chkVersion()
-            self.setStateMachine(self.fsm_id);
-        self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
 
     def connect(self):
+        '''
+        Connect the client, check version, and set state machine ID.
+        '''
+        self.createAndConnectSocket()
+        self.chkConn()
+        self.chkVersion()
+        self.setStateMachine(self.fsm_id);
+
+
+    def createAndConnectSocket(self):
         '''
         Connect to the state machine server.
 

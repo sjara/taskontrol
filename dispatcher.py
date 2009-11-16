@@ -26,14 +26,14 @@ from PyQt4 import QtCore
 from PyQt4 import QtGui 
 import smclient
 
-class Dispatcher(QtGui.QDialog):
+class Dispatcher(QtGui.QWidget):
     '''
     Dispatcher graphical widget: Interface with state machine.
     
     This widget allows querying the state machine about time, state
     and events. It also sets the trial structure of the protocol.
     '''
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, connectnow=True):
         super(Dispatcher, self).__init__(parent)
 
         self.__buttonColors = {'start':'green','stop':'red'}
@@ -41,13 +41,10 @@ class Dispatcher(QtGui.QDialog):
         # -- Create a state machine client --
         self.host = 'soul'
         self.port = 3333
-        self.statemachine = smclient.StateMachineClient(self.host,self.port)
-
-        self.mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
-                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
-                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
-                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
-
+        self.isConnected = False
+        self.statemachine = smclient.StateMachineClient(self.host,self.port,\
+                                                        connectnow=False)
+        self.mat = []
 
         # -- Create timer --
         self.interval = 300
@@ -59,9 +56,10 @@ class Dispatcher(QtGui.QDialog):
         # -- Create graphical objects --
         #self.resize(400,300)
         self.stateLabel = QtGui.QLabel("State: %d"%self.state)
-        self.timeLabel = QtGui.QLabel("Time: %d"%self.time)
+        self.timeLabel = QtGui.QLabel("Time: %0.2f"%self.time)
         self.buttonStartStop = QtGui.QPushButton("&Push")
-        self.buttonStartStop.setMinimumSize(200,100)
+        #self.buttonStartStop.setMinimumSize(200,100)
+        self.buttonStartStop.setMinimumHeight(100)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
         buttonFont.setPointSize(buttonFont.pointSize()+10)
         self.buttonStartStop.setFont(buttonFont)
@@ -80,12 +78,18 @@ class Dispatcher(QtGui.QDialog):
         self.stop()
 
 
+    def connectToSM(self):
+        self.statemachine.connect()
+        self.isConnected = True
+
+
     def timeout(self):
         self.queryStateMachine()
         
 
     def queryStateMachine(self):
-        self.time = self.statemachine.getTime()
+        if self.isConnected:
+            self.time = self.statemachine.getTime()
         self.timeLabel.setText("Time: %0.2f"%self.time)
 
 
@@ -101,9 +105,12 @@ class Dispatcher(QtGui.QDialog):
         '''Start timer.'''
         self.timer.start(self.interval)
         # -- Start state machine --
-        self.statemachine.initialize()
-        self.statemachine.setStateMatrix(self.mat)        
-        self.statemachine.run()
+        if self.isConnected:
+            self.statemachine.initialize()
+            self.statemachine.setStateMatrix(self.mat)        
+            self.statemachine.run()
+        else:
+            print 'The dispatcher is not connected to the state machine server.'            
         # -- Change button appearance --
         stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
@@ -114,7 +121,10 @@ class Dispatcher(QtGui.QDialog):
         '''Stop timer.'''
         self.timer.stop()
         # -- Start state machine --
-        self.statemachine.halt()
+        if self.isConnected:
+            self.statemachine.halt()
+        else:
+            print 'The dispatcher is not connected to the state machine server.'
         # -- Change button appearance --
         stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['start']
         self.buttonStartStop.setStyleSheet(stylestr)
@@ -131,7 +141,8 @@ class Dispatcher(QtGui.QDialog):
     def closeEvent(self, event):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.stop()
-        self.statemachine.close()
+        if self.isConnected:
+            self.statemachine.close()
         event.accept()
 
 '''
@@ -141,12 +152,23 @@ class Dispatcher(QtGui.QDialog):
         #p.setColor(QColorGroup.Base,QtGui.QColor(QtCore.Qt.green))
 '''   
 
+#class TestForm(QtGui.QDialog):
+
+
 
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
-    form = Dispatcher()
+    form = QtGui.QDialog()
+    dispatcherwidget = Dispatcher(parent=form,connectnow=False)
     form.show()
+    mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
+            [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
+            [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
+            [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+
+
+
     app.exec_()
     
     # FIXME: maybe this way is better
