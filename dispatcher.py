@@ -14,6 +14,9 @@ NOTES:
 - Does the time keep going even if close the window?
 - Crashing should be graceful (for example close connection to statemachine)
 - Style sheets (used for changing color) may not be supported on MacOSX
+
+TODO:
+* When the form is destroyed, dispatcher.closeEvent is not called!
 '''
 
 
@@ -26,6 +29,8 @@ from PyQt4 import QtCore
 from PyQt4 import QtGui 
 import smclient
 
+BUTTON_COLORS = {'start':'green','stop':'red'}
+
 class Dispatcher(QtGui.QWidget):
     '''
     Dispatcher graphical widget: Interface with state machine.
@@ -33,17 +38,18 @@ class Dispatcher(QtGui.QWidget):
     This widget allows querying the state machine about time, state
     and events. It also sets the trial structure of the protocol.
     '''
-    def __init__(self, parent=None, connectnow=True):
+    def __init__(self, parent=None, host='localhost', port=3333, connectnow=True):
         super(Dispatcher, self).__init__(parent)
 
-        self.__buttonColors = {'start':'green','stop':'red'}
-
         # -- Create a state machine client --
-        self.host = 'soul'
-        self.port = 3333
+        self.host = host
+        self.port = port
         self.isConnected = False
         self.statemachine = smclient.StateMachineClient(self.host,self.port,\
                                                         connectnow=False)
+        if connectnow:
+            self.connectToSM()  # Connect and set self.isConnected to True
+
         self.mat = []
 
         # -- Create timer --
@@ -112,7 +118,7 @@ class Dispatcher(QtGui.QWidget):
         else:
             print 'The dispatcher is not connected to the state machine server.'            
         # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['stop']
+        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
 
@@ -126,22 +132,18 @@ class Dispatcher(QtGui.QWidget):
         else:
             print 'The dispatcher is not connected to the state machine server.'
         # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%self.__buttonColors['start']
+        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['start']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Start')
 
 
-    def center(self):
-        '''Place in the center of the screen (NOT TESTED YET)'''
-        screen = QtGui.QDesktopWidget().screenGeometry()
-        size =  self.geometry()
-        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-
-
     def closeEvent(self, event):
         '''Make sure timer stops when user closes the dispatcher.'''
+        # FIXME: When the window is closed, Dispatcher.closeEvent is not called!
         self.stop()
+        print 'Enter closeEvent'
         if self.isConnected:
+            print 'And is was connected'
             self.statemachine.close()
         event.accept()
 
@@ -152,23 +154,33 @@ class Dispatcher(QtGui.QWidget):
         #p.setColor(QColorGroup.Base,QtGui.QColor(QtCore.Qt.green))
 '''   
 
-#class TestForm(QtGui.QDialog):
 
+def center(guiObj):
+    '''Place in the center of the screen (NOT TESTED YET)'''
+    screen = QtGui.QDesktopWidget().screenGeometry()
+    size =  guiObj.geometry()
+    guiObj.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
 
 
 if __name__ == "__main__":
 
+    TESTCASE = 2
+
     app = QtGui.QApplication(sys.argv)
     form = QtGui.QDialog()
-    dispatcherwidget = Dispatcher(parent=form,connectnow=False)
+    form.setFixedSize(180,200)
+    #form.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Expanding)
+
+    if TESTCASE==1:
+        dispatcherwidget = Dispatcher(parent=form,connectnow=False)
+    elif TESTCASE==2:
+        dispatcherwidget = Dispatcher(parent=form,host='soul')
+        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
+                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
+                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+
     form.show()
-    mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
-            [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
-            [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
-            [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
-
-
-
     app.exec_()
     
     # FIXME: maybe this way is better
