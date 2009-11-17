@@ -1117,8 +1117,8 @@ class StateMachineClient(object):
         call to initialize(), as well as the Events matrix starting
         from firstEvent up until the present.
  
-        The returned struct has the following 4 fields:
-                time:       time in seconds.
+        The returned dict has the following 4 fields:
+                etime:      elapsed time in seconds.
                 state:      state number the state machine is currently in.
                 eventcount: event number of the latest event.
                 events:     m by 5 matrix of events.
@@ -1131,7 +1131,7 @@ class StateMachineClient(object):
             raise TypeError('FSM server did not return the correct values.')
         etime = float(resultsbyline[0].split()[1])              # TIME %f
         state = int(resultsbyline[1].split()[1])                # STATE %d
-        eventcount = int(resultsbyline[2].split()[2])           # EVENT COUNTER %d
+        eventcountsince = int(resultsbyline[2].split()[2])      # EVENT COUNTER %d
         (nrows,ncols) = map(int,resultsbyline[3].split()[1:3])  # MATRIX %d %d
         # FIXME: this code is repeated in doQueryMatrixCmd()
         #        they should be split/recombined/merged
@@ -1140,7 +1140,7 @@ class StateMachineClient(object):
         self.receiveAck(cmd,ackstr,'OK')
         # FIXME: make this dict into an object
         allresults = {'etime':etime,'state':state,\
-                      'eventcount':eventcount+firstEvent,'events':mat}
+                      'eventcount':eventcountsince+firstEvent,'events':mat}
         return allresults
 
 
