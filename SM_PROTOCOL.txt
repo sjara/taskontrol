@@ -1,0 +1,145 @@
+____________________________________________________________
+
+ Protocol for communicating with the RT-Linux state machine
+____________________________________________________________
+
+This file describes the text-based protocol between server and client
+for the RT-Linux state machine system (written by Calin Culianu)
+available at http://code.google.com/p/rt-fsm/ 
+
+As explained in their README.txt file, they do not provide yet a
+documentation of the protocol. The goal of this file is to provide
+that documentation based on the code for their Matlab client
+(Modules/@RTLSM2 and Modules/NetClient) circa Oct 2009.
+
+                               -- Santiago Jaramillo <jara@cshl.edu>
+
+____________________
+
+ COMMANDS TO SERVER
+____________________
+
+Command, NumberOfOutpuLines, OK, Notes
+
+'NOOP',                 0,   1,   No operation
+'VERSION',              1,   1,   Request version of server
+'CLIENTVERSION %u',     0,   1,   Send version of client
+'SET STATE MACHINE %d', 0,   1,   Define state machine ID
+'INITIALIZE',           0,   1,   Initialize state machine
+'RUN',                  0,   1,   Resume state machine
+'HALT',                 0,   1,   Pause the state machine
+'SET STATE MATRIX ...', 0,  Returns READY after first line sent
+   (many params)            then expects the matrix. After receiving
+                            matrix it returns OK.
+                            Format for the matrix is described below.
+'FORCE TIME UP'         0,   1,   Force a state time-up
+'READY TO START TRIAL'  0,   1,  
+'START DAQ %s %s'                 ???
+'STOP DAQ'              0,   1,   ???
+'BYPASS DOUT %d'        0,   1,   ???
+'TRIGSOUND %d'          0,   1,   Triggers sounds bypassing control
+'GET EVENT COUNTER'     1,   1,
+'GET EVENTS %d %d'     mat,  1,   Request matrix of events (old version)
+'GET EVENTS_II %d %d'  mat,  1,   Request matrix of events (new version)
+'GET TIME'              1,   1,   Request time since Initialize()
+'GET TIME, EVENTS, AND STATE %d\n'
+'IS RUNNING'            1,   1,   Return 1 if running, 0 if halted
+'FORCE STATE %d'        0,   1,   Force an immediate jump to a state
+
+
+________________________
+
+ FORMAT OF STATE MATRIX
+________________________
+
+  [TO BE WRITTEN]
+  Note that binary data representing matrices is sent column-wise (Matlab way).
+
+        The matrix is M x N, where M is the number of states (so each
+        row corresponds to a state) and N is the number of input
+        events + output events per state.
+        This state_matrix can have nearly unlimited rows (i.e.,
+        states), and has a variable number of columns, depending on
+        how many input events are defined.
+
+        The default number of input events is 6 (CIN, COUT, LIN, LOUT,
+        RIN, ROUT).  In addition to the input event columns, the state
+        matrix also has 4 or 5 additional columns:
+         TIMEOUT_STATE    TIMEOUT_TIME    CONT_OUT    TRIG_OUT
+         and the optional SCHED_WAVE.
+
+________________________________
+
+ FORMAT OF SCHEDULE WAVES (DIO)
+________________________________
+
+This is an M by 8 matrix of the following format per row:
+  ID  IN_EVENT_COL  OUT_EVENT_COL  DIO_LINE
+  SOUND_TRIG  PREAMBLE  SUSTAIN  REFRACTION
+
+        ID - the numeric id of the scheduled wave.  Each wave is
+             numbered from 0-31.  (NOTE: 0 is a valid ID!). The ID is
+             later used in the StateMatrix SCHED_WAVE column as a
+             bitposition.  So for example if you want wave number with
+             ID 10 to fire, you use 2^10 in the SCHED_WAVE column of
+             the state matrix and 10 as the ID in this matrix.  You
+             can *untrigger* scheduled waves by issuing a negative
+             number.  To untrigger wave ID 10, you would issue -(2^10)
+             in your state matrix.
+
+        IN_EVENT_COL - The column of the state matrix (0 being the
+             first column) which is to be used as the INPUT event
+             column when this wave goes HIGH (edge up). Think of this
+             as a WAVE-IN event. Set this value to -1 to have the
+             state machine not trigger a state matrix input event for
+             edge-up transitions.
+ 
+        OUT_EVENT_COL - The column of the state matrix (0 being the
+             first column) which is to be used as the INPUT event
+             column when this wave goes LOW (edge down).  Think of
+             this as a WAVE-OUT event.  Set this value to -1 to have
+             the state machine not trigger a state matrix input event
+             for edge-down transitions.
+
+Question: Are columns with respect to the first SchedWave? SchWave0:Col0
+          or with respect to the first input column?  SchWave0:Col10
+	  I believe the latter.
+
+        DIO_LINE - The DIO line on which to echo the output of this
+             waveform.  Note that not all waves need have a real DIO
+             line associated with them.  Set this value to -1 to not
+             use a DIO line.
+
+        SOUND_TRIG - The sound id to trigger when 'sustain' occurs, and
+             then to untrigger when 'refraction' occurs.  0 for none.
+
+        PREAMBLE (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is triggered in the
+             state matrix SCHED_WAVE column to the time it actually
+             goes high.  Fractional numbers are ok.  Note the
+             granularity of this time specification is the time
+             quantum of the state machine (typically 166 microsecs),
+             so values smaller than this quantum are probably going to
+             get rounded to the nearest quantum.
+
+        SUSTAIN (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is goes high to the time
+             it should go low again.  Stated another way, the amount
+             of time a scheduled wave sustains a high state.
+             Fractional numbers are ok.  Note the granularity of this
+             time specification is the time quantum of the state
+             machine (typically 166 microsecs), so values smaller than
+             this quantum are probably going to get rounded to the
+             nearest quantum
+
+        REFRACTION (seconds) - The amount of time to wait (in seconds)
+             from the time the scheduled wave is goes low to the time
+             it can successfully be triggered again by the SCHED_WAVE
+             column of the state matrix. Fractional numbers are ok.
+             Note the granularity of this time specification is the
+             time quantum of the state machine (typically 166
+             microsecs), so values smaller than this quantum are
+             probably going to get rounded to the nearest quantum.
+
+
+
