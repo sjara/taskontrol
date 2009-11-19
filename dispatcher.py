@@ -178,6 +178,7 @@ class Dispatcher(QtGui.QWidget):
     def die(self):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.stop()
+        self.statemachine.forceState(0)
         if self.isConnected:
             self.statemachine.close()
 
