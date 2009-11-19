@@ -47,6 +47,21 @@ Command, NumberOfOutpuLines, OK, Notes
 'FORCE STATE %d'        0,   1,   Force an immediate jump to a state
 
 
+
+Format for SET STATE MATRIX command is:
+SET STATE MATRIX nRows  nCols  nInEvents  nSchedWaves
+                 InChanType  ReadyForTrialJumpstate
+                 IGNORED   IGNORED   IGNORED 
+                 OutputSpecUrlEncoded  PendSMswap
+
+OutputSpecUrlEncoded has format: 
+0x01 dtype 0x02 data 0x01 dtype 0x02 data (without spaces)
+where everything is urlencoded, so the hex value 0x01
+becomes %01, 0x02 becomes %02, etc
+For example:
+'type':'dout','data':'0-15'  becomes  %01dout%020%2d15
+
+
 ________________________
 
  FORMAT OF STATE MATRIX

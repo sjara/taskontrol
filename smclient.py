@@ -1379,9 +1379,10 @@ class StateMachineClient(object):
             LastRow = oneExtraRow + nPadZeros*[0]
             state_matrix.append(LastRow)
         
-        # Format and urlencode the output_spec_str with format:
-        # \1.dtype\2.data\1.dtype\2.data... where everything is
-        # urlencoded (so \1 becomes %01, \2 becomes %02, etc)
+        # Format and urlencode the outputSpecStrUrlEnc with format: 
+        # 0x01 dtype 0x02 data 0x01 dtype 0x02 data (without spaces)
+        # where everything is urlencoded, so the hex value 0x01
+        # becomes %01, 0x02 becomes %02, etc
         hasSound = False
         outputSpecStr = ''
         for oneoutput in self.output_routing:
@@ -1391,7 +1392,7 @@ class StateMachineClient(object):
                 pass
             elif oneoutput['dtype'] in ['sound', 'ext']:
                 hasSound = True
-            stringThisOutput = '\\1%s\\2%s'%\
+            stringThisOutput = '\x01%s\x02%s'%\
                                (oneoutput['dtype'],oneoutput['data'])
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
         outputSpecStrUrlEnc = url_encode(outputSpecStr)
@@ -1465,7 +1466,7 @@ if __name__ == "__main__":
                 [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
                 [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
         testSM.setStateMatrix(mat)
-        testSM.run()
+        #testSM.run()
     if 3 in TESTCASES:   #'Get events':
         import time
         time.sleep(2)
