@@ -22,15 +22,8 @@ __created__ = '2009-11-01'
 
 import socket
 import struct
-import math
 
-VERBOSE = True
 MIN_SERVER_VERSION = 220080319  # Update this on protocol change
-
-
-def verbose_print(msg):
-    if(VERBOSE):
-        print(msg)
 
 
 def matsize(array2d):
@@ -72,7 +65,7 @@ def packmatrix(mat):
 
 def _OLDpackmatrix(mat):
     '''Flatten by rows'''
-    # FIXME: OLDCODE
+    # FIXME: OLDCODE, move to another file.
     packedMatrix = ''
     packer = struct.Struct('d')
     for onerow in mat:
@@ -85,7 +78,7 @@ class StateMachineClient(object):
     '''
     Create a new client that connects to the state machine server
     running on host, port.  Since a state machine server can handle
-    more than one virtual state machine, fsm_id specifies which of the
+    more than one virtual state machine, fsmID specifies which of the
     6 state machines on the server to use.  See method
     GetStateMachine() for more details.
 
@@ -97,10 +90,11 @@ class StateMachineClient(object):
 
     The sm will not have any SchedWave matrix, or any state matrix.
     '''
-    def __init__(self, host='localhost', port=3333, fsm_id=0, connectnow=True):
+    def __init__(self, host='localhost', port=3333, fsmID=0, connectnow=True):
+        self.VERBOSE = False    # Set to True for printing client messages
         self.host = host
         self.port = port
-        self.fsm_id = fsm_id
+        self.fsmID = fsmID
         self.in_chan_type = 'ai'             # Use analog input for input
         self.sched_waves = [] #zeros(0,8)    # Default to no scheduled waves
         self.sched_waves_ao = [] #cell(0,4)  # Default to no ao sched waves
@@ -109,7 +103,7 @@ class StateMachineClient(object):
 
         # 'ext' is used in this case for sound
         self.output_routing = [ {'dtype':'dout', 'data':'0-15'},\
-                                {'dtype':'ext',  'data':str(self.fsm_id)} ]
+                                {'dtype':'ext',  'data':str(self.fsmID)} ]
         self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
         if connectnow:
@@ -121,9 +115,9 @@ class StateMachineClient(object):
         Connect the client, check version, and set state machine ID.
         '''
         self.createAndConnectSocket()
-        self.chkConn()
-        self.chkVersion()
-        self.setStateMachine(self.fsm_id);
+        self.checkConn()
+        self.checkVersion()
+        self.setStateMachine(self.fsmID);
 
 
     def createAndConnectSocket(self):
@@ -136,12 +130,12 @@ class StateMachineClient(object):
         Based on Modules/NetClient/FSMClient.cpp and NetClient.cpp from
         the matlab client provided by: http://code.google.com/p/rt-fsm/
         '''
-        verbose_print('Creating network socket')
+        self._verbose_print('Creating network socket')
         self.socketClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socketClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
         # -- Set timeout to 10ms for self.readLines() (it failed if 1ms) --
         self.socketClient.settimeout(0.1)
-        verbose_print('Connecting socketClient')
+        self._verbose_print('Connecting socketClient')
         self.socketClient.connect( (self.host,self.port) )
         
 
@@ -213,26 +207,23 @@ class StateMachineClient(object):
         pass
 
 
-    def chkConn(self):
-        '''Check connection to FSM server
-           This should probably be implented by catching exceptions.
-           And it should not repeat code from DoSimpleCmd+ReceiveOK
-        '''
-        verbose_print('Checking connection to FSM server')
+    def checkConn(self):
+        '''Check connection to FSM server.'''
+        self._verbose_print('Checking connection to FSM server')
         self.doQueryCmd('NOOP')
 
 
-    def chkVersion(self):
-        verbose_print('Checking version of FSM server')
+    def checkVersion(self):
+        self._verbose_print('Checking version of FSM server')
         verstr = self.doQueryCmd('VERSION')
         ver = int(verstr.split()[0])
         if (ver >= MIN_SERVER_VERSION):
             okversion = True
-            verbose_print('FSM server protocol version %s\n'%verstr.split('\n')[0])
+            self._verbose_print('FSM server protocol version %s\n'%verstr.split('\n')[0])
         else:
             # --- FIXME: This should raise an exception --
             okversion = False
-            verbose_print('The FSM server does not meet the minimum protocol'+\
+            self._verbose_print('The FSM server does not meet the minimum protocol'+\
                   ' version requirement of %u'%MIN_SERVER_VERSION)
         self.doQueryCmd('CLIENTVERSION %u'%MIN_SERVER_VERSION)
 
@@ -246,7 +237,7 @@ class StateMachineClient(object):
         corresponds to the number of the soundcard used for sound
         triggering.
         '''
-        self.fsm_id = fsmID
+        self.fsmID = fsmID
         self.doQueryCmd('SET STATE MACHINE %d'%fsmID)
 
     def getStateMachine(self):
@@ -262,10 +253,10 @@ class StateMachineClient(object):
         '''
         # FIX ME: is it really necessary to have result as arg?
         if result.endswith(ackstring+'\n'):
-            verbose_print('Received %s after %s'%(ackstring,cmd))
+            self._verbose_print('Received %s after %s'%(ackstring,cmd))
         else:
             # --- FIXME: define exception --
-            verbose_print('Server returned: %s'%result)
+            self._verbose_print('Server returned: %s'%result)
             raise TypeError(('RTLinux FSM Server did not send %s '+\
                              'after %s command.')%(ackstring,cmd))
 
@@ -360,7 +351,7 @@ class StateMachineClient(object):
                 { struct('type', 'dout', ...
                          'data', '0-15') ; ...
                   struct('type', 'sound', ...
-                         'data', sprintf('%d', fsm.fsm_id)) };
+                         'data', sprintf('%d', fsm.fsmID)) };
 
         Which means that the last two columns of the state machine are
         to be used for 'dout' and 'sound' respectively.  The 'dout'
@@ -396,7 +387,7 @@ class StateMachineClient(object):
                  Note that sounds can be untriggered by using a
                  negative number for the sound id.  The 'data' field
                  is a number string and specifies which sound card to
-                 use.  Default is the same number as the fsm_id at
+                 use.  Default is the same number as the fsmID at
                  RTLSM2 object creation.  Note: when changing FSM id
                  via SetStateMachine.m, be sure to update this number!
                  Note that 'sound' is implemented using 'ext' so the
@@ -1449,6 +1440,12 @@ class StateMachineClient(object):
         return self.readLines()
 
 
+    def _verbose_print(self,msg):
+        '''Print client messages if verbose flag is set.'''
+        if(self.VERBOSE):
+            print(msg)
+
+
 
 if __name__ == "__main__":
 
@@ -1458,6 +1455,7 @@ if __name__ == "__main__":
         testSM = StateMachineClient('soul',connectnow=0)
     if 1 in TESTCASES:   #'CreateAndConnect':
         testSM = StateMachineClient('soul')
+        testSM.VERBOSE = True
     if 2 in TESTCASES:   #'SendMatrixNoWaves':
         #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
         testSM.initialize()
