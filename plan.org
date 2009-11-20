@@ -122,6 +122,9 @@
     For the lazy: http://www.spheredev.org/wiki/Git_for_the_lazy
     In emacs    : http://parijatmishra.wordpress.com/2008/09/06/up-and-running-with-emacs-and-git/
     In Ubuntu   : https://help.ubuntu.com/community/Git
+*** GitHub:
+    git remote add origin git@github.com:sjara/TASKontrol.git
+    git push origin master
 *** Org-mode:
     Manual: http://orgmode.org/manual
 *** Matlab (C++ API)

@@ -6,12 +6,29 @@
 
 TASKontrol is a system for controlling behavioral experiments.
 
-It uses the state machine and sound server running on real-time linux,
+It uses the state machine and sound server running on Real-Time Linux,
 originally developed for Cold Spring Harbor Laboratory, now available
 at http://code.google.com/p/rt-fsm/
 
 TASKontrol consists of a client and set of modules written in Python
-and PyQt4 design to ease the process of writing behavioral protocols.
+and PyQt4 designed to ease the process of writing behavioral
+protocols. 
+
+It can serve as an alternative to BControl, and enables controlling
+behavioral experiments without the need of Matlab.  Most of TASKontrol
+is based on designs and ideas implemented in BControl. More
+information about BControl, including nice introductions to the state
+machine and the trial structure, can be found at:
+http://brodylab.princeton.edu/bcontrol
+
+TASKontrol can run on the same computer as the state machine server,
+avoiding the need of an additional "governing" machine (usually
+running Windows). In summary, compared to the standard system as of
+2009, TASKontrol has the following advantages:
+- No need for a Windows license.
+- No need for a Matlab license.
+- No need for a second computer
+And all this with the power of Python and the beauty of Qt4.
 
 --
 Santiago Jaramillo <jara@cshl.edu>
