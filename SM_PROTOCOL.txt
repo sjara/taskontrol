@@ -14,10 +14,10 @@ that documentation based on the code for their Matlab client
 
                                -- Santiago Jaramillo <jara@cshl.edu>
 
-____________________
+__________________________________
 
- COMMANDS TO SERVER
-____________________
+ COMMANDS TO STATE MACHINE SERVER
+__________________________________
 
 Command, NumberOfOutpuLines, OK, Notes
 
@@ -157,4 +157,13 @@ Question: Are columns with respect to the first SchedWave? SchWave0:Col0
              probably going to get rounded to the nearest quantum.
 
 
+__________________________
 
+ COMMANDS TO SOUND SERVER
+__________________________
+
+
+SET CARD %d
+GET NCARDS  : nCards <string with int>
+GET TIME    : etime <string with double>
+SET SOUND %d %d ...
