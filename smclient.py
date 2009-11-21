@@ -13,6 +13,9 @@ so they may include non-python syntax.
 TODO:
 - Graceful response if trying to send command to server while not
   connected.
+
+This version does not depend on numpy and the StateMachine class
+implements all methods without inheritance.
 '''
 
 __version__ = '0.1'
