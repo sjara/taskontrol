@@ -3,7 +3,8 @@
 '''
 RT-Linux sound machine client.
 
-Based on 
+Based on Modules/@RTLSoundMachine/RTLSoundMachine.m
+         Modules/SoundTrigClient/SoundTrigClient.cpp
 '''
 
 __version__ = '0.0.1'
@@ -15,6 +16,7 @@ import socket
 import struct
 import numpy as np
 import baseclient
+
 
 class SoundClient(baseclient.BaseClient):
     '''
@@ -31,9 +33,6 @@ class SoundClient(baseclient.BaseClient):
     Sample Rate:  200000
     Host: localhost
     Port: 3334
-
-    Based on Modules/@RTLSoundMachine/RTLSoundMachine.m
-
     '''
     def __init__(self, host='localhost', port=3334, soundcardID=0,
                                          connectnow=True, verbose=False):
@@ -63,8 +62,8 @@ class SoundClient(baseclient.BaseClient):
 
     def getNumCards(self):
         '''Get the active soundcard that we are connected to.'''
-        ncardsstr = self.doQueryCmd('GET NCARDS')
-        return int(ncardsstr.split()[0])
+        ncardsstr = self.doQueryCmd('GET NCARDS',resultsize=1)
+        return int(ncardsstr)
 
 
     def setSampleRate(self,srate):
@@ -138,8 +137,8 @@ class SoundClient(baseclient.BaseClient):
         # Add predelay. As in the matlab implementation we just pad
         # with zeros. Maybe it will be done by the server one day.
         if predelay>0: 
-            nsampdelay = round(float(predelay)*self.samplerate)
-            soundwave = np.hstack((np.zeros(2,nsampdelay),soundwave))
+            nsampdelay = int(round(float(predelay)*self.samplerate))
+            soundwave = np.hstack((np.zeros((2,nsampdelay)),soundwave))
         
         # Convert from float (-1,1) to signed int32 (MinInt32,MaxInt32)
         # FIXME: this is potentially very slow (and called often)
@@ -175,7 +174,48 @@ class SoundClient(baseclient.BaseClient):
         be used only for testing.
         '''
         self.doQueryCmd('TRIGGER %d'%soundID)
-        
+ 
+       
+    def stopSound(self,soundID):
+        '''
+        Force sound server to stop sound associated with soundID.
+        '''
+        negSoundID = -(abs(soundID))
+        self.doQueryCmd('TRIGGER %d'%negSoundID)
+
+
+    def getLastTrigger(self):
+        '''
+        Get the soundID of the last sound triggered.
+
+        Negative numbers indicate STOP events, positive PLAY events.
+        Zero indicates that no sound events have occured since last
+        reset.
+        '''
+        lastSoundID = self.doQueryCmd('GET LAST EVENT',resultsize=1)
+        return int(lastSoundID)
+
+
+    def stopLastSound(self):
+        '''
+        Forces the soundmachine to stop the last sound (with ramping).
+        '''
+        lastSoundID = self.getLastTrigger()
+        self.stopSound(lastSoundID)
+
+
+    def getTime(self):
+        '''Gets the time, in seconds, that has elapsed since initialize()'''
+        etimestr = self.doQueryCmd('GET TIME',resultsize=1)
+        return float(etimestr)
+ 
+
+    def close(self):
+        '''
+        Close connection to server.
+        '''
+        self.stopLastSound()
+        self.closeSocket()
 
 
 if __name__ == "__main__":
@@ -183,17 +223,10 @@ if __name__ == "__main__":
     testSC = SoundClient('soul',verbose=True)
     #soundwave = 0.1*np.random.standard_normal(200e3/10)
     #soundwave = 0.1*np.random.standard_normal(1000)
-    soundwave = 0.01*np.tile(np.repeat([1,-1],50),10)
+    soundwave = 0.1*np.tile(np.repeat([1,-1],100),2)
 
     # NOTE: a sound of 1e4 samples does not work on the emulator, it
     # times-out at 20sec.
     
+    #testSC.loadSound(1,soundwave,predelay=0.001)
     testSC.loadSound(1,soundwave)
-
-    '''
-    % sm = StopSound(sm) 
-    % [] = Close(sm) Begone! Begone!
-    % double_scalar_time = GetTime(sm)    
-
-    Modules/SoundTrigClient/SoundTrigClient.cpp
-    '''
