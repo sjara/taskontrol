@@ -34,9 +34,7 @@
       I will not implement any other besides the generic ForceState().
 ***** TODO SetStateProgram(), GetStateProgram()
 *** SoundClient
-***** TODO Write the client
-      ~/tmp/newbcontrol/Modules/@RTLSoundMachine
-      /SoundTrigClient/SoundTrigClient.cpp
+***** TODO Test that stopping sounds works.
 *** Solo-like graphical module
 *** Dispatcher-like module
 ***** Receive time, states and events.
@@ -113,6 +111,9 @@
 ***** Profiler has to be installed separately because of its license:
       The Debian package is called 'python-profiler'.
       In any case, it didn't really work the way I wanted. Gotta try again.
+***** TODO Automatic reloading of modules
+      Running one script does not reload the modules it imports, so
+      any changes to those modules are ignored until reloading explicitely.
 
 
 * Links and tips on tools:
@@ -144,6 +145,10 @@
       http://eli.thegreenplace.net/2009/05/23/more-pyqt-plotting-demos/
 ***** File dialog:      	
       http://zetcode.com/tutorials/pyqt4/dialogs/
+*** Numpy:
+    Tutorial (new): http://www.scipy.org/Tentative_NumPy_Tutorial
+    Tutorial (old):
+    For Matlab users: http://www.scipy.org/NumPy_for_Matlab_Users
 
 
 * Misc:
