@@ -39,7 +39,7 @@ class BaseClient(object):
         self.socketClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socketClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
         # -- Set timeout to 10ms for self.receiveLines() (it failed if 1ms) --
-        self.socketClient.settimeout(10) # Only times-out if not receiving
+        self.socketClient.settimeout(5) # Only times-out if not receiving
         self._verbose_print('Connecting the socket client (on port %d)'%self.port)
         self.socketClient.connect( (self.host,self.port) )
 
@@ -60,36 +60,47 @@ class BaseClient(object):
         self.doQueryCmd('INITIALIZE')
 
 
-    def doQueryCmd(self,cmd,expect='OK'):
-        '''Send command (string) to the server.'''
+    def doQueryCmd(self,cmd,resultsize=0,expect='OK'):
+        '''
+        Send command (string) to the server.
+
+        'resultsize' indicates how many lines are expected in addition
+        to the acknowledgment string.
+
+        'expect' indicates the expected acknowledgment string (e.g. 'OK').
+
+        It returns either:
+        - Empty string if resultsize=0
+        - String with result if resultsize=1
+        - List of strings if resultsize>1
+        '''
         self.sendString(cmd+'\n')
-        result = self.receiveOneLine()
-        self.receiveAck(cmd,result,expect)
-        '''
-        --- SHOULD I SPLIT LINES HERE? ---
-        results = lines.splitlines()
-        for ind in results: print results
-        if results[-1]=='OK':
-            print results
+        if resultsize==0:
+            result = ''
+        elif resultsize==1:
+            result = self.receiveOneLine()
         else:
-            print 'WARNING: FSM did not return OK at the end of query: %s'%cmd
-        '''
+            result = self.receiveLines()
+        ack = self.receiveOneLine()
+        self.receiveAck(cmd,ack,expect)
         return result
 
 
-    def receiveAck(self,cmd,result,ackstring='OK'):
-        '''Check that the server sent an acknowledgement for the last command.
-        The acknowledgement string is usually 'OK' or 'READY'
+    def receiveAck(self,cmd,result,expectedAck='OK'):
+        '''
+        Check that the server sent an acknowledgement for the last command.
+
+        The expected acknowledgement string is usually 'OK' or 'READY'
         '''
         # FIX ME: is it really necessary to have result as arg?
-        ### DELETE: if result.endswith(ackstring+'\n'):
-        if result.endswith(ackstring):
-            self._verbose_print('Received %s after %s'%(ackstring,cmd))
+        ### DELETE: if result.endswith(expectedAck+'\n'):
+        if result.endswith(expectedAck):
+            self._verbose_print('Received %s after %s'%(expectedAck,cmd))
         else:
             # --- FIXME: define exception --
             self._verbose_print('Server returned: %s'%result)
             raise TypeError(('Server (on port %d) did not send %s '+\
-                             'after %s command.')%(self.port,ackstring,cmd))
+                             'after %s command.')%(self.port,expectedAck,cmd))
 
 
     def doQueryMatrixCmd(self,cmd):
