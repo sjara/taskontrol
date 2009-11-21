@@ -18,7 +18,8 @@
 ***** DONE SetStateMachine()
 ***** DONE GetOutputRouting()
 ***** DONE SetOutputRouting()
-***** DONE SetScheduledWavesDIO()
+***** TODO SetScheduledWavesDIO()
+      It needs to be changed to use numpy arrays.
 ***** TODO SetScheduledWavesAO()
 ***** TODO [#C] StartDAQ()
 ***** TODO [#C] GetDAQScans()
