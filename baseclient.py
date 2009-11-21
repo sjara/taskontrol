@@ -131,11 +131,9 @@ class BaseClient(object):
 
 
     def sendData(self,mat,dtype='d',expect='OK'):
-        #self.socketClient.settimeout(None)        # FIXME: HACK !!!
         dataToSend = self._packmatrix(mat,dtype=dtype)
         self.sendString(dataToSend)
         result = self.receiveOneLine()
-        #self.socketClient.settimeout(0.1)        # FIXME: HACK !!!
         self.receiveAck('sending data',result,expect)
 
 
