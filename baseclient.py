@@ -90,7 +90,9 @@ class BaseClient(object):
         '''
         Check that the server sent an acknowledgement for the last command.
 
-        The expected acknowledgement string is usually 'OK' or 'READY'
+        The expected acknowledgement string is usually 'OK' or
+        'READY'. Note that the end-of-line character is assumed to be
+        already removed.
         '''
         # FIX ME: is it really necessary to have result as arg?
         ### DELETE: if result.endswith(expectedAck+'\n'):
