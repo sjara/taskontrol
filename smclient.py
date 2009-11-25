@@ -125,10 +125,8 @@ class StateMachineClient(baseclient.BaseClient):
         sizeInBytes = bytesInDoublePrecFloat*nrows*ncols
         matdatastr = self.socketClient.recv(sizeInBytes)
         matdata=struct.unpack(nrows*ncols*'d',matdatastr) # data comes column-wise
-        ackstr = self.OLDreadLines()         # Receive the rest (ack string)
-        mat = []
-        for indrow in range(nrows):
-            mat.append(matdata[indrow::2])
+        ackstr = self.receiveOneLine()        # Receive the rest (ack string)
+        mat = np.reshape(matdata,(nrows,ncols),order='F') # Column-major order
         return (mat,ackstr)
 
         
@@ -879,6 +877,7 @@ class StateMachineClient(baseclient.BaseClient):
         '''
         Close connection to server.
         '''
+        self.flushSocket()
         self.halt()
         self.bypassDout(0)      # FIXME: it does not turn Dout off
         self.closeSocket()
@@ -966,8 +965,11 @@ class StateMachineClient(baseclient.BaseClient):
         Get a matrix in which each row corresponds to an event.
         This improved version replaces GetEventsOLD().
 
-        Improved version of GetEvents.m which supports more than 32
-        input events.  GetEventsOLD had the returned event-id be a
+        Event numbers (startEventNumber and endEventNumber) seem to
+        start from 1 (not from 0). CONFIRM with Calin!
+
+        Compared to the older version, this command supports more than
+        32 input events.  GetEventsOLD had the returned event-id be a
         bitset where the bit corresponding to the event-column that
         triggered the state transition would be set.  Use of a bitset
         meant that the event-id would be 2^FSM_COLUMN_OF_INPUT_EVENT,
@@ -988,9 +990,9 @@ class StateMachineClient(baseclient.BaseClient):
            occurred.
 
         2. The second is the event_column number.  See
-           SetInputEvents() for a description of what we mean by event
+           setInputEvents() for a description of what we mean by event
            columns. In the default event column configuration
-           SetInputEvents(sm, 6), you would have as possible
+           setInputEvents(6,'ai'), you would have as possible
            event_id's:
 
            0=Cin, 
@@ -1094,7 +1096,7 @@ class StateMachineClient(baseclient.BaseClient):
 
     def doQueryMatrixCmd(self,cmd):
         self.sendString(cmd+'\n')
-        matsizestr = self.OLDreadLines()
+        matsizestr = self.receiveOneLine()
         if 'ERROR' in matsizestr:
             raise ValueError('FSM server returned an error after '+\
                              'command: %s',cmd)
