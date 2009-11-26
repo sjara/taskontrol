@@ -26,6 +26,7 @@ import numpy as np
 import baseclient
 
 MIN_SERVER_VERSION = 220080319  # Update this on protocol change
+NBYTES_DOUBLE_FLOAT = 8         # Number of bytes in double precision float
 
 
 def url_encode(instring):
@@ -119,10 +120,14 @@ class StateMachineClient(baseclient.BaseClient):
 
 
     def readMatrix(self,nrows,ncols):
-        '''Read matrixof data sent by state matrix server.'''
-        # FIXME: Weird implementation. Maybe combine with OLDreadLines()
-        bytesInDoublePrecFloat = 8
-        sizeInBytes = bytesInDoublePrecFloat*nrows*ncols
+        '''
+        Read matrix of data sent by state matrix server.
+
+        Returns a list (mat,ackstr):
+         mat : a numpy array
+         ackstr : an acknowledment string, hopefully 'OK'.
+        '''
+        sizeInBytes = NBYTES_DOUBLE_FLOAT*nrows*ncols
         matdatastr = self.socketClient.recv(sizeInBytes)
         matdata=struct.unpack(nrows*ncols*'d',matdatastr) # data comes column-wise
         ackstr = self.receiveOneLine()        # Receive the rest (ack string)
@@ -1036,6 +1041,9 @@ class StateMachineClient(baseclient.BaseClient):
         Gets the time, in seconds, that has elapsed since the last
         call to initialize(), as well as the Events matrix starting
         from firstEvent up until the present.
+
+        The first event corresponds to firstEvent=1, although the
+        index 0 is sent to the state matrix server.
  
         The returned dict has the following 4 fields:
                 etime:      elapsed time in seconds.
@@ -1044,23 +1052,19 @@ class StateMachineClient(baseclient.BaseClient):
                 events:     m by 5 matrix of events.
         '''
         # FIXME: is eventcount correct? or shifted by +1?
-        cmd = 'GET TIME, EVENTS, AND STATE %d'%firstEvent
-        resultstr = self.doQueryCmd(cmd,expect='')
-        resultsbyline = resultstr.splitlines()
-        if(len(resultsbyline) != 4):
-            raise TypeError('FSM server did not return the correct values.')
+        cmd = 'GET TIME, EVENTS, AND STATE %d'%(firstEvent-1)
+        self.sendString(cmd+'\n')
+        resultsbyline = self.receiveLines(4)
         etime = float(resultsbyline[0].split()[1])              # TIME %f
         state = int(resultsbyline[1].split()[1])                # STATE %d
         eventcountsince = int(resultsbyline[2].split()[2])      # EVENT COUNTER %d
         (nrows,ncols) = map(int,resultsbyline[3].split()[1:3])  # MATRIX %d %d
-        # FIXME: this code is repeated in doQueryMatrixCmd()
-        #        they should be split/recombined/merged
         self.sendString('READY\n')
         (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.receiveAck(cmd,ackstr,'OK')
-        # FIXME: make this dict into an object
+        # IMPROVE: make this dict into an object
         allresults = {'etime':etime,'state':state,\
-                      'eventcount':eventcountsince+firstEvent,'events':mat}
+                      'eventcount':eventcountsince+firstEvent-1,'events':mat}
         return allresults
 
 
@@ -1343,11 +1347,6 @@ class StateMachineClient(baseclient.BaseClient):
         pass
 
 
-    def flushSocket(self):
-        '''Read whatever is left on the server's buffer.'''
-        return self.OLDreadLines()
-
-
     def _verbose_print(self,msg):
         '''Print client messages if verbose flag is set.'''
         if(self.VERBOSE):
@@ -1369,8 +1368,8 @@ if __name__ == "__main__":
         testSM.initialize()
         mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
                 [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
-                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
-                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+                [ 3,  3,  0,  0,  0,  0,  3,   2,   1,   0       ] ,\
+                [ 2,  2,  0,  0,  0,  0,  2,   2,   2,   0       ] ]
         mat = np.array(mat)
         testSM.setStateMatrix(mat)
         #testSM.run()
