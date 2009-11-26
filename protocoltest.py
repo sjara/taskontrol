@@ -12,6 +12,7 @@ __created__ = '2009-11-15'
 import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
+import numpy as np
 import paramgui
 import dispatcher
 
@@ -38,6 +39,7 @@ class Protocol(QtGui.QDialog):
                 [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
                 [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
                 [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+        mat = np.array(mat)
         self.dispatcher.setStateMatrix(mat)
 
 
