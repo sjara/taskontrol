@@ -38,7 +38,6 @@ class BaseClient(object):
         self._verbose_print('Creating network socket (on port %d)'%self.port)
         self.socketClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socketClient.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,True)
-        # -- Set timeout to 10ms for self.receiveLines() (it failed if 1ms) --
         self.socketClient.settimeout(5) # Only times-out if not receiving
         self._verbose_print('Connecting the socket client (on port %d)'%self.port)
         self.socketClient.connect( (self.host,self.port) )
@@ -80,7 +79,8 @@ class BaseClient(object):
         elif resultsize==1:
             result = self.receiveOneLine()
         else:
-            result = self.receiveLines()
+            # IMPROVE: is this ever used? getTimeEventsAndState does not
+            result = self.receiveLines(resultsize)
         ack = self.receiveOneLine()
         self.receiveAck(cmd,ack,expect)
         return result
@@ -206,7 +206,10 @@ class BaseClient(object):
 
     def flushSocket(self):
         '''Read whatever is left on the server's buffer.'''
+        CurrTimeOut = self.socketClient.gettimeout()
+        self.socketClient.settimeout(0.2)
         return self.receiveUntilTimeOut()
+        self.socketClient.settimeout(CurrTimeOut)
 
 
     def _verbose_print(self,msg):
