@@ -44,8 +44,9 @@ class Dispatcher(QtGui.QWidget):
     def __init__(self, parent=None, host='localhost', port=3333, connectnow=True):
         super(Dispatcher, self).__init__(parent)
 
-        self._timeformat = 'Time: %0.1f'
+        self._timeformat = 'Time: %0.1f s'
         self._stateformat = 'State: %d'
+        self._eventcountformat = 'N events: %d'
         # -- Create a state machine client --
         self.host = host
         self.port = port
@@ -59,6 +60,7 @@ class Dispatcher(QtGui.QWidget):
         self.interval = 300
         self.time = 0.0         # Time on the state machine
         self.state = 0          # State of the state machine
+        self.eventcount = 0     # Number of events so far
         self.timer = QtCore.QTimer(self)
         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.timeout)
 
@@ -66,6 +68,7 @@ class Dispatcher(QtGui.QWidget):
         #self.resize(400,300)
         self.stateLabel = QtGui.QLabel(self._stateformat%self.state)
         self.timeLabel = QtGui.QLabel(self._timeformat%self.time)
+        self.eventcountLabel = QtGui.QLabel(self._eventcountformat%self.time)
         self.buttonStartStop = QtGui.QPushButton("&Push")
         #self.buttonStartStop.setMinimumSize(200,100)
         self.buttonStartStop.setMinimumHeight(100)
@@ -76,6 +79,7 @@ class Dispatcher(QtGui.QWidget):
         # -- Create layouts --
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.stateLabel)
+        layout.addWidget(self.eventcountLabel)
         layout.addWidget(self.timeLabel)
         layout.addWidget(self.buttonStartStop)
         self.setLayout(layout)
@@ -88,27 +92,33 @@ class Dispatcher(QtGui.QWidget):
 
 
     def connectSM(self):
+        '''Connect to state machine server and initialize it.'''
         self.statemachine.connect()
         self.statemachine.initialize()
+        # FIXME: connect to sound server
         self.isConnected = True
 
 
     def setStateMatrix(self,statematrix):
+        '''Send state matrix to server.'''
         self.statemachine.setStateMatrix(statematrix)        
 
 
     def timeout(self):
+        '''This method is called at every tic of the clock.'''
         self.queryStateMachine()
         
 
     def queryStateMachine(self):
         if self.isConnected:
-            eventcount = self.statemachine.getEventCounter()
-            resultsDict = self.statemachine.getTimeEventsAndState(eventcount)
+            resultsDict = self.statemachine.getTimeEventsAndState(self.eventcount+1)
             self.time = resultsDict['etime']
             self.state = resultsDict['state']
+            self.eventcount = resultsDict['eventcount']
+            #self.lastevents = resultsDict['events']
         self.timeLabel.setText(self._timeformat%self.time)
         self.stateLabel.setText(self._stateformat%self.state)
+        self.eventcountLabel.setText(self._eventcountformat%self.eventcount)
 
 
     def _old_queryStateMachine(self):
@@ -220,6 +230,7 @@ if __name__ == "__main__":
                 [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
                 [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
                 [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+        mat = np.array(mat)
         dispatcherwidget.setStateMatrix(mat)
 
     form.show()
