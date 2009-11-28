@@ -30,6 +30,7 @@ __created__ = '2009-11-11'
 import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
+import numpy as np
 import smclient
 
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
@@ -40,13 +41,28 @@ class Dispatcher(QtGui.QWidget):
     
     This widget allows querying the state machine about time, state
     and events. It also sets the trial structure of the protocol.
+
+    It emits the following signals:
+    - 'PrepareNextTrial': whenever one of the prepare-next-trial-states is reached.
+                          It sends: 'nextTrial'
+    - 'StartNewTrial'   : whenever READY TO START TRIAL is sent to state machine.
+                          It sends: 'currentTrial'
+    - 'TimerTic'        : at every tic of the dispatcher timer.
+                          It sends: 'lastEvents'
     '''
     def __init__(self, parent=None, host='localhost', port=3333, connectnow=True):
         super(Dispatcher, self).__init__(parent)
 
-        self._timeformat = 'Time: %0.1f s'
-        self._stateformat = 'State: %d'
-        self._eventcountformat = 'N events: %d'
+        # -- Set string formats --
+        self._timeFormat = 'Time: %0.1f s'
+        self._stateFormat = 'State: %d'
+        self._eventCountFormat = 'N events: %d'
+        self._currentTrialFormat = 'Current trial: %d'
+
+        # -- Set trial structure variables --
+        self.prepareNextTrialStates = []
+        self.preparingNextTrial = False      # True while preparing next trial
+
         # -- Create a state machine client --
         self.host = host
         self.port = port
@@ -56,19 +72,24 @@ class Dispatcher(QtGui.QWidget):
         if connectnow:
             self.connectSM()  # Connect to SM and set self.isConnected to True
 
-        # -- Create timer --
-        self.interval = 300
+        # -- Create state machine variables --
         self.time = 0.0         # Time on the state machine
         self.state = 0          # State of the state machine
-        self.eventcount = 0     # Number of events so far
+        self.eventCount = 0     # Number of events so far
+        self.currentTrial = 1   # Current trial
+        self.lastEvents = np.array([])  # Matrix with info about last events
+
+        # -- Create timer --
+        self.interval = 300
         self.timer = QtCore.QTimer(self)
         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.timeout)
 
         # -- Create graphical objects --
         #self.resize(400,300)
-        self.stateLabel = QtGui.QLabel(self._stateformat%self.state)
-        self.timeLabel = QtGui.QLabel(self._timeformat%self.time)
-        self.eventcountLabel = QtGui.QLabel(self._eventcountformat%self.time)
+        self.stateLabel = QtGui.QLabel(self._stateFormat%self.state)
+        self.timeLabel = QtGui.QLabel(self._timeFormat%self.time)
+        self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
+        self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
         self.buttonStartStop = QtGui.QPushButton("&Push")
         #self.buttonStartStop.setMinimumSize(200,100)
         self.buttonStartStop.setMinimumHeight(100)
@@ -77,11 +98,12 @@ class Dispatcher(QtGui.QWidget):
         self.buttonStartStop.setFont(buttonFont)
 
         # -- Create layouts --
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.stateLabel)
-        layout.addWidget(self.eventcountLabel)
-        layout.addWidget(self.timeLabel)
-        layout.addWidget(self.buttonStartStop)
+        layout = QtGui.QGridLayout()
+        layout.addWidget(self.stateLabel,0,0)
+        layout.addWidget(self.eventCountLabel,0,1)
+        layout.addWidget(self.timeLabel,1,0)
+        layout.addWidget(self.currentTrialLabel,1,1)
+        layout.addWidget(self.buttonStartStop, 2,0, 1,2) # Span 1 row, 2 cols
         self.setLayout(layout)
 
         # -- Connect signals --
@@ -107,18 +129,45 @@ class Dispatcher(QtGui.QWidget):
     def timeout(self):
         '''This method is called at every tic of the clock.'''
         self.queryStateMachine()
-        
+        self.emit(QtCore.SIGNAL('TimerTic'), self.lastEvents)
+        # -- Check if one of the PrepareNextTrialStates has been reached --
+        if self.lastEvents.size>0 and not self.preparingNextTrial:
+            laststates = self.lastEvents[:,3]
+            for state in self.prepareNextTrialStates:
+                if state in laststates:
+                    print self.lastEvents
+                    self.preparingNextTrial = True
+                    self.emit(QtCore.SIGNAL('PrepareNextTrial'), self.currentTrial+1)
+                    break
+
+
+    def readyToStartTrial(self):
+        '''
+        Tell the state machine the it can jump to state 0 and start new trial.
+        '''
+        self.statemachine.readyToStartTrial()
+        self.currentTrial += 1
+        self.emit(QtCore.SIGNAL('StartNewTrial'), self.currentTrial)
+        self.preparingNextTrial = False
+
 
     def queryStateMachine(self):
+        '''Request events information to the state machine'''
         if self.isConnected:
-            resultsDict = self.statemachine.getTimeEventsAndState(self.eventcount+1)
+            resultsDict = self.statemachine.getTimeEventsAndState(self.eventCount+1)
             self.time = resultsDict['etime']
             self.state = resultsDict['state']
-            self.eventcount = resultsDict['eventcount']
-            #self.lastevents = resultsDict['events']
-        self.timeLabel.setText(self._timeformat%self.time)
-        self.stateLabel.setText(self._stateformat%self.state)
-        self.eventcountLabel.setText(self._eventcountformat%self.eventcount)
+            self.eventCount = resultsDict['eventcount']
+            self.lastEvents = resultsDict['events']
+            self.updateGUI()
+
+
+    def updateGUI(self):
+        '''Update display of time and events.'''
+        self.timeLabel.setText(self._timeFormat%self.time)
+        self.stateLabel.setText(self._stateFormat%self.state)
+        self.eventCountLabel.setText(self._eventCountFormat%self.eventCount)
+        self.currentTrialLabel.setText(self._currentTrialFormat%self.currentTrial)
 
 
     def _old_queryStateMachine(self):
@@ -193,6 +242,11 @@ class Dispatcher(QtGui.QWidget):
             self.statemachine.close()
 
 
+    def setPrepareNextTrialStates(self,prepareNextTrialStates=[]):
+        '''Set states where next trial can start to be prepared.'''
+        self.prepareNextTrialStates = prepareNextTrialStates
+
+
     def DEBUGevent(self,event):
         print event
         return True
@@ -226,10 +280,11 @@ if __name__ == "__main__":
         dispatcherwidget = Dispatcher(parent=form,connectnow=False)
     elif TESTCASE==2:
         dispatcherwidget = Dispatcher(parent=form,host='soul')
-        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
-                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
-                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0       ] ,\
-                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0       ] ]
+        #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo
+        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0   ] ,\
+                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0   ] ,\
+                [ 3,  3,  0,  0,  0,  0,  3,   4,   1,   0   ] ,\
+                [ 2,  2,  0,  0,  0,  0,  2,   4,   2,   0   ] ]
         mat = np.array(mat)
         dispatcherwidget.setStateMatrix(mat)
 
