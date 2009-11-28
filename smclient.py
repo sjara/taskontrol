@@ -56,6 +56,9 @@ class StateMachineClient(baseclient.BaseClient):
     Input Events: 6
 
     The sm will not have any SchedWave matrix, or any state matrix.
+
+    NOTE: ready_for_trial_jumpstate is set to state 1, as opposed to
+          state 35 (BControl default).
     '''
     def __init__(self, host='localhost', port=3333, fsmID=0, 
                                          connectnow=True, verbose=False):
@@ -1115,7 +1118,7 @@ class StateMachineClient(baseclient.BaseClient):
         return mat
 
 
-    def forceTimeUp():
+    def forceTimeUp(self):
         '''
         Sends a signal to the state machine to force time up.
 
@@ -1129,7 +1132,7 @@ class StateMachineClient(baseclient.BaseClient):
         self.doQueryCmd('FORCE TIME UP')
 
 
-    def readyToStartTrial():
+    def readyToStartTrial(self):
         '''
         Signals the StateMachine that it is ok to start a new trial.
 
