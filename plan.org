@@ -3,8 +3,12 @@
 #+STARTUP: showall
 
 * To do next:
-*** TODO A simple protocol with one parameter defining the time of a clock.
-*** TODO A simple protocol organized by trials.
+*** TODO A simple protocol organized by trials (freq discrimination).
+*** DONE Show current trial in dispatcher
+*** DONE If prepareNextTrialStates has more than two states,
+    they may both emit signals. That is not correct.
+
+
 
 * TASKontrol
 *** SMclient/RTLSMclient
@@ -42,29 +46,30 @@
 
 
 * Bugs and fixes:
-*** TODO I have been using =smIDstr.split()[0]= to extract values,
+*** TODO Antipatterns:
+***** http://en.wikipedia.org/wiki/Sequential_coupling (on smclient)
+***** http://en.wikipedia.org/wiki/BaseBean (on netclient)
+*** TODO Why are sched waves an attribute of the class?
+    but the state matrix is not?
+*** DONE I have been using =smIDstr.split()[0]= to extract values,
     but maybe this will change if I split things in DoQueryCmd()
 *** DONE I seem to be sending extra strings after GetEvents()
     The server says: "Got:  " and then "Connection to host ended..."
     SOLUTION: I just had to restart the FSM server to avoid this.
-*** TODO Check if realines can be done by reading up to a line-break
+*** DONE Check if realines can be done by reading up to a line-break
     Probably not, because if server sends a byte representing the same
     as a '\n', there is no way to tell which one of the two it was.
-*** TODO Socket timeout is a weird way of stop receiving from socket.
+*** DONE Socket timeout is a weird way of stop receiving from socket.
     Although I don't know if there is a better way.  Note: I had to
     increase the timeout to avoid raising exceptions all time. So
     while in the C code it was 1ms, in the python client it is
     100ms. See NetClient.cpp: NetClient::receiveLines()
-*** TODO GetTimeEventsAndState repeats code from DoQueryMatrixCmd
+*** DONE GetTimeEventsAndState repeats code from DoQueryMatrixCmd
     It should be more modular.
-*** TODO Many methods request one parameter (bool, int or float) and OK.
+*** DONE Many methods request one parameter (bool, int or float) and OK.
     There should be a method for this.
 *** DONE Make orouting a dict instead of a class
-*** TODO Antipatterns:
-***** http://en.wikipedia.org/wiki/Sequential_coupling (on smclient)
-***** http://en.wikipedia.org/wiki/BaseBean (on netclient)
-*** Why are sched waves an attribute of the class?
-    but the state matrix is not?
+*** DONE Fix getTimeEventsAndState (to use methods from BaseClient)
 
 
 * Questions:
@@ -77,6 +82,12 @@
     The comments seem to indicate that they get concatenated to the
     state matrix, but is this column or row-wise? Couldn't we just
     send the state matrix first and then the sched waves?
+*** Do event numbers start from 1 or 0 (when using GET_EVENTS %d %d)?
+*** Why do we need 'READY TO START TRIAL' (and ready_for_trial_jumpstate)?
+    shouldn't that be implemented by the client with 'FORCE STATE %d'
+    The only reason I see if you want the SM to do something while
+    preparing the next trial, and don't want to jump out of it in the
+    middle of something (but only when it reaches a special state).
 
     
 * Python style
@@ -150,6 +161,9 @@
     Tutorial (new): http://www.scipy.org/Tentative_NumPy_Tutorial
     Tutorial (old):
     For Matlab users: http://www.scipy.org/NumPy_for_Matlab_Users
+*** BControl and RTLinux FSM:
+    http://brodylab.princeton.edu/bcontrol/index.php/Main_Page
+    http://code.google.com/p/rt-fsm/
 
 
 * Misc:
