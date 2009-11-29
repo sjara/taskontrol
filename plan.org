@@ -4,9 +4,6 @@
 
 * To do next:
 *** TODO A simple protocol organized by trials (freq discrimination).
-*** DONE Show current trial in dispatcher
-*** DONE If prepareNextTrialStates has more than two states,
-    they may both emit signals. That is not correct.
 
 
 
@@ -43,6 +40,9 @@
 *** Solo-like graphical module
 *** Dispatcher-like module
 ***** Receive time, states and events.
+*** EventsPlot
+***** TODO Create all fill on init, and update by changing xvalues.
+***** TODO Use blit()
 
 
 * Bugs and fixes:
@@ -70,6 +70,9 @@
     There should be a method for this.
 *** DONE Make orouting a dict instead of a class
 *** DONE Fix getTimeEventsAndState (to use methods from BaseClient)
+*** DONE Show current trial in dispatcher
+*** DONE If prepareNextTrialStates has more than two states,
+    they may both emit signals. That is not correct.
 
 
 * Questions:
