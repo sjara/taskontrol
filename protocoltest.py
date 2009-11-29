@@ -21,6 +21,9 @@ reload(paramgui)
 reload(dispatcher)
 reload(settings)
 
+import eventsplot
+reload(eventsplot)
+
 
 class Protocol(QtGui.QDialog):
     def __init__(self, parent=None):
@@ -32,9 +35,11 @@ class Protocol(QtGui.QDialog):
         # -- Add widgets --
         self.dispatcher = dispatcher.Dispatcher(host=smhost,connectnow=True)
         self.param1 = paramgui.Parameter('OneParam')
+        self.evplot = eventsplot.EventsPlot()
 
         layout = QtGui.QVBoxLayout()
         layout.addStretch()
+        layout.addWidget(self.evplot)
         layout.addWidget(self.dispatcher)
         layout.addWidget(self.param1)
         self.setLayout(layout)
@@ -60,8 +65,13 @@ class Protocol(QtGui.QDialog):
         self.dispatcher.setPrepareNextTrialStates([1,5])
         self.dispatcher.setStateMatrix(mat)
 
+        # -- Setup events plot --
+        self.evplot.setStatesColor(np.random.rand(6))
+
+        # -- Connect signals from dispatcher --
         self.connect(self.dispatcher,QtCore.SIGNAL('PrepareNextTrial'),self.prepareNextTrial)
         self.connect(self.dispatcher,QtCore.SIGNAL('StartNewTrial'),self.startNewTrial)
+        self.connect(self.dispatcher,QtCore.SIGNAL('TimerTic'),self.timerTic)
 
 
     def prepareNextTrial(self, nextTrial):
@@ -71,6 +81,14 @@ class Protocol(QtGui.QDialog):
 
     def startNewTrial(self, currentTrial):
         print 'Started trial %d'%currentTrial
+
+
+    def timerTic(self,etime,lastEvents):
+        timesAndStates = lastEvents[:,[2,3]]
+        timesAndStates[:,0] -= etime
+        #print etime
+        #print timesAndStates
+        self.evplot.updatePlot(timesAndStates)
 
 
     def closeEvent(self, event):
