@@ -48,7 +48,7 @@ class Dispatcher(QtGui.QWidget):
     - 'StartNewTrial'   : whenever READY TO START TRIAL is sent to state machine.
                           It sends: 'currentTrial'
     - 'TimerTic'        : at every tic of the dispatcher timer.
-                          It sends: 'lastEvents'
+                          It sends: 'time','lastEvents'
     '''
     def __init__(self, parent=None, host='localhost', port=3333, connectnow=True):
         super(Dispatcher, self).__init__(parent)
@@ -129,7 +129,7 @@ class Dispatcher(QtGui.QWidget):
     def timeout(self):
         '''This method is called at every tic of the clock.'''
         self.queryStateMachine()
-        self.emit(QtCore.SIGNAL('TimerTic'), self.lastEvents)
+        self.emit(QtCore.SIGNAL('TimerTic'), self.time, self.lastEvents)
         # -- Check if one of the PrepareNextTrialStates has been reached --
         if self.lastEvents.size>0 and not self.preparingNextTrial:
             laststates = self.lastEvents[:,3]
