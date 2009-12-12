@@ -77,7 +77,8 @@ class Dispatcher(QtGui.QWidget):
         self.state = 0          # State of the state machine
         self.eventCount = 0     # Number of events so far
         self.currentTrial = 1   # Current trial
-        self.lastEvents = np.array([])  # Matrix with info about last events
+        self.lastEvents = np.array([])   # Matrix with info about last events
+        self.eventsMat = np.zeros((0,5)) # Matrix with info about all events
 
         # -- Create timer --
         self.interval = 300
@@ -159,10 +160,16 @@ class Dispatcher(QtGui.QWidget):
             self.state = resultsDict['state']
             self.eventCount = resultsDict['eventcount']
             self.lastEvents = resultsDict['events']
-            self.updateGUI()
+            self._updateGUI()
+            self._updateEventsMat()
 
 
-    def updateGUI(self):
+    def _updateEventsMat(self):
+        '''Concatenate last events to matrix of all events.'''
+        self.eventsMat = np.vstack((self.eventsMat,self.lastEvents))
+
+
+    def _updateGUI(self):
         '''Update display of time and events.'''
         self.timeLabel.setText(self._timeFormat%self.time)
         self.stateLabel.setText(self._stateFormat%self.state)
@@ -170,7 +177,7 @@ class Dispatcher(QtGui.QWidget):
         self.currentTrialLabel.setText(self._currentTrialFormat%self.currentTrial)
 
 
-    def _old_queryStateMachine(self):
+    def _OLD_queryStateMachine(self):
         if self.isConnected:
             self.time = self.statemachine.getTime()
         self.timeLabel.setText("Time: %0.2f"%self.time)
@@ -198,7 +205,7 @@ class Dispatcher(QtGui.QWidget):
         self.buttonStartStop.setText('Stop')
 
 
-    def _old_start(self):
+    def _OLD_start(self):
         '''Start timer.'''
         self.timer.start(self.interval)
         # -- Start state machine --

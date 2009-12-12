@@ -84,11 +84,17 @@ class Protocol(QtGui.QDialog):
 
 
     def timerTic(self,etime,lastEvents):
-        timesAndStates = lastEvents[:,[2,3]]
-        timesAndStates[:,0] -= etime
+        #timesAndStates = lastEvents[:,[2,3]]
+        #timesAndStates[:,0] -= etime
+        # FIX: I should not access attribute of dispatcher directly
+        timesAndStates = self.dispatcher.eventsMat[:,[2,3]]
+        # FIX: next line maybe the first place where a copy is made:
+        # It's either inefficient to copy all states, or I'm modifying
+        # the original eventsMat which is BAD!
+        #timesAndStates[:,0] -= etime
         #print etime
         #print timesAndStates
-        self.evplot.updatePlot(timesAndStates)
+        self.evplot.updatePlot(timesAndStates, etime)
 
 
     def closeEvent(self, event):

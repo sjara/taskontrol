@@ -31,7 +31,10 @@ class EventsPlot(QtGui.QWidget):
         self.setMinimumHeight(150)
         self.canvas.setParent(self)
         self.ax = self.canvas.figure.add_subplot(111)
-        #self.ax.grid()
+        BGcolorRGB = self.palette().color(QtGui.QPalette.Background).getRgbF()
+        self.fig.set_facecolor(BGcolorRGB)
+        #self.fig.set_facecolor('None')
+         #self.ax.grid()
         #self.canvas.draw()
 
         self.statesColor = np.array([])
@@ -52,16 +55,20 @@ class EventsPlot(QtGui.QWidget):
         self.statesColor = statesColor
 
 
-    def updatePlot(self,timesAndStates):
+    def updatePlot(self,timesAndStates,etime):
         '''
         Updates the plot.
 
         This method expects a numpy array where each row is of the
         form [time, state]
         '''
-        eventsOn = timesAndStates[:,0]
-        eventsOff = np.r_[0,timesAndStates[:-1,0]]
-        lastStates = timesAndStates[:,1].astype('int')
+        # -- Find states to plot --
+        earliestTime = etime+self.XLim[0]
+        eventsToInclude = timesAndStates[:,0]>=earliestTime
+        eventsOn = timesAndStates[eventsToInclude,0] - etime
+        eventsOff = np.r_[eventsOn[1:],0]
+        #eventsOff = np.r_[timesAndStates[:-1,0]-etime]
+        lastStates = timesAndStates[eventsToInclude,1].astype('int')
         theseStatesColor = self.statesColor[lastStates]
         #self.ax.cla()
         for eOn,eOff,eCol in zip(eventsOn,eventsOff,theseStatesColor):
