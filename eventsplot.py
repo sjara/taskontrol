@@ -30,9 +30,9 @@ class EventsPlot(QtGui.QWidget):
         self.pH = 0.5*self.height()  # Plot Height
         self.pW = self.pWidth()      # Plot Width
         self.labelsY = 0.85*self.height()
-        self.xLims = [-15,0]
+        self.xLims = [-10,0]
         self.xLen = self.xLims[1]-self.xLims[0]
-        self.xTicks = range(-15,1)
+        self.xTicks = range(-10,1)
 
         self._lastStatesOnset  = []
         self._lastStatesOffset = []
@@ -43,7 +43,10 @@ class EventsPlot(QtGui.QWidget):
 
 
     def setStatesColor(self,newColors):
-        self.statesColor = map(QtGui.QColor,newColors)
+        '''A valid color is a list of 3 elements in the range 0-255'''
+        self.statesColor = []
+        for color in newColors:
+            self.statesColor.append(QtGui.QColor(*color))
 
 
     def updatePlot(self,timesAndStates,etime):
@@ -72,9 +75,8 @@ class EventsPlot(QtGui.QWidget):
         statesOnset = [[-5,0]]
         painter.setPen(QtCore.Qt.NoPen)
         for oneOnset,oneOffset,oneColor in zip(self._lastStatesOnset,
-                                               self._lastStatesOnset,
+                                               self._lastStatesOffset,
                                                self._lastStatesColor):
-            print oneColor.getRgb()
             painter.setBrush(QtGui.QBrush(oneColor))
             (pOnset,pOffset) = map(self.valueToPixel,(oneOnset,oneOffset))
             oneRect = QtCore.QRectF(pOnset,self.pY+1,pOffset-pOnset+1,self.pH-1)

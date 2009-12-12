@@ -66,7 +66,10 @@ class Protocol(QtGui.QDialog):
         self.dispatcher.setStateMatrix(mat)
 
         # -- Setup events plot --
-        self.evplot.setStatesColor(np.random.rand(6))
+        #self.evplot.setStatesColor(np.random.rand(6))
+        statesColor = [ [255,0,0],[0,255,0],[0,0,255],\
+                        [255,255,0],[255,0,255],[0,255,255] ]  
+        self.evplot.setStatesColor(statesColor)
 
         # -- Connect signals from dispatcher --
         self.connect(self.dispatcher,QtCore.SIGNAL('PrepareNextTrial'),self.prepareNextTrial)
