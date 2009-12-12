@@ -23,62 +23,85 @@ class EventsPlot(QtGui.QWidget):
     '''Plot state matrix events and states as they happen.'''
     def __init__(self, parent=None):
         super(EventsPlot, self).__init__(parent)
+        self.setFixedHeight(40)
+        self.stateRect = list()
+        self.pX = 4                  # Origin X
+        self.pY = 1                  # Origin Y
+        self.pH = 0.5*self.height()  # Plot Height
+        self.pW = self.pWidth()      # Plot Width
+        self.labelsY = 0.85*self.height()
+        self.xLims = [-15,0]
+        self.xLen = self.xLims[1]-self.xLims[0]
+        self.xTicks = range(-15,1)
 
-        #self.fig = Figure((5.0, 4.0), dpi=100)
-        self.fig = Figure()
-        self.canvas = FigureCanvas(self.fig)
-        self.canvas.setFixedSize(200,140)
-        self.setMinimumHeight(150)
-        self.canvas.setParent(self)
-        self.ax = self.canvas.figure.add_subplot(111)
-        BGcolorRGB = self.palette().color(QtGui.QPalette.Background).getRgbF()
-        self.fig.set_facecolor(BGcolorRGB)
-        #self.fig.set_facecolor('None')
-         #self.ax.grid()
-        #self.canvas.draw()
+        self._lastStatesOnset  = []
+        self._lastStatesOffset = []
+        self._lastStatesColor  = []
 
         self.statesColor = np.array([])
-
-        # -- Set properties of axes and plot --
-        self.ax.set_yticks([])
-        self.XLim = [-5,0]
-        self.ax.set_xlim(self.XLim)
-        self.ax.set_xticks(np.arange(self.XLim[0],self.XLim[1]+1,1))
-
-        #timesAndEvents = np.array([ [-1,1],[-2,2],[-4,3] ])
-
-        #self.updatePlot(timesAndEvents)
-        self.canvas.draw()
+        #colors = [QtCore.Qt.red]
 
 
-    def setStatesColor(self,statesColor):
-        self.statesColor = statesColor
+    def setStatesColor(self,newColors):
+        self.statesColor = map(QtGui.QColor,newColors)
 
 
     def updatePlot(self,timesAndStates,etime):
         '''
         Updates the plot.
-
         This method expects a numpy array where each row is of the
         form [time, state]
         '''
         # -- Find states to plot --
-        earliestTime = etime+self.XLim[0]
+        earliestTime = etime+self.xLims[0]
         eventsToInclude = timesAndStates[:,0]>=earliestTime
-        eventsOn = timesAndStates[eventsToInclude,0] - etime
-        eventsOff = np.r_[eventsOn[1:],0]
+        self._lastStatesOnset = timesAndStates[eventsToInclude,0] - etime
+        self._lastStatesOffset = np.r_[self._lastStatesOnset[1:],0]
         #eventsOff = np.r_[timesAndStates[:-1,0]-etime]
         lastStates = timesAndStates[eventsToInclude,1].astype('int')
-        theseStatesColor = self.statesColor[lastStates]
-        #self.ax.cla()
-        for eOn,eOff,eCol in zip(eventsOn,eventsOff,theseStatesColor):
-            xvals = [eOn,eOn,eOff,eOff]
-            yvals = [0,1,1,0]
-            statecolor = str(eCol)
-            self.ax.fill(xvals,yvals,color=statecolor)
-        self.ax.set_yticks([])
-        self.ax.set_xlim(self.XLim)
-        self.canvas.draw()
+        #self._lastStatesColor = self.statesColor[lastStates]
+        # FIX: there must be a better way!
+        self._lastStatesColor = [self.statesColor[s] for s in lastStates]
+        self.repaint()
+
+
+    def paintEvent(self, event):
+        self.pW = self.pWidth()      # Update plot width
+        painter = QtGui.QPainter()
+        painter.begin(self)
+        statesOnset = [[-5,0]]
+        painter.setPen(QtCore.Qt.NoPen)
+        for oneOnset,oneOffset,oneColor in zip(self._lastStatesOnset,
+                                               self._lastStatesOnset,
+                                               self._lastStatesColor):
+            print oneColor.getRgb()
+            painter.setBrush(QtGui.QBrush(oneColor))
+            (pOnset,pOffset) = map(self.valueToPixel,(oneOnset,oneOffset))
+            oneRect = QtCore.QRectF(pOnset,self.pY+1,pOffset-pOnset+1,self.pH-1)
+            painter.drawRect(oneRect)
+        self.drawAxis(painter)
+        painter.end()
+
+
+    def pWidth(self):
+        '''Width of axes in pixels'''
+        return self.width()-2*self.pX
+
+
+    def valueToPixel(self,xval):
+        return (float(xval-self.xLims[0])/self.xLen)*self.pW + self.pX
+
+
+    def drawAxis(self,painter):
+        painter.setPen(QtGui.QColor(QtCore.Qt.gray))
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.drawRect(self.pX,self.pY,self.pW,self.pH)
+
+        painter.setPen(QtGui.QColor(0,0,0))
+        for oneTick in self.xTicks:
+            posX = self.valueToPixel(oneTick)
+            tickPos = QtCore.QPointF(posX-3,self.labelsY)
+            painter.drawText(tickPos, QtCore.QString(str(oneTick)))
 
 
 if __name__ == "__main__":
