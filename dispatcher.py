@@ -35,7 +35,7 @@ import smclient
 
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
-class Dispatcher(QtGui.QWidget):
+class Dispatcher(QtGui.QGroupBox):
     '''
     Dispatcher graphical widget: Interface with state machine.
     
@@ -86,13 +86,11 @@ class Dispatcher(QtGui.QWidget):
         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.timeout)
 
         # -- Create graphical objects --
-        #self.resize(400,300)
         self.stateLabel = QtGui.QLabel(self._stateFormat%self.state)
         self.timeLabel = QtGui.QLabel(self._timeFormat%self.time)
         self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
         self.buttonStartStop = QtGui.QPushButton("&Push")
-        #self.buttonStartStop.setMinimumSize(200,100)
         self.buttonStartStop.setMinimumHeight(100)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
         buttonFont.setPointSize(buttonFont.pointSize()+10)
@@ -106,6 +104,7 @@ class Dispatcher(QtGui.QWidget):
         layout.addWidget(self.currentTrialLabel,1,1)
         layout.addWidget(self.buttonStartStop, 2,0, 1,2) # Span 1 row, 2 cols
         self.setLayout(layout)
+        self.setTitle('Dispatcher')
 
         # -- Connect signals --
         self.connect(self.buttonStartStop, QtCore.SIGNAL("clicked()"),
@@ -177,12 +176,6 @@ class Dispatcher(QtGui.QWidget):
         self.currentTrialLabel.setText(self._currentTrialFormat%self.currentTrial)
 
 
-    def _OLD_queryStateMachine(self):
-        if self.isConnected:
-            self.time = self.statemachine.getTime()
-        self.timeLabel.setText("Time: %0.2f"%self.time)
-
-
     def startOrStop(self):
         '''Toggle (start or stop) state machine and dispatcher timer.'''
         if(self.timer.isActive()):
@@ -198,25 +191,9 @@ class Dispatcher(QtGui.QWidget):
         if self.isConnected:
             self.statemachine.run()
         else:
-            print 'The dispatcher is not connected to the state machine server.'            
+            print 'The dispatcher is not connected to the state machine server.'
         # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['stop']
-        self.buttonStartStop.setStyleSheet(stylestr)
-        self.buttonStartStop.setText('Stop')
-
-
-    def _OLD_start(self):
-        '''Start timer.'''
-        self.timer.start(self.interval)
-        # -- Start state machine --
-        if self.isConnected:
-            self.statemachine.initialize()
-            self.statemachine.setStateMatrix(self.mat)        
-            self.statemachine.run()
-        else:
-            print 'The dispatcher is not connected to the state machine server.'            
-        # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['stop']
+        stylestr = 'QWidget {background-color: %s}'%BUTTON_COLORS['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
 
@@ -244,8 +221,8 @@ class Dispatcher(QtGui.QWidget):
     def die(self):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.stop()
-        self.statemachine.forceState(0)
         if self.isConnected:
+            self.statemachine.forceState(0)
             self.statemachine.close()
 
 
@@ -253,17 +230,7 @@ class Dispatcher(QtGui.QWidget):
         '''Set states where next trial can start to be prepared.'''
         self.prepareNextTrialStates = prepareNextTrialStates
 
-
-    def DEBUGevent(self,event):
-        print event
-        return True
-
-'''
-        #============= EXTRA CODE ==============#
-        #self.buttonStartStop.
-        #QtGui.QColor(QtCore.Qt.green)
-        #p.setColor(QColorGroup.Base,QtGui.QColor(QtCore.Qt.green))
-'''   
+    #--- End of Dispatcher class ---
 
 
 def center(guiObj):
@@ -271,7 +238,6 @@ def center(guiObj):
     screen = QtGui.QDesktopWidget().screenGeometry()
     size =  guiObj.geometry()
     guiObj.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-
 
 
 if __name__ == "__main__":
