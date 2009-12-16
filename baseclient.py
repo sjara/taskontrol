@@ -101,7 +101,7 @@ class BaseClient(object):
         else:
             # --- FIXME: define exception --
             self._verbose_print('Server returned: %s'%result)
-            raise TypeError(('Server (on port %d) did not send %s '+\
+            raise TypeError(('Server (on port %d) did not send %s '+
                              'after %s command.')%(self.port,expectedAck,cmd))
 
 
@@ -110,13 +110,13 @@ class BaseClient(object):
         # FIXME: WATCH OUT!!! THE IMPLEMENTATION OF readLines CHANGED
         matsizestr = self.readLines()
         if 'ERROR' in matsizestr:
-            raise ValueError('Server returned an error after '+\
-                             'command: %s',cmd)
+            raise ValueError(('Server returned an error after '+
+                              'command: %s')%cmd)
         if(matsizestr.startswith('MATRIX ')):
             (nrows,ncols) = map(int,matsizestr.split()[1:3])
         else:
-            raise ValueError('Server returned incorrect string '+\
-                             'for command: %s',cmd)
+            raise ValueError(('Server returned incorrect string '+
+                              'for command: %s')%cmd)
         self.sendString('READY\n')
         (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.receiveAck(cmd,ackstr,'OK')
@@ -128,8 +128,8 @@ class BaseClient(object):
         try:
             self.socketClient.send(stringToSend)
         except:
-            raise Exception('Failed sending command to server '+\
-                            '(on port %d).'%self.port)
+            raise Exception(('Failed sending command to server '+
+                            '(on port %d).')%self.port)
 
 
     def sendData(self,mat,dtype='d',expect='OK'):
