@@ -72,7 +72,7 @@ class StateMachineClient(baseclient.BaseClient):
         self.ready_for_trial_jumpstate = 1   # Traditionally state 35 
 
         # 'ext' is used currently for sound
-        self.output_routing = [ {'dtype':'dout', 'data':'0-15'},\
+        self.output_routing = [ {'dtype':'dout', 'data':'0-15'},
                                 {'dtype':'ext',  'data':str(self.fsmID)} ]
         self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
@@ -157,8 +157,8 @@ class StateMachineClient(baseclient.BaseClient):
         if (verstr >= MIN_SERVER_VERSION):
             self._verbose_print('FSM server protocol version %s\n'%verstr)
         else:
-            raise ValueError('The FSM server does not meet the minimum protocol'+\
-                             ' version requirement of %u'%MIN_SERVER_VERSION)
+            raise ValueError(('The FSM server does not meet the minimum protocol'+
+                             ' version requirement of %u')%MIN_SERVER_VERSION)
         self.doQueryCmd('CLIENTVERSION %u'%MIN_SERVER_VERSION)
 
 
@@ -421,7 +421,7 @@ class StateMachineClient(baseclient.BaseClient):
             elif outputdtype=='sound':
                 # Server protocol expects 'ext' instead of 'sound' here.
                 # FIXME: define exception
-                raise TypeError("The FSM now expects 'ext' as the output"+\
+                raise TypeError("The FSM now expects 'ext' as the output"+
                                 'routing type for sound triggering')
             elif outputdtype=='ext':
                 # FIXME: Check that there is only one 'ext'?
@@ -576,7 +576,7 @@ class StateMachineClient(baseclient.BaseClient):
             if schedwave[0] > 32:  # FIXME: Shouldn't this be 31?
                 raise ValueError('Schedule wave ID has to be less than 32.')            
             if schedwave[0] in self.sched_waves_ao:
-                raise ValueError('There is an analog schedule wave with the '+\
+                raise ValueError('There is an analog schedule wave with the '+
                                  'same ID as this one.')
             if schedwave[0] in schedwaveIDs:
                 raise ValueError('There is a duplicate schedule wave ID.')
@@ -962,9 +962,9 @@ class StateMachineClient(baseclient.BaseClient):
         if startEventNumber>endEventNumber:
             eventList = []
         else:
-            eventList = self.doQueryMatrixCmd('GET EVENTS %d %d'%\
-                                               (startEventNumber-1,\
-                                                endEventNumber-1))
+            eventList = self.doQueryMatrixCmd('GET EVENTS %d %d'%
+                                              (startEventNumber-1,
+                                               endEventNumber-1))
         return eventList
 
 
@@ -1021,8 +1021,8 @@ class StateMachineClient(baseclient.BaseClient):
         if startEventNumber>endEventNumber:
             eventList = []
         else:
-            eventList = self.doQueryMatrixCmd('GET EVENTS_II %d %d'%\
-                                               (startEventNumber-1,\
+            eventList = self.doQueryMatrixCmd('GET EVENTS_II %d %d'%
+                                               (startEventNumber-1,
                                                 endEventNumber-1))
         return eventList
 
@@ -1066,7 +1066,7 @@ class StateMachineClient(baseclient.BaseClient):
         (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.receiveAck(cmd,ackstr,'OK')
         # IMPROVE: make this dict into an object
-        allresults = {'etime':etime,'state':state,\
+        allresults = {'etime':etime,'state':state,
                       'eventcount':eventcountsince+firstEvent-1,'events':mat}
         return allresults
 
@@ -1105,13 +1105,13 @@ class StateMachineClient(baseclient.BaseClient):
         self.sendString(cmd+'\n')
         matsizestr = self.receiveOneLine()
         if 'ERROR' in matsizestr:
-            raise ValueError('FSM server returned an error after '+\
-                             'command: %s',cmd)
+            raise ValueError('FSM server returned an error after '+
+                             'command: %s'%cmd)
         if(matsizestr.startswith('MATRIX ')):
             (nrows,ncols) = map(int,matsizestr.split()[1:3])
         else:
-            raise ValueError('FSM server returned incorrect string '+\
-                             'for command: %s',cmd)
+            raise ValueError('FSM server returned incorrect string '+
+                             'for command: %s'%cmd)
         self.sendString('READY\n')
         (mat,ackstr) = self.readMatrix(nrows,ncols)
         self.receiveAck(cmd,ackstr,'OK')
@@ -1228,10 +1228,10 @@ class StateMachineClient(baseclient.BaseClient):
                     found=True
                     break
             if(not found):
-                errstr='The state machine has a sched_waves specification but\n'+\
-                       'no sched_wave output routing defined!\n'+\
-                       'Please specify a sched_wave output column '+\
-                       'using SetOutputRouting!\n'
+                errstr=('The state machine has a sched_waves specification but\n'+
+                        'no sched_wave output routing defined!\n'+
+                        'Please specify a sched_wave output column '+
+                        'using SetOutputRouting!\n')
                 raise TypeError(errstr)
             # FIXME: Original code could auto-add output routing
             #        Here I just raise an exception.
@@ -1239,8 +1239,8 @@ class StateMachineClient(baseclient.BaseClient):
 
         # Verify matrix is sane with respect to number of columns
         if(nEvents != nInputEvents+nColsForTimer+nColsForOutputs):
-            nstr = '%d(cols) = %d(input) + %d(timer) + %d(outputs)'%\
-                   (nEvents,nInputEvents,nColsForTimer,nColsForOutputs)
+            nstr = ('%d(cols) = %d(input) + %d(timer) + %d(outputs)'%
+                    (nEvents,nInputEvents,nColsForTimer,nColsForOutputs))
             raise TypeError('Number of columns is not consistent '+
                             'with number of events: %s'%nstr)
             # FIXME: define this exception
@@ -1298,8 +1298,8 @@ class StateMachineClient(baseclient.BaseClient):
                 pass
             elif oneoutput['dtype'] in ['sound', 'ext']:
                 hasSound = True
-            stringThisOutput = '\x01%s\x02%s'%\
-                               (oneoutput['dtype'],oneoutput['data'])
+            stringThisOutput = ('\x01%s\x02%s'%
+                                (oneoutput['dtype'],oneoutput['data']))
             outputSpecStr = ''.join((outputSpecStr,stringThisOutput))
         outputSpecStrUrlEnc = url_encode(outputSpecStr)
  
@@ -1369,9 +1369,9 @@ if __name__ == "__main__":
     if 2 in TESTCASES:   #'SendMatrixNoWaves':
         #        Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo SWo
         testSM.initialize()
-        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,\
-                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,\
-                [ 3,  3,  0,  0,  0,  0,  3,   2,   1,   0       ] ,\
+        mat = [ [ 0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0       ] ,
+                [ 1,  1,  1,  1,  1,  1,  1,   0,   0,   0       ] ,
+                [ 3,  3,  0,  0,  0,  0,  3,   2,   1,   0       ] ,
                 [ 2,  2,  0,  0,  0,  0,  2,   2,   2,   0       ] ]
         mat = np.array(mat)
         testSM.setStateMatrix(mat)
@@ -1389,9 +1389,9 @@ if __name__ == "__main__":
         testSM.setScheduledWavesDIO(schedwaves)
         testSM.input_event_mapping = [1,-1, 2,-2, 3,-3, 0, 0]
         #        Ci  Co  Li  Lo  Ri  Ro  SWi SWo Tup   t  CONTo TRIGo SWo
-        mat = [ [ 0,  0,  0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0,   0  ] ,\
-                [ 1,  1,  1,  1,  1,  1,  0,  0,  1,   0,   0,   0,   0  ] ,\
-                [ 3,  3,  0,  0,  0,  0,  1,  1,  2,  100,  1,   1,   1  ] ,\
+        mat = [ [ 0,  0,  0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0,   0  ] ,
+                [ 1,  1,  1,  1,  1,  1,  0,  0,  1,   0,   0,   0,   0  ] ,
+                [ 3,  3,  0,  0,  0,  0,  1,  1,  2,  100,  1,   1,   1  ] ,
                 [ 2,  2,  0,  0,  0,  0,  1,  1,  3,  100,  2,   1,   1  ] ]
         mat = np.array(mat)
         testSM.setStateMatrix(mat)
