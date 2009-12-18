@@ -80,7 +80,7 @@ class Protocol(QtGui.QDialog):
     def prepareNextTrial(self, nextTrial):
         print 'Prepare trial %d'%nextTrial
         self.dispatcher.readyToStartTrial()
-        
+
 
     def startNewTrial(self, currentTrial):
         print 'Started trial %d'%currentTrial
@@ -114,3 +114,7 @@ if __name__ == "__main__":
     protocol = Protocol()
     protocol.show()
     app.exec_()
+
+    #protocol.dispatcher.stop()
+    #raise
+
