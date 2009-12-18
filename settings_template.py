@@ -14,7 +14,7 @@ __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2009-11-26'
 
 
-STATE_MACHINE_SERVER = '192.168.1.102'
+STATE_MACHINE_SERVER = 'localhost'
 SOUND_SERVER = STATE_MACHINE_SERVER
 
 DATA_DIR = '/tmp/'
