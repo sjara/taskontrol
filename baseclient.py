@@ -14,6 +14,14 @@ import struct
 import numpy as np
 
 
+class AckError(Exception):
+    '''Exception raised if server did not send OK or READY.'''
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return repr(self.msg)
+
+
 class BaseClient(object):
     '''
     Generic network client that uses a text protocol.
@@ -101,8 +109,8 @@ class BaseClient(object):
         else:
             # --- FIXME: define exception --
             self._verbose_print('Server returned: %s'%result)
-            raise TypeError(('Server (on port %d) did not send %s '+
-                             'after %s command.')%(self.port,expectedAck,cmd))
+            raise AckError(('Server (on port %d) did not send %s '+
+                            'after %s command.')%(self.port,expectedAck,cmd))
 
 
     def doQueryMatrixCmd(self,cmd):
