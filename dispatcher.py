@@ -222,7 +222,10 @@ class Dispatcher(QtGui.QGroupBox):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.stop()
         if self.isConnected:
-            self.statemachine.forceState(0)
+            try:
+                self.statemachine.forceState(0)
+            except smclient.baseclient.AckError as e:
+                print e.msg+'\nMaybe there was no state matrix loaded.'
             self.statemachine.close()
 
 
