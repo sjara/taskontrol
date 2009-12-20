@@ -50,7 +50,8 @@ class Dispatcher(QtGui.QGroupBox):
     - 'TimerTic'        : at every tic of the dispatcher timer.
                           It sends: 'time','lastEvents'
     '''
-    def __init__(self, parent=None, host='localhost', port=3333, connectnow=True):
+    def __init__(self, parent=None, host='localhost', port=3333,
+                 connectnow=True, interval=0.3):
         super(Dispatcher, self).__init__(parent)
 
         # -- Set string formats --
@@ -81,7 +82,7 @@ class Dispatcher(QtGui.QGroupBox):
         self.eventsMat = np.zeros((0,5)) # Matrix with info about all events
 
         # -- Create timer --
-        self.interval = 300
+        self.interval = interval # Pooling interval (sec)
         self.timer = QtCore.QTimer(self)
         QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.timeout)
 
@@ -122,7 +123,13 @@ class Dispatcher(QtGui.QGroupBox):
 
 
     def setStateMatrix(self,statematrix):
-        '''Send state matrix to server.'''
+        '''
+        Send state transition matrix to server.
+
+        The matrix can be given as a python array or a numpy array.
+        '''
+        if not isinstance(statematrix,np.ndarray):
+            statematrix = np.array(statematrix)
         self.statemachine.setStateMatrix(statematrix)        
 
 
@@ -135,7 +142,6 @@ class Dispatcher(QtGui.QGroupBox):
             laststates = self.lastEvents[:,3]
             for state in self.prepareNextTrialStates:
                 if state in laststates:
-                    print self.lastEvents
                     self.preparingNextTrial = True
                     self.emit(QtCore.SIGNAL('PrepareNextTrial'), self.currentTrial+1)
                     break
@@ -147,8 +153,8 @@ class Dispatcher(QtGui.QGroupBox):
         '''
         self.statemachine.readyToStartTrial()
         self.currentTrial += 1
-        self.emit(QtCore.SIGNAL('StartNewTrial'), self.currentTrial)
         self.preparingNextTrial = False
+        self.emit(QtCore.SIGNAL('StartNewTrial'), self.currentTrial)
 
 
     def queryStateMachine(self):
@@ -186,7 +192,7 @@ class Dispatcher(QtGui.QGroupBox):
 
     def start(self):
         '''Start timer.'''
-        self.timer.start(self.interval)
+        self.timer.start(1e3*self.interval) # timer takes interval in ms
         # -- Start state machine --
         if self.isConnected:
             self.statemachine.run()
@@ -229,9 +235,27 @@ class Dispatcher(QtGui.QGroupBox):
             self.statemachine.close()
 
 
-    def setPrepareNextTrialStates(self,prepareNextTrialStates=[]):
-        '''Set states where next trial can start to be prepared.'''
-        self.prepareNextTrialStates = prepareNextTrialStates
+    def setPrepareNextTrialStates(self,statesNamesList,statesNamesDict):
+        '''
+        Set states where next trial can start to be prepared.
+        States are given as a list of names, and a dict that maps names to indices.
+        '''
+        if not isinstance(statesNamesList,(tuple,list)):
+            statesNamesList = [statesNamesList]
+        statesIndsList = []
+        for stateName in statesNamesList:
+            statesIndsList.append(statesNamesDict[stateName])
+        self.prepareNextTrialStates = statesIndsList
+
+
+    def setPrepareNextTrialStatesFromIndices(self,statesIndsList=[]):
+        '''
+        Set states where next trial can start to be prepared.
+        Here, states are specified by their indices instead of their names.
+        '''
+        # FIXME: is this ever used
+        self.prepareNextTrialStates = statesIndsList
+
 
     #--- End of Dispatcher class ---
 

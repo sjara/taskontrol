@@ -42,12 +42,26 @@ class EventsPlot(QtGui.QWidget):
         #colors = [QtCore.Qt.red]
 
 
-    def setStatesColor(self,newColors):
+    def setStatesColor(self,statesColorDict,statesNameToIndex):
+        '''
+        Set colors for each state.
+
+        statesColorsDict is a dict mapping state names to colors.
+        statesNameToIndex is a dict mapping states names to indeces.
+        A valid color is a list of 3 elements in the range 0-255
+        '''
+        self.statesColor = len(statesNameToIndex)*[[0,0,0]]
+        for (stateName,color) in statesColorDict.iteritems():
+            stateIndex = statesNameToIndex[stateName]
+            self.statesColor[stateIndex] = QtGui.QColor(*color)
+
+
+    def setStatesColorList(self,newColors):
         '''A valid color is a list of 3 elements in the range 0-255'''
         self.statesColor = []
         for color in newColors:
             self.statesColor.append(QtGui.QColor(*color))
-
+ 
 
     def updatePlot(self,timesAndStates,etime):
         '''
@@ -63,7 +77,7 @@ class EventsPlot(QtGui.QWidget):
         #eventsOff = np.r_[timesAndStates[:-1,0]-etime]
         lastStates = timesAndStates[eventsToInclude,1].astype('int')
         #self._lastStatesColor = self.statesColor[lastStates]
-        # FIX: there must be a better way!
+        # FIXME: there must be a better way!
         self._lastStatesColor = [self.statesColor[s] for s in lastStates]
         self.repaint()
 

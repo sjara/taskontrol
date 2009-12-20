@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Test protocol to see what is missing.
+Example protocol (using state matrix assembler).
 '''
 
 __version__ = '0.0.1'
@@ -10,15 +10,18 @@ __created__ = '2009-11-15'
 
 
 import sys
+sys.path.append('../')
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
 import numpy as np
 import paramgui
 import dispatcher
+import statematrix
 import settings
 
 reload(paramgui)
 reload(dispatcher)
+reload(statematrix)
 reload(settings)
 
 import eventsplot
@@ -33,7 +36,7 @@ class Protocol(QtGui.QDialog):
         smhost = settings.STATE_MACHINE_SERVER
 
         # -- Add widgets --
-        self.dispatcher = dispatcher.Dispatcher(host=smhost,connectnow=True)
+        self.dispatcher = dispatcher.Dispatcher(host=smhost,interval=0.1)
         self.param1 = paramgui.Parameter('OneParam')
         self.evplot = eventsplot.EventsPlot()
 
@@ -46,13 +49,15 @@ class Protocol(QtGui.QDialog):
         
         # -- Set state matrix --
         tmin = 0.001            # Very small time
-        Sdur = 0.1              # Duration of sound
-        Tout = 4                # Length of time reward is available
+        Sdur = 0.2              # Duration of sound
+        RewAvail = 4            # Length of time reward is available
         Rdur = 0.1              # Duration of reward
         Lw = settings.LEFT_WATER  # Left water valve
         Rw = settings.RIGHT_WATER # Right water valve
         #Corr =  
         #Err  =
+        
+        '''
         mat = []
         #           Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo
         mat.append([ 0,  0,  0,  0,  0,  0,  2, tmin,  0,   0   ]) # 0: State 0
@@ -61,15 +66,51 @@ class Protocol(QtGui.QDialog):
         mat.append([ 3,  3,  3,  3,  3,  3,  4, Sdur,  1,   1   ]) # 3: PlayTarget
         mat.append([ 4,  4,  5,  4,  1,  4,  1, Tout,  0,   0   ]) # 4: WaitForApoke
         mat.append([ 5,  5,  5,  5,  5,  5,  1, Rdur, Lw,   0   ]) # 5: Reward
-        mat = np.array(mat)
-        self.dispatcher.setPrepareNextTrialStates([1,5])
-        self.dispatcher.setStateMatrix(mat)
+        '''
+
+        sm = statematrix.StateMatrix(readystate=('ready_next_trial',1))
+        sm.addState(name='wait_for_cpoke', selftimer=4,
+                    transitions={'Cin':'play_target'})
+        sm.addState(name='play_target', selftimer=Sdur,
+                    transitions={'Cout':'wait_for_apoke','Tout':'wait_for_apoke'},
+                    actions={'DOut':7})
+        sm.addState(name='wait_for_apoke', selftimer=RewAvail,
+                    transitions={'Lin':'reward','Rin':'punish','Tout':'ready_next_trial'})
+        sm.addState(name='reward', selftimer=Rdur,
+                    transitions={'Tout':'ready_next_trial'},
+                    actions={'DOut':2})
+        sm.addState(name='punish', selftimer=Rdur,
+                    transitions={'Tout':'ready_next_trial'},
+                    actions={'DOut':4})
+
+        #prepareNextTrialStates = ('ready_next_trial','reward','punish')
+        prepareNextTrialStates = ('ready_next_trial')
+        self.dispatcher.setPrepareNextTrialStates(prepareNextTrialStates,
+                                                  sm.getStatesDict())
+        self.dispatcher.setStateMatrix(sm.getMatrix())
+
+        # QUESTION: what happens if signal 'READY TO START TRIAL'
+        #           is sent while on JumpState?
+        #           does it jump to new trial or waits for timeout?
+
+
+        print sm
 
         # -- Setup events plot --
         #self.evplot.setStatesColor(np.random.rand(6))
+        '''
         statesColor = [ [255,0,0],[0,255,0],[0,0,255],\
                         [255,255,0],[255,0,255],[0,255,255] ]  
         self.evplot.setStatesColor(statesColor)
+        '''
+        statesColorDict = {'wait_for_cpoke': [127,127,255],
+                           'play_target':    [255,255,0],
+                           'wait_for_apoke': [191,191,255],
+                           'reward':         [0,255,0],
+                           'punish':         [255,0,0],
+                           'ready_next_trial':   [0,0,0]}
+        self.evplot.setStatesColor(statesColorDict,sm.getStatesDict())
+
 
         # -- Connect signals from dispatcher --
         self.connect(self.dispatcher,QtCore.SIGNAL('PrepareNextTrial'),self.prepareNextTrial)
@@ -89,9 +130,9 @@ class Protocol(QtGui.QDialog):
     def timerTic(self,etime,lastEvents):
         #timesAndStates = lastEvents[:,[2,3]]
         #timesAndStates[:,0] -= etime
-        # FIX: I should not access attribute of dispatcher directly
+        # FIXME: I should not access attribute of dispatcher directly
         timesAndStates = self.dispatcher.eventsMat[:,[2,3]]
-        # FIX: next line maybe the first place where a copy is made:
+        # FIXME: next line maybe the first place where a copy is made:
         # It's either inefficient to copy all states, or I'm modifying
         # the original eventsMat which is BAD!
         #timesAndStates[:,0] -= etime
