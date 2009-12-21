@@ -133,9 +133,8 @@ class StateMatrix(object):
         '''String representation of transition matrix.'''
         matstr = ''
         for (index,onerow) in enumerate(self.pymat):
-            matstr += '%s [%d]'%(self.statesIndexToName[index].ljust(16),index)
-            for elem in onerow:
-                matstr += '\t'+str(elem)
+            matstr += '%s [%d] \t'%(self.statesIndexToName[index].ljust(16),index)
+            matstr += '\t'.join(str(e) for e in onerow)
             matstr += '\n'
         return matstr
 
