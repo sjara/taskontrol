@@ -248,7 +248,7 @@ class Dispatcher(QtGui.QGroupBox):
         self.prepareNextTrialStates = statesIndsList
 
 
-    def setPrepareNextTrialStatesFromIndices(self,statesIndsList=[]):
+    def setPrepareNextTrialStatesFromIndices(self,statesIndsList):
         '''
         Set states where next trial can start to be prepared.
         Here, states are specified by their indices instead of their names.
