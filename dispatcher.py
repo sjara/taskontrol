@@ -51,7 +51,7 @@ class Dispatcher(QtGui.QGroupBox):
                           It sends: 'time','lastEvents'
     '''
     def __init__(self, parent=None, host='localhost', port=3333,
-                 connectnow=True, interval=0.3):
+                 connectnow=True, interval=0.3, minwidth=200):
         super(Dispatcher, self).__init__(parent)
 
         # -- Set string formats --
@@ -91,11 +91,13 @@ class Dispatcher(QtGui.QGroupBox):
         self.timeLabel = QtGui.QLabel(self._timeFormat%self.time)
         self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
-        self.buttonStartStop = QtGui.QPushButton("&Push")
+        self.buttonStartStop = QtGui.QPushButton('')
         self.buttonStartStop.setMinimumHeight(100)
+        #self.buttonStartStop.setMinimumWidth(160)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
         buttonFont.setPointSize(buttonFont.pointSize()+10)
         self.buttonStartStop.setFont(buttonFont)
+        self.setMinimumWidth(minwidth)
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
@@ -128,9 +130,12 @@ class Dispatcher(QtGui.QGroupBox):
 
         The matrix can be given as a python array or a numpy array.
         '''
-        if not isinstance(statematrix,np.ndarray):
-            statematrix = np.array(statematrix)
-        self.statemachine.setStateMatrix(statematrix)        
+        if self.isConnected:
+            if not isinstance(statematrix,np.ndarray):
+                statematrix = np.array(statematrix)
+            self.statemachine.setStateMatrix(statematrix)        
+        else:
+            print 'Call to setStateMatrix, but the client is not connected.\n'
 
 
     def timeout(self):
