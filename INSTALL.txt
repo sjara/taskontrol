@@ -1,0 +1,36 @@
+___________________________________
+
+ TASKontrol installation and setup
+___________________________________
+
+
+===== Installation on a Debian/Ubuntu system =====
+
+* Before starting you may need to update the list of packages:
+  sudo apt-get update
+
+* Install dependencies:
+  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib
+
+* Create and go to the directory where you want the code:
+  mkdir ~/src
+  cd ~/src/
+
+* Clone source code from repository:
+  git clone git://github.com/sjara/taskontrol.git
+
+* Add directory to python path:
+  export PYTHONPATH=$PYTHONPATH:~/src
+
+
+Notes:
+
+* You also need pytables, but the package from the repository seems to have a bug. Install from .egg.
+
+* If application fonts look bad (no anti-aliasing) on Gnome, you can change them to ‘DejaVuSansBook’ in System>Preferences>Appearance>Fonts>ApplicationFont
+
+* Numpy 1.2.1 produces a segmentation fault when using matplotlib. Make sure you have a newer version.
+
+
+
+
