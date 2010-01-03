@@ -3,8 +3,8 @@
 #+STARTUP: showall
 
 * To do next:
+*** TODO Organize module in subfolders (core, plugins, doc, test,...)
 *** TODO A simple protocol organized by trials (freq discrimination).
-*** TODO Use StateMatrix in protocol.
 *** TODO Fix eventsplot [1/3]
 ***** TODO Color disappearing earlier that it should
 ***** TODO Plot events, not just states
@@ -50,12 +50,28 @@
 ***** TODO Use blit()
 
 
+* Improvements
+*** DONE Use isinstance(obj, int) instead of comparing types
+*** TODO Do not compare with == (singleton), use 'is'
+*** TODO Don't compare boolean values to True or False using ==
+*** DONE Use .join() instead of +=
+*** TODO Be explicit about which exception is catched
+*** DONE endswith() instead of slicing string
+*** TODO Use code-testing: :CODE_TESTING:
+
+
 * Bugs and fixes:
 *** TODO Antipatterns:
 ***** http://en.wikipedia.org/wiki/Sequential_coupling (on smclient)
 ***** http://en.wikipedia.org/wiki/BaseBean (on netclient)
 *** TODO Why are sched waves an attribute of the class?
     but the state matrix is not?
+*** TODO QtGui.QFileDialog.getSaveFileName() is horribly slow.
+    But only when run from from ipython. Maybe it is related to the
+    following bug, since the error message does not appear under ipython:
+    https://bugs.kde.org/show_bug.cgi?id=210904
+    (5001) findLibraryInternal: plugins should not have a 'lib' prefix: "libkfilemodule.so"
+    (5001) KPluginLoader::load: The plugin "libkfilemodule" doesn't contain a kde_plugin_verification_data structure
 *** DONE I have been using =smIDstr.split()[0]= to extract values,
     but maybe this will change if I split things in DoQueryCmd()
 *** DONE I seem to be sending extra strings after GetEvents()
@@ -91,32 +107,28 @@
     state matrix, but is this column or row-wise? Couldn't we just
     send the state matrix first and then the sched waves?
 *** Do event numbers start from 1 or 0 (when using GET_EVENTS %d %d)?
+*** What is the number of columns of the events-matrix? 4 or 5?
+    The fifth one used to be the Nspike time. Is it still in use?
 *** Why do we need 'READY TO START TRIAL' (and ready_for_trial_jumpstate)?
     shouldn't that be implemented by the client with 'FORCE STATE %d'
     The only reason I see if you want the SM to do something while
     preparing the next trial, and don't want to jump out of it in the
     middle of something (but only when it reaches a special state).
 
-    
-* Python style
-*** Style guide: http://www.python.org/dev/peps/pep-0008/
-*** Unofficial guide: http://jaynes.colorado.edu/PythonGuidelines.html
-*** TODO Do not compare with == (singleton), use 'is'
-*** DONE Use .join() instead of +=
-*** TODO Be explicit about which exception is catched
-*** DONE endswith() instead of slicing string
-*** DONE Use isinstance(obj, int) instead of comparing types
-*** TODO Don't compare boolean values to True or False using ==
-*** TODO Use code-testing: :CODE_TESTING:
-    http://docs.python.org/library/doctest.html
-    http://docs.python.org/library/unittest.html
-*** Ten pitfalls:
-    http://zephyrfalcon.org/labs/python_pitfalls.html
-*** Code like a pythonista:
-    http://python.net/~goodger/projects/pycon/2007/idiomatic/handout.html
-
 
 * Notes on developing in python:
+*** Python style
+***** Style guide: http://www.python.org/dev/peps/pep-0008/
+***** Unofficial guide: http://jaynes.colorado.edu/PythonGuidelines.html
+***** Code like a pythonista:
+      http://python.net/~goodger/projects/pycon/2007/idiomatic/handout.html
+*** Ten pitfalls:
+    http://zephyrfalcon.org/labs/python_pitfalls.html
+*** Code testing:
+    http://docs.python.org/library/doctest.html
+    http://docs.python.org/library/unittest.html
+*** Performance:
+    http://wiki.python.org/moin/PythonSpeed/PerformanceTips
 *** Ipython:
 ***** DONE Debugger:
 ******* Running 'run -d script' did not work:

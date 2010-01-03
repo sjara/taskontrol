@@ -15,7 +15,7 @@ import sys
 import socket
 import struct
 import numpy as np
-import baseclient
+from taskontrol.core import baseclient
 
 
 class SoundClient(baseclient.BaseClient):

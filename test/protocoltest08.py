@@ -12,17 +12,16 @@ __created__ = '2009-11-15'
 
 
 import sys
-sys.path.append('../')
-import time
+#import time
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
-import numpy as np
-import paramgui
-import dispatcher
-import statematrix
-import rigsettings
-import savedata
-import messenger
+#import numpy as np
+from taskontrol.core import paramgui
+from taskontrol.core import dispatcher
+from taskontrol.core import statematrix
+from taskontrol.core import savedata
+from taskontrol.core import messenger
+from taskontrol.settings import rigsettings
 
 reload(paramgui)
 reload(dispatcher)
@@ -31,7 +30,7 @@ reload(rigsettings)
 reload(savedata)
 reload(messenger)
 
-import eventsplot
+from taskontrol.plugins import eventsplot
 reload(eventsplot)
 
 
@@ -44,12 +43,16 @@ class Protocol(QtGui.QMainWindow):
 
         # -- Add widgets --
         centralWidget = QtGui.QWidget()
-        self.dispatcher = dispatcher.Dispatcher(host=smhost,interval=0.3,connectnow=True)
+        self.dispatcher = dispatcher.Dispatcher(host=smhost,interval=0.3,connectnow=True,dummy=True)
         self.savedata = savedata.SaveData()
         self.params = paramgui.Container()
-        for ind in range(6):
-            self.params['par%d'%ind] = paramgui.NumericParam('Param%d'%ind,value=1.1*ind)
-        self.params['par%d'%(ind+1)] = paramgui.MenuParam('MenuParam',('One','Two','Three'))
+        self.paramsHistory = []
+        #for ind in range(6):
+        #    self.params['par%d'%ind] = paramgui.NumericParam('Param%d'%ind,value=1.1*ind)
+        self.params['soundDuration'] = paramgui.NumericParam('Sound Duration',value=0.1)
+        self.params['irrelevantParam1'] = paramgui.NumericParam('Irrelevant 1',value=0)
+        self.params['irrelevantParam2'] = paramgui.NumericParam('Irrelevant 2',value=0)
+        self.params['chooseNumber'] = paramgui.MenuParam('MenuParam',('One','Two','Three'))
         self.evplot = eventsplot.EventsPlot(xlim=[0,4])
 
         layoutMain = QtGui.QVBoxLayout()
@@ -77,8 +80,10 @@ class Protocol(QtGui.QMainWindow):
         #layoutCol2.addStretch()
         layoutCol2.addWidget(groupBox1)
         groupBox1.setLayout(layoutBox1)
-        for param in self.params.values():
-            layoutBox1.addWidget(param)
+        # FIXME: Create instead an object for a group that has a defined layout order
+        layoutOrder = ['soundDuration','irrelevantParam1','irrelevantParam2','chooseNumber']
+        for paramkey in layoutOrder:
+            layoutBox1.addWidget(self.params[paramkey])
         centralWidget.setLayout(layoutMain)
         self.setCentralWidget(centralWidget)
 
@@ -118,7 +123,7 @@ class Protocol(QtGui.QMainWindow):
     def setStateMatrix(self):
         # -- Set state matrix --
         tmin = 0.001            # Very small time
-        Sdur = 0.2              # Duration of sound
+        Sdur = self.params['soundDuration'].getValue()   # Duration of sound
         RewAvail = 4            # Length of time reward is available
         Rdur = 0.1              # Duration of reward
         Lw = rigsettings.LEFT_WATER  # Left water valve
@@ -151,11 +156,18 @@ class Protocol(QtGui.QMainWindow):
         #           does it jump to new trial or waits for timeout?
 
         print self.sm
-        
+
+    def storeTrialParameters(self):
+        currentTrial = protocol.dispatcher.currentTrial
+        #self.paramsHistory[currentTrial] = self.params
+        self.params.updateHistory()
+        # FIXME: I'm afraid it could happen that the trial number and
+        # the size of history get out of sync.
+        #except ValueError:print 'paramsHistory length and current trial do not match.'
 
     def fileSave(self):
         '''Triggered by button clicked signal'''
-        self.savedata.fileSave(self.params)
+        self.savedata.fileSave(self.params,self.dispatcher.eventsMat)
 
     def showMessage(self,msg):
         #print msg
@@ -163,10 +175,14 @@ class Protocol(QtGui.QMainWindow):
 
     def prepareNextTrial(self, nextTrial):
         print 'Prepare trial %d'%nextTrial
+        self.setStateMatrix()
+        self.storeTrialParameters()
         self.dispatcher.readyToStartTrial()
 
 
     def startNewTrial(self, currentTrial):
+        # FIXME: currentTrial is sent by signal here, but can also be
+        # accessed from protocol.dispatcher.currentTrial
         print 'Started trial %d'%currentTrial
 
 

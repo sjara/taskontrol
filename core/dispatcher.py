@@ -31,7 +31,8 @@ import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
 import numpy as np
-import smclient
+from taskontrol.core import smclient
+from taskontrol.core import messenger
 
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
@@ -51,8 +52,13 @@ class Dispatcher(QtGui.QGroupBox):
                           It sends: 'time','lastEvents'
     '''
     def __init__(self, parent=None, host='localhost', port=3333,
-                 connectnow=True, interval=0.3, minwidth=200):
+                 connectnow=True, interval=0.3, minwidth=200, dummy=False):
         super(Dispatcher, self).__init__(parent)
+
+        # -- Use dummy state machine if requested --
+        if dummy:
+            from taskontrol.plugins import smdummy as smclient
+            reload(smclient)
 
         # -- Set string formats --
         self._timeFormat = 'Time: %0.1f s'
@@ -79,7 +85,8 @@ class Dispatcher(QtGui.QGroupBox):
         self.eventCount = 0     # Number of events so far
         self.currentTrial = 1   # Current trial
         self.lastEvents = np.array([])   # Matrix with info about last events
-        self.eventsMat = np.zeros((0,5)) # Matrix with info about all events
+        self.eventsMat = np.empty((0,5)) # Matrix with info about all events
+        # FIXME: is it really 5 columns?
 
         # -- Create timer --
         self.interval = interval # Pooling interval (sec)
@@ -207,6 +214,7 @@ class Dispatcher(QtGui.QGroupBox):
         stylestr = 'QWidget {background-color: %s}'%BUTTON_COLORS['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
+        messenger.Messenger.send('Run')
 
 
     def stop(self):
@@ -221,6 +229,7 @@ class Dispatcher(QtGui.QGroupBox):
         stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['start']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Start')
+        messenger.Messenger.send('Stop')
 
 
     def closeEvent(self, event):

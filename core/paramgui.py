@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 '''
-Define objects to set protocol parameters graphically.
+Classes for graphical protocol parameters.
 
-Parameters can set either with:
-- Label + LineEdit
-- Menu ???
+Two parameters classes are defined:
+- NumericParam: For a numeric entry and its label.
+- MenuParam: For a menu entry and its label.
 
 TODO:
 - Make both label and text expanding horizontally
@@ -24,9 +24,29 @@ from PyQt4 import QtGui
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
 
+class Container(dict):
+    def __init__(self):
+        super(Container, self).__init__()        
+        self.history = {}
+    #def append(self,item):
+    #    self.items.append(item)
+    def printItems(self):
+        for key,item in self.iteritems():
+            print '[%s] %s : %f'%(type(item),key,item.getValue())
+    def updateHistory(self):
+        '''Append the value of each parameter for this trial.'''
+        for key,item in self.iteritems():
+            # FIXME: I think there is a nicer way to do this for the first trial
+            try:
+                self.history[key].append(item.getValue())
+            except KeyError: # If the key does not exist yet (e.g. first trial)
+                self.history[key] = [item.getValue()]
+                
+
 class NumericParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), value=0, labelWidth=80, parent=None):
         super(NumericParam, self).__init__(parent)
+        self._type = 'numeric'
 
         # -- Define graphical interface --
         self.label = QtGui.QLabel(labelText)
@@ -52,12 +72,15 @@ class NumericParam(QtGui.QWidget):
     def getValue(self):
         return float(self.lineEdit.text())
 
+    def getType(self):
+        return self._type
 
 
 class MenuParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), menuItems=(), value=0,
                  labelWidth=80, parent=None):
         super(MenuParam, self).__init__(parent)
+        self._type = 'menu'
 
         # -- Define graphical interface --
         self.label = QtGui.QLabel(labelText)
@@ -95,6 +118,9 @@ class MenuParam(QtGui.QWidget):
 
     def getItems(self):
         return self._items
+
+    def getType(self):
+        return self._type
 
 
 class TestForm(QtGui.QDialog):
@@ -145,3 +171,6 @@ if __name__ == "__main__":
     form = TestForm()
     form.show()
     app.exec_()
+
+    # To get the item (as string) of a menuparam for the last trial in the history:
+    #protocol.params['chooseNumber'].getItems()[protocol.params.history['chooseNumber'][-1]]

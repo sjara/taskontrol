@@ -9,19 +9,14 @@ __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2009-11-28'
 
 
-import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
 import numpy as np
-import matplotlib as mpl
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-
 
 
 class EventsPlot(QtGui.QWidget):
     '''Plot state matrix events and states as they happen.'''
-    def __init__(self, parent=None):
+    def __init__(self, parent=None,xlim=[0,10]):
         super(EventsPlot, self).__init__(parent)
         self.setFixedHeight(40)
         self.stateRect = list()
@@ -30,9 +25,10 @@ class EventsPlot(QtGui.QWidget):
         self.pH = 0.5*self.height()  # Plot Height
         self.pW = self.pWidth()      # Plot Width
         self.labelsY = 0.85*self.height()
-        self.xLims = [-10,0]
+        self.xLims = xlim
         self.xLen = self.xLims[1]-self.xLims[0]
-        self.xTicks = range(-10,1)
+        #self.xTicks = range(-10,1)
+        self.xTicks = range(self.xLims[0],self.xLims[1])
 
         self._lastStatesOnset  = []
         self._lastStatesOffset = []
@@ -70,11 +66,12 @@ class EventsPlot(QtGui.QWidget):
         form [time, state]
         '''
         # -- Find states to plot --
-        earliestTime = etime+self.xLims[0]
+        earliestTime = etime-self.xLims[1]
         eventsToInclude = timesAndStates[:,0]>=earliestTime
-        self._lastStatesOnset = timesAndStates[eventsToInclude,0] - etime
+        #if len(eventsToInclude): ### DEBUG
+        #    raise
+        self._lastStatesOnset = etime - timesAndStates[eventsToInclude,0]
         self._lastStatesOffset = np.r_[self._lastStatesOnset[1:],0]
-        #eventsOff = np.r_[timesAndStates[:-1,0]-etime]
         lastStates = timesAndStates[eventsToInclude,1].astype('int')
         #self._lastStatesColor = self.statesColor[lastStates]
         # FIXME: there must be a better way!
@@ -86,7 +83,6 @@ class EventsPlot(QtGui.QWidget):
         self.pW = self.pWidth()      # Update plot width
         painter = QtGui.QPainter()
         painter.begin(self)
-        statesOnset = [[-5,0]]
         painter.setPen(QtCore.Qt.NoPen)
         for oneOnset,oneOffset,oneColor in zip(self._lastStatesOnset,
                                                self._lastStatesOffset,
@@ -122,6 +118,7 @@ class EventsPlot(QtGui.QWidget):
 
 if __name__ == "__main__":
 
+    import sys
     app = QtGui.QApplication(sys.argv)
     form = EventsPlot()
     form.show()

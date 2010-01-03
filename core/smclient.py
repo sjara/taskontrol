@@ -23,7 +23,7 @@ __created__ = '2009-11-01'
 import socket
 import struct
 import numpy as np
-import baseclient
+from taskontrol.core import baseclient
 
 MIN_SERVER_VERSION = 220080319  # Update this on protocol change
 NBYTES_DOUBLE_FLOAT = 8         # Number of bytes in double precision float

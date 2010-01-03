@@ -83,6 +83,40 @@ ________________________
          TIMEOUT_STATE    TIMEOUT_TIME    CONT_OUT    TRIG_OUT
          and the optional SCHED_WAVE.
 
+_________________________
+
+ FORMAT OF EVENTS MATRIX
+_________________________
+
+From getEvents(). Needs some clean-up.
+
+Each of the rows in EventList has 4 columns:
+
+1. The first is the state that was current when the event
+   occurred.
+
+2. The second is the event_column number.  See
+   setInputEvents() for a description of what we mean by event
+   columns. In the default event column configuration
+   setInputEvents(6,'ai'), you would have as possible
+   event_id's:
+
+   0=Cin, 
+   1=Cout, 
+   2=Lin, 
+   3=Lout, 
+   4=Rin,
+   5=Rout, 
+   -1=TIME'S UP EVENT *or* no detected event,
+      (e.g. when a jump to state 0 is forced)
+       
+3. The third is the time, in seconds, at which the event
+   occurred.
+
+4. The fourth is the new state that was entered as a result of
+   the state transition.
+
+
 ________________________________
 
  FORMAT OF SCHEDULE WAVES (DIO)
