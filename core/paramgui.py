@@ -41,7 +41,27 @@ class Container(dict):
                 self.history[key].append(item.getValue())
             except KeyError: # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [item.getValue()]
+    def appendToFile(self,h5file):
+        dataParent = 'trialData'
+        itemsParent = 'menuItems'
+        tdataGroup = h5file.createGroup('/','trialData',
+                                        'Parameters from each trial')
+        menuItemsGroup = h5file.createGroup('/','menuItems',
+                                        'Items in menu parameters')
+        for key,item in self.iteritems():
+            paramLabel = self[key].getLabel()
+            h5file.createArray(tdataGroup, key, self.history[key], paramLabel)
+            # FIXME: not very ObjectOriented to use getType
+            #        the object should be able to save itself
+            if self[key].getType()=='menu':
+                h5file.createArray(menuItemsGroup, key, self[key].getItems(),
+                                   '%s menu items'%paramLabel)
+
                 
+#class GenericParam(QtGui.QWidget):
+#    def __init__(self, labelText=QtCore.QString(), value=0, labelWidth=80, parent=None):
+#        super(GenericParam, self).__init__(parent)
+
 
 class NumericParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), value=0, labelWidth=80, parent=None):
@@ -74,6 +94,9 @@ class NumericParam(QtGui.QWidget):
 
     def getType(self):
         return self._type
+
+    def getLabel(self):
+        return str(self.label.text())
 
 
 class MenuParam(QtGui.QWidget):
@@ -122,6 +145,14 @@ class MenuParam(QtGui.QWidget):
     def getType(self):
         return self._type
 
+    def getLabel(self):
+        return str(self.label.text())
+
+    #def appendToFile(self,h5file,dataParent,itemsParent):
+    #    h5file.createArray(dataParent, key, paramContainer.history[key], paramLabel)
+    #    h5file.createArray(menuItemsGroup, key, paramContainer[key].getItems(),
+    #                               '%s menu items'%paramLabel)
+        
 
 class TestForm(QtGui.QDialog):
     def __init__(self, parent=None):
