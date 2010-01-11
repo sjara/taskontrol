@@ -76,6 +76,9 @@ class StateMachineClient(baseclient.BaseClient):
                                 {'dtype':'ext',  'data':str(self.fsmID)} ]
         self.setInputEvents(6, 'ai') # 6 input events, two for each nosecone
 
+        # To keep track of manually controlled digital outputs
+        self._manualDout = 0
+
         if connectnow:
             self.connect()
 
@@ -891,17 +894,21 @@ class StateMachineClient(baseclient.BaseClient):
         self.closeSocket()
 
 
-    def bypassDout(self,d):
+    def bypassDout(self,dout):
         '''
         Set digital outputs.
 
-        Set outputs to be whatever the state machine would indicate,
-        bitwise or `d with "d." To turn this off, call bypassDout(0).
-        
-        NOTE by sjara (2009-11-07): This is the comment from the
-        Matlab version, it is not clear what this method does.
+        Forces a change in state of a digital output given by dout.
+        If dout is positive, it turns the output on.
+        If dout is negative, it turns the output off.
         '''
-        self.doQueryCmd('BYPASS DOUT %d'%d)
+        # Set that bit ON/OFF, if not already in that state
+        if ((dout>0 and not (self._manualDout & dout)) or
+            (dout<0 and (self._manualDout & abs(dout)))):
+            self._manualDout += dout
+        elif dout==0:
+            self._manualDout = 0
+        self.doQueryCmd('BYPASS DOUT %d'%self._manualDout)
 
 
     def triggerSound(self,d):
