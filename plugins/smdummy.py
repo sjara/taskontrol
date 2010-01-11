@@ -61,6 +61,9 @@ class StateMachineClient(object):
                       'eventcount':eventcountsince+firstEvent-1,'events':mat}
         return allresults
 
+    def bypassDout(self,dout):
+        pass
+
     def run(self):
         print 'DUMMY: Run.'
 
