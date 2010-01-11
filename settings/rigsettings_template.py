@@ -19,5 +19,13 @@ SOUND_SERVER = STATE_MACHINE_SERVER
 
 DATA_DIR = '/tmp/'
 
-LEFT_WATER  = 1
-RIGHT_WATER = 2
+DOUT = {
+    'Center Water':1,
+    'Center LED'  :2,
+    'Left Water'  :4,
+    'Left LED'    :8,
+    'Right Water' :16,
+    'Right LED'   :32,
+    'Stim 1'      :64,
+    'Stim 2'      :128,
+}
