@@ -53,7 +53,7 @@ class SaveData(QtGui.QGroupBox):
         #self.connect(self.buttonSaveData,QtCore.SIGNAL('clicked()'),self.fileSave)
 
 
-    def fileSave(self,paramContainer,eventsMat):
+    def fileSave(self,paramContainer,eventsMatrix):
         thissession=dict()
         thissession['date'] = time.strftime('%Y%m%d',time.localtime())
         thissession['experimenter'] = 'santiago'
@@ -72,14 +72,15 @@ class SaveData(QtGui.QGroupBox):
         messenger.Messenger.send('Saving data...')
 
         # -- Create data file --
+        # FIXME: check that file opened correctly
         h5file = tables.openFile(fname, mode = "w", title = "Behavioral session data")
         eventsGroup = h5file.createGroup('/', 'events',
                                          'Events that ocurred during the session')
-        h5file.createArray(eventsGroup, 'eventsMat', eventsMat, 'Matrix of raw events')
+        h5file.createArray(eventsGroup, 'rawEvents', eventsMatrix, 'Matrix of raw events')
+        paramContainer.appendToFile(h5file)
+
         h5file.close()
 
         paramContainer.printItems()
         messenger.Messenger.send('Saved data to %s'%fname)
         #messenger.Messenger.send('Saved data to %s'%fname,sender=__name__)
-
-
