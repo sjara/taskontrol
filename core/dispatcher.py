@@ -34,6 +34,8 @@ import numpy as np
 from taskontrol.core import smclient
 from taskontrol.core import messenger
 
+reload(smclient)
+
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
 class Dispatcher(QtGui.QGroupBox):
@@ -57,7 +59,8 @@ class Dispatcher(QtGui.QGroupBox):
 
         # -- Use dummy state machine if requested --
         if dummy:
-            from taskontrol.plugins import smdummy as smclient
+            print '******************** USING DUMMY ************************'
+            #from taskontrol.plugins import smdummy as smclient
             reload(smclient)
 
         # -- Set string formats --
@@ -74,7 +77,7 @@ class Dispatcher(QtGui.QGroupBox):
         self.host = host
         self.port = port
         self.isConnected = False
-        self.statemachine = smclient.StateMachineClient(self.host,self.port,\
+        self.statemachine = smclient.StateMachineClient(self.host,self.port,
                                                         connectnow=False)
         if connectnow:
             self.connectSM()  # Connect to SM and set self.isConnected to True
@@ -99,6 +102,7 @@ class Dispatcher(QtGui.QGroupBox):
         self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
         self.buttonStartStop = QtGui.QPushButton('')
+        self.buttonStartStop.setCheckable(True)
         self.buttonStartStop.setMinimumHeight(100)
         #self.buttonStartStop.setMinimumWidth(160)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
@@ -242,10 +246,13 @@ class Dispatcher(QtGui.QGroupBox):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.stop()
         if self.isConnected:
+            self.statemachine.bypassDout(0)
             try:
                 self.statemachine.forceState(0)
-            except smclient.baseclient.AckError as e:
-                print e.msg+'\nMaybe there was no state matrix loaded.'
+            except smclient.baseclient.AckError:
+                print 'WARNING! could not force state 0 (maybe no state matrix loaded).'
+            #except smclient.baseclient.AckError as e:
+            #    print e.msg+'\nMaybe there was no state matrix loaded.'
             self.statemachine.close()
 
 
