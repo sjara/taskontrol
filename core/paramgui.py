@@ -27,15 +27,29 @@ from PyQt4 import QtGui
 class Container(dict):
     def __init__(self):
         super(Container, self).__init__()        
-        self._orderedKeys = []
+        self._groups = {}
         self.history = {}
     #def append(self,item):
     #    self.items.append(item)
 
-    def __setitem__(self, key, item):
-        # FIXME: do not allow to add the same key twice, raise exception
-        self._orderedKeys.append(key)
-        dict.__setitem__(self, key, item)
+    def __setitem__(self, paramName, paramInstance):
+        # -- Check if there is already a parameter with that name --
+        if paramName in self:
+            print 'There is already a parameter named %s'%paramName
+            raise ValueError
+        # -- Check if paramInstance is of valid type and has a group --
+        try:
+            groupName = paramInstance.getGroup()
+        except AttributeError:
+            print 'Container cannot hold items of type %s'%type(paramInstance)
+            raise
+        # -- Append name of parameter to group list --
+        if groupName in self._groups:
+            self._groups[groupName].append(paramName)
+        else:
+            self._groups[groupName] = [paramName]
+        # -- Add paramInstance to Container --
+        dict.__setitem__(self, paramName, paramInstance)
 
     def printItems(self):
         for key,item in self.iteritems():
@@ -70,6 +84,16 @@ class Container(dict):
         '''Create box and layout with all parameters of a given group'''
         groupBox = QtGui.QGroupBox(groupName)
         layoutBox = QtGui.QVBoxLayout()
+        for paramkey in self._groups[groupName]:
+            layoutBox.addWidget(self[paramkey])
+        groupBox.setLayout(layoutBox)
+        return groupBox
+
+    '''
+    def layoutGroup(self,groupName):
+        #Create box and layout with all parameters of a given group
+        groupBox = QtGui.QGroupBox(groupName)
+        layoutBox = QtGui.QVBoxLayout()
         paramsInGroup = self.findParamsInGroup(groupName)
         for paramkey in paramsInGroup:
             layoutBox.addWidget(self[paramkey])
@@ -80,16 +104,17 @@ class Container(dict):
         # This is inefficient, but it should only happen once
         paramsInGroup = []
         for key in self._orderedKeys:
-            if self[key].group==groupName:
+            if self[key].inGroup(groupName):
                 paramsInGroup.append(key)
         return paramsInGroup
+    '''
 
 
 class GenericParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), value=0, group=None,
                  labelWidth=80, parent=None):
         super(GenericParam, self).__init__(parent)
-        self.group = group
+        self._group = group
         self._type = None
         self._value = None
 
@@ -101,6 +126,12 @@ class GenericParam(QtGui.QWidget):
 
     def getLabel(self):
         return str(self.label.text())
+
+    def getGroup(self):
+        return self._group
+
+    def inGroup(self,groupName):
+        return self._group==groupName
 
 
 class NumericParam(GenericParam):
