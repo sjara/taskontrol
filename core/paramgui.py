@@ -27,12 +27,20 @@ from PyQt4 import QtGui
 class Container(dict):
     def __init__(self):
         super(Container, self).__init__()        
+        self._orderedKeys = []
         self.history = {}
     #def append(self,item):
     #    self.items.append(item)
+
+    def __setitem__(self, key, item):
+        # FIXME: do not allow to add the same key twice, raise exception
+        self._orderedKeys.append(key)
+        dict.__setitem__(self, key, item)
+
     def printItems(self):
         for key,item in self.iteritems():
             print '[%s] %s : %f'%(type(item),key,item.getValue())
+
     def updateHistory(self):
         '''Append the value of each parameter for this trial.'''
         for key,item in self.iteritems():
@@ -41,6 +49,7 @@ class Container(dict):
                 self.history[key].append(item.getValue())
             except KeyError: # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [item.getValue()]
+
     def appendToFile(self,h5file):
         dataParent = 'trialData'
         itemsParent = 'menuItems'
@@ -57,32 +66,64 @@ class Container(dict):
                 h5file.createArray(menuItemsGroup, key, self[key].getItems(),
                                    '%s menu items'%paramLabel)
 
-                
-#class GenericParam(QtGui.QWidget):
-#    def __init__(self, labelText=QtCore.QString(), value=0, labelWidth=80, parent=None):
-#        super(GenericParam, self).__init__(parent)
+    def layoutGroup(self,groupName):
+        '''Create box and layout with all parameters of a given group'''
+        groupBox = QtGui.QGroupBox(groupName)
+        layoutBox = QtGui.QVBoxLayout()
+        paramsInGroup = self.findParamsInGroup(groupName)
+        for paramkey in paramsInGroup:
+            layoutBox.addWidget(self[paramkey])
+        groupBox.setLayout(layoutBox)
+        return groupBox
+
+    def findParamsInGroup(self,groupName):
+        # This is inefficient, but it should only happen once
+        paramsInGroup = []
+        for key in self._orderedKeys:
+            if self[key].group==groupName:
+                paramsInGroup.append(key)
+        return paramsInGroup
 
 
-class NumericParam(QtGui.QWidget):
-    def __init__(self, labelText=QtCore.QString(), value=0, labelWidth=80, parent=None):
-        super(NumericParam, self).__init__(parent)
+class GenericParam(QtGui.QWidget):
+    def __init__(self, labelText=QtCore.QString(), value=0, group=None,
+                 labelWidth=80, parent=None):
+        super(GenericParam, self).__init__(parent)
+        self.group = group
+        self._type = None
+        self._value = None
+
+    #def setGroup(self,group):
+    #    self._group = group
+
+    def getType(self):
+        return self._type
+
+    def getLabel(self):
+        return str(self.label.text())
+
+
+class NumericParam(GenericParam):
+    def __init__(self, labelText=QtCore.QString(), value=0, group=None,
+                 labelWidth=80, parent=None):
+        super(NumericParam, self).__init__(labelText, value, group, labelWidth, parent)
         self._type = 'numeric'
 
         # -- Define graphical interface --
         self.label = QtGui.QLabel(labelText)
+        #self.label.setAlignment(QtCore.Qt.AlignLeft)
         self.lineEdit = QtGui.QLineEdit()
-        self.lineEdit.setAlignment(QtCore.Qt.AlignRight)
+        self.lineEdit.setAlignment(QtCore.Qt.AlignLeft)
         self.label.setBuddy(self.lineEdit)
         #self.lineEdit.setFixedWidth(labelWidth)
-        self.label.setFixedWidth(labelWidth)
+        #self.label.setFixedWidth(labelWidth)
         layout = QtGui.QHBoxLayout(spacing=0,margin=0)
-        layout.addWidget(self.lineEdit)
-        layout.addSpacing(4)
         layout.addWidget(self.label)
+        #layout.addSpacing(4)
+        layout.addWidget(self.lineEdit)
         self.setLayout(layout)
 
         # -- Define value --
-        self._value = None
         self.setValue(value)
 
     def setValue(self,value):
@@ -92,17 +133,12 @@ class NumericParam(QtGui.QWidget):
     def getValue(self):
         return float(self.lineEdit.text())
 
-    def getType(self):
-        return self._type
-
-    def getLabel(self):
-        return str(self.label.text())
 
 
-class MenuParam(QtGui.QWidget):
-    def __init__(self, labelText=QtCore.QString(), menuItems=(), value=0,
+class MenuParam(GenericParam):
+    def __init__(self, labelText=QtCore.QString(), menuItems=(), value=0, group=None,
                  labelWidth=80, parent=None):
-        super(MenuParam, self).__init__(parent)
+        super(MenuParam, self).__init__(labelText, value, group, labelWidth, parent)
         self._type = 'menu'
 
         # -- Define graphical interface --
@@ -111,15 +147,14 @@ class MenuParam(QtGui.QWidget):
         self.comboBox.addItems(menuItems)
         self.label.setBuddy(self.comboBox)
         #self.comboBox.setFixedWidth(labelWidth)
-        self.label.setFixedWidth(labelWidth)
+        #self.label.setFixedWidth(labelWidth)
         layout = QtGui.QHBoxLayout(spacing=0,margin=0)
-        layout.addWidget(self.comboBox)
-        layout.addSpacing(4)
         layout.addWidget(self.label)
+        layout.addSpacing(4)
+        layout.addWidget(self.comboBox)
         self.setLayout(layout)
 
         # -- Define value --
-        self._value = None
         self._items = menuItems
         self.setValue(value)
 
@@ -141,12 +176,6 @@ class MenuParam(QtGui.QWidget):
 
     def getItems(self):
         return self._items
-
-    def getType(self):
-        return self._type
-
-    def getLabel(self):
-        return str(self.label.text())
 
     #def appendToFile(self,h5file,dataParent,itemsParent):
     #    h5file.createArray(dataParent, key, paramContainer.history[key], paramLabel)
