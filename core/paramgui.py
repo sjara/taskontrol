@@ -83,10 +83,14 @@ class Container(dict):
     def layoutGroup(self,groupName):
         '''Create box and layout with all parameters of a given group'''
         groupBox = QtGui.QGroupBox(groupName)
-        layoutBox = QtGui.QVBoxLayout()
+        #self.layoutForm = QtGui.QFormLayout()
+        self.layoutForm = ParamGroupLayout()
+        #self.layoutForm.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
+        #self.layoutForm.setAlignment(QtCore.Qt.AlignRight)
         for paramkey in self._groups[groupName]:
-            layoutBox.addWidget(self[paramkey])
-        groupBox.setLayout(layoutBox)
+            self.layoutForm.addRow(self[paramkey].labelWidget,self[paramkey].editWidget)
+
+        groupBox.setLayout(self.layoutForm)
         return groupBox
 
     '''
@@ -109,6 +113,24 @@ class Container(dict):
         return paramsInGroup
     '''
 
+class oldParamGroupLayout(QtGui.QGridLayout):
+    def __init__(self,parent=None):
+        super(ParamGroupLayout, self).__init__(parent)
+    def addRow(self,labelWidget,editWidget):
+        currentRow = self.rowCount()
+        self.addWidget(labelWidget,currentRow,0,QtCore.Qt.AlignRight)
+        self.addWidget(editWidget,currentRow,1,QtCore.Qt.AlignLeft)
+
+
+class ParamGroupLayout(QtGui.QGridLayout):
+    def __init__(self,parent=None):
+        super(ParamGroupLayout, self).__init__(parent)
+        self.setVerticalSpacing(0)
+    def addRow(self,labelWidget,editWidget):
+        currentRow = self.rowCount()
+        self.addWidget(labelWidget,currentRow,0,QtCore.Qt.AlignRight)
+        self.addWidget(editWidget,currentRow,1,QtCore.Qt.AlignLeft)
+
 
 class GenericParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), value=0, group=None,
@@ -117,6 +139,8 @@ class GenericParam(QtGui.QWidget):
         self._group = group
         self._type = None
         self._value = None
+        self.labelWidget = QtGui.QLabel(labelText)
+        self.editWidget = None
 
     #def setGroup(self,group):
     #    self._group = group
@@ -141,28 +165,17 @@ class NumericParam(GenericParam):
         self._type = 'numeric'
 
         # -- Define graphical interface --
-        self.label = QtGui.QLabel(labelText)
-        #self.label.setAlignment(QtCore.Qt.AlignLeft)
-        self.lineEdit = QtGui.QLineEdit()
-        self.lineEdit.setAlignment(QtCore.Qt.AlignLeft)
-        self.label.setBuddy(self.lineEdit)
-        #self.lineEdit.setFixedWidth(labelWidth)
-        #self.label.setFixedWidth(labelWidth)
-        layout = QtGui.QHBoxLayout(spacing=0,margin=0)
-        layout.addWidget(self.label)
-        #layout.addSpacing(4)
-        layout.addWidget(self.lineEdit)
-        self.setLayout(layout)
+        self.editWidget = QtGui.QLineEdit()
 
         # -- Define value --
         self.setValue(value)
 
     def setValue(self,value):
         self._value = value
-        self.lineEdit.setText(str(value))
+        self.editWidget.setText(str(value))
 
     def getValue(self):
-        return float(self.lineEdit.text())
+        return float(self.editWidget.text())
 
 
 
@@ -173,17 +186,8 @@ class MenuParam(GenericParam):
         self._type = 'menu'
 
         # -- Define graphical interface --
-        self.label = QtGui.QLabel(labelText)
-        self.comboBox = QtGui.QComboBox()
-        self.comboBox.addItems(menuItems)
-        self.label.setBuddy(self.comboBox)
-        #self.comboBox.setFixedWidth(labelWidth)
-        #self.label.setFixedWidth(labelWidth)
-        layout = QtGui.QHBoxLayout(spacing=0,margin=0)
-        layout.addWidget(self.label)
-        layout.addSpacing(4)
-        layout.addWidget(self.comboBox)
-        self.setLayout(layout)
+        self.editWidget = QtGui.QComboBox()
+        self.editWidget.addItems(menuItems)
 
         # -- Define value --
         self._items = menuItems
@@ -191,19 +195,19 @@ class MenuParam(GenericParam):
 
     def setValue(self,value):
         self._value = value
-        self.comboBox.setCurrentIndex(value)
+        self.editWidget.setCurrentIndex(value)
 
     def setString(self,newstring):
         # FIXME: graceful warning if wrong string (ValueError exception)
         value = self._items.index(newstring)
         self._value = value
-        self.comboBox.setCurrentIndex(value)
+        self.editWidget.setCurrentIndex(value)
 
     def getValue(self):
-        return self.comboBox.currentIndex()
+        return self.editWidget.currentIndex()
 
     def getString(self):
-        return str(self.comboBox.currentText())
+        return str(self.editWidget.currentText())
 
     def getItems(self):
         return self._items
