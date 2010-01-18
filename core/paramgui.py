@@ -24,13 +24,10 @@ from PyQt4 import QtGui
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
 
-class Container(dict):
+class GenericContainer(dict):
     def __init__(self):
-        super(Container, self).__init__()        
+        super(GenericContainer, self).__init__()        
         self._groups = {}
-        self.history = {}
-    #def append(self,item):
-    #    self.items.append(item)
 
     def __setitem__(self, paramName, paramInstance):
         # -- Check if there is already a parameter with that name --
@@ -44,9 +41,9 @@ class Container(dict):
             print 'Container cannot hold items of type %s'%type(paramInstance)
             raise
         # -- Append name of parameter to group list --
-        if groupName in self._groups:
+        try:
             self._groups[groupName].append(paramName)
-        else:
+        except KeyError:  # If group does not exist yet
             self._groups[groupName] = [paramName]
         # -- Add paramInstance to Container --
         dict.__setitem__(self, paramName, paramInstance)
@@ -55,10 +52,25 @@ class Container(dict):
         for key,item in self.iteritems():
             print '[%s] %s : %f'%(type(item),key,item.getValue())
 
+    def layoutGroup(self,groupName):
+        '''Create box and layout with all parameters of a given group'''
+        groupBox = QtGui.QGroupBox(groupName)
+        self.layoutForm = ParamGroupLayout()
+        for paramkey in self._groups[groupName]:
+            self.layoutForm.addRow(self[paramkey].labelWidget,self[paramkey].editWidget)
+
+        groupBox.setLayout(self.layoutForm)
+        return groupBox
+
+
+class TrialParametersContainer(GenericContainer):
+    def __init__(self):
+        super(TrialParametersContainer, self).__init__()        
+        self.history = {}
+
     def updateHistory(self):
         '''Append the value of each parameter for this trial.'''
         for key,item in self.iteritems():
-            # FIXME: I think there is a nicer way to do this for the first trial
             try:
                 self.history[key].append(item.getValue())
             except KeyError: # If the key does not exist yet (e.g. first trial)
@@ -67,9 +79,9 @@ class Container(dict):
     def appendToFile(self,h5file):
         dataParent = 'trialData'
         itemsParent = 'menuItems'
-        tdataGroup = h5file.createGroup('/','trialData',
+        tdataGroup = h5file.createGroup('/',dataParent,
                                         'Parameters from each trial')
-        menuItemsGroup = h5file.createGroup('/','menuItems',
+        menuItemsGroup = h5file.createGroup('/',itemsParent,
                                         'Items in menu parameters')
         for key,item in self.iteritems():
             paramLabel = self[key].getLabel()
@@ -80,40 +92,29 @@ class Container(dict):
                 h5file.createArray(menuItemsGroup, key, self[key].getItems(),
                                    '%s menu items'%paramLabel)
 
-    def layoutGroup(self,groupName):
-        '''Create box and layout with all parameters of a given group'''
-        groupBox = QtGui.QGroupBox(groupName)
-        #self.layoutForm = QtGui.QFormLayout()
-        self.layoutForm = ParamGroupLayout()
-        #self.layoutForm.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
-        #self.layoutForm.setAlignment(QtCore.Qt.AlignRight)
-        for paramkey in self._groups[groupName]:
-            self.layoutForm.addRow(self[paramkey].labelWidget,self[paramkey].editWidget)
 
-        groupBox.setLayout(self.layoutForm)
-        return groupBox
 
-    '''
-    def layoutGroup(self,groupName):
-        #Create box and layout with all parameters of a given group
-        groupBox = QtGui.QGroupBox(groupName)
-        layoutBox = QtGui.QVBoxLayout()
-        paramsInGroup = self.findParamsInGroup(groupName)
-        for paramkey in paramsInGroup:
-            layoutBox.addWidget(self[paramkey])
-        groupBox.setLayout(layoutBox)
-        return groupBox
 
-    def findParamsInGroup(self,groupName):
-        # This is inefficient, but it should only happen once
-        paramsInGroup = []
-        for key in self._orderedKeys:
-            if self[key].inGroup(groupName):
-                paramsInGroup.append(key)
-        return paramsInGroup
-    '''
+############ TO DO: test creating SessionParameters and saving them #############
 
-class oldParamGroupLayout(QtGui.QGridLayout):
+
+
+
+class SessionParametersContainer(GenericContainer):
+    def __init__(self):
+        super(SessionParametersContainer, self).__init__()        
+
+    def appendToFile(self,h5file):
+        dataParent = 'sessionData'
+        sdataGroup = h5file.createGroup('/',dataParent,
+                                        'Parameters from the session')
+        for key,item in self.iteritems():
+            paramLabel = self[key].getLabel()
+            h5file.createArray(sdataGroup, key, self[key].getValue(), paramLabel)
+        
+
+
+class _oldParamGroupLayout(QtGui.QGridLayout):
     def __init__(self,parent=None):
         super(ParamGroupLayout, self).__init__(parent)
     def addRow(self,labelWidget,editWidget):
@@ -142,14 +143,11 @@ class GenericParam(QtGui.QWidget):
         self.labelWidget = QtGui.QLabel(labelText)
         self.editWidget = None
 
-    #def setGroup(self,group):
-    #    self._group = group
-
     def getType(self):
         return self._type
 
     def getLabel(self):
-        return str(self.label.text())
+        return str(self.labelWidget.text())
 
     def getGroup(self):
         return self._group
