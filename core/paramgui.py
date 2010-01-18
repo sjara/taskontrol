@@ -24,10 +24,12 @@ from PyQt4 import QtGui
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
 
-class GenericContainer(dict):
+class Container(dict):
     def __init__(self):
-        super(GenericContainer, self).__init__()        
+        super(Container, self).__init__()        
         self._groups = {}
+        self._paramsToKeepHistory = []
+        self.history = {}
 
     def __setitem__(self, paramName, paramInstance):
         # -- Check if there is already a parameter with that name --
@@ -37,6 +39,7 @@ class GenericContainer(dict):
         # -- Check if paramInstance is of valid type and has a group --
         try:
             groupName = paramInstance.getGroup()
+            historyEnabled = paramInstance.historyEnabled()
         except AttributeError:
             print 'Container cannot hold items of type %s'%type(paramInstance)
             raise
@@ -45,12 +48,19 @@ class GenericContainer(dict):
             self._groups[groupName].append(paramName)
         except KeyError:  # If group does not exist yet
             self._groups[groupName] = [paramName]
+        # -- Append name of parameter to list of params to keep history --
+        if historyEnabled:
+            try:
+                self._paramsToKeepHistory.append(paramName)
+            except KeyError:  # If group does not exist yet
+                self._paramsToKeepHistory = [paramName]
+             
         # -- Add paramInstance to Container --
         dict.__setitem__(self, paramName, paramInstance)
 
     def printItems(self):
         for key,item in self.iteritems():
-            print '[%s] %s : %f'%(type(item),key,item.getValue())
+            print '[%s] %s : %s'%(type(item),key,str(item.getValue()))
 
     def layoutGroup(self,groupName):
         '''Create box and layout with all parameters of a given group'''
@@ -62,56 +72,39 @@ class GenericContainer(dict):
         groupBox.setLayout(self.layoutForm)
         return groupBox
 
-
-class TrialParametersContainer(GenericContainer):
-    def __init__(self):
-        super(TrialParametersContainer, self).__init__()        
-        self.history = {}
-
     def updateHistory(self):
-        '''Append the value of each parameter for this trial.'''
-        for key,item in self.iteritems():
+        '''Append the value of each parameter (to track) for this trial.'''
+        for key in self._paramsToKeepHistory:
             try:
-                self.history[key].append(item.getValue())
+                self.history[key].append(self[key].getValue())
             except KeyError: # If the key does not exist yet (e.g. first trial)
-                self.history[key] = [item.getValue()]
+                self.history[key] = [self[key].getValue()]
 
     def appendToFile(self,h5file):
         dataParent = 'trialData'
         itemsParent = 'menuItems'
-        tdataGroup = h5file.createGroup('/',dataParent,
+        sessionParent = 'sessionData'
+        trialDataGroup = h5file.createGroup('/',dataParent,
                                         'Parameters from each trial')
         menuItemsGroup = h5file.createGroup('/',itemsParent,
                                         'Items in menu parameters')
+        sessionDataGroup = h5file.createGroup('/',sessionParent,
+                                        'Parameters for the whole session')
         for key,item in self.iteritems():
-            paramLabel = self[key].getLabel()
-            h5file.createArray(tdataGroup, key, self.history[key], paramLabel)
-            # FIXME: not very ObjectOriented to use getType
-            #        the object should be able to save itself
-            if self[key].getType()=='menu':
-                h5file.createArray(menuItemsGroup, key, self[key].getItems(),
-                                   '%s menu items'%paramLabel)
+            # -- Store those parameters with history --
+            if item.historyEnabled():
+                paramLabel = item.getLabel()
+                h5file.createArray(trialDataGroup, key, self.history[key], paramLabel)
+                # FIXME: not very ObjectOriented to use getType
+                #        the object should be able to save itself
+                if item.getType()=='menu':
+                    h5file.createArray(menuItemsGroup, key, item.getItems(),
+                                       '%s menu items'%paramLabel)
+            else: # -- Store those parameters without history (Session parameters) --
+                paramLabel = item.getLabel()
+                h5file.createArray(sessionDataGroup, key, item.getValue(), paramLabel)
 
 
-
-
-############ TO DO: test creating SessionParameters and saving them #############
-
-
-
-
-class SessionParametersContainer(GenericContainer):
-    def __init__(self):
-        super(SessionParametersContainer, self).__init__()        
-
-    def appendToFile(self,h5file):
-        dataParent = 'sessionData'
-        sdataGroup = h5file.createGroup('/',dataParent,
-                                        'Parameters from the session')
-        for key,item in self.iteritems():
-            paramLabel = self[key].getLabel()
-            h5file.createArray(sdataGroup, key, self[key].getValue(), paramLabel)
-        
 
 
 class _oldParamGroupLayout(QtGui.QGridLayout):
@@ -135,9 +128,10 @@ class ParamGroupLayout(QtGui.QGridLayout):
 
 class GenericParam(QtGui.QWidget):
     def __init__(self, labelText=QtCore.QString(), value=0, group=None,
-                 labelWidth=80, parent=None):
+                 history=True, labelWidth=80, parent=None):
         super(GenericParam, self).__init__(parent)
         self._group = group
+        self._historyEnabled = history
         self._type = None
         self._value = None
         self.labelWidget = QtGui.QLabel(labelText)
@@ -155,11 +149,39 @@ class GenericParam(QtGui.QWidget):
     def inGroup(self,groupName):
         return self._group==groupName
 
+    def historyEnabled(self):
+        return self._historyEnabled
+
+
+class StringParam(GenericParam):
+    def __init__(self, labelText=QtCore.QString(), value='', group=None,
+                 history=True, labelWidth=80, parent=None):
+        super(StringParam, self).__init__(labelText, value, group,
+                                           history, labelWidth,  parent)
+        self._type = 'string'
+        if self._historyEnabled:
+            raise ValueError('String parameters are not allowed to keep a history.\n'
+                             +'When creating the instance use: history=False')
+
+        # -- Define graphical interface --
+        self.editWidget = QtGui.QLineEdit()
+
+        # -- Define value --
+        self.setValue(value)
+
+    def setValue(self,value):
+        self._value = value
+        self.editWidget.setText(str(value))
+
+    def getValue(self):
+        return str(self.editWidget.text())
+
 
 class NumericParam(GenericParam):
     def __init__(self, labelText=QtCore.QString(), value=0, group=None,
-                 labelWidth=80, parent=None):
-        super(NumericParam, self).__init__(labelText, value, group, labelWidth, parent)
+                 history=True, labelWidth=80, parent=None):
+        super(NumericParam, self).__init__(labelText, value, group,
+                                           history, labelWidth,  parent)
         self._type = 'numeric'
 
         # -- Define graphical interface --
@@ -176,11 +198,11 @@ class NumericParam(GenericParam):
         return float(self.editWidget.text())
 
 
-
 class MenuParam(GenericParam):
     def __init__(self, labelText=QtCore.QString(), menuItems=(), value=0, group=None,
-                 labelWidth=80, parent=None):
-        super(MenuParam, self).__init__(labelText, value, group, labelWidth, parent)
+                 history=True, labelWidth=80, parent=None):
+        super(MenuParam, self).__init__(labelText, value, group,
+                                        history, labelWidth, parent)
         self._type = 'menu'
 
         # -- Define graphical interface --
