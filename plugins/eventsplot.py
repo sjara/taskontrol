@@ -68,16 +68,16 @@ class EventsPlot(QtGui.QWidget):
         # -- Find states to plot --
         earliestTime = etime-self.xLims[1]
         eventsToInclude = timesAndStates[:,0]>=earliestTime
-        #if len(eventsToInclude): ### DEBUG
-        #    raise
+        # IMPROVE: Ugly way of adding an extra state (with onset outside range)
+        eventsToInclude = np.r_[eventsToInclude[1:],eventsToInclude[0]] | eventsToInclude
         self._lastStatesOnset = etime - timesAndStates[eventsToInclude,0]
+        self._lastStatesOnset[0] = self.xLims[1]
         self._lastStatesOffset = np.r_[self._lastStatesOnset[1:],0]
         lastStates = timesAndStates[eventsToInclude,1].astype('int')
         #self._lastStatesColor = self.statesColor[lastStates]
         # FIXME: there must be a better way!
         self._lastStatesColor = [self.statesColor[s] for s in lastStates]
         self.repaint()
-
 
     def paintEvent(self, event):
         self.pW = self.pWidth()      # Update plot width
