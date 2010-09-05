@@ -5,8 +5,8 @@
 * To do next:
 *** DONE Organize module in subfolders (core, plugins, doc, test,...)
 *** TODO A simple protocol organized by trials (freq discrimination).
-*** TODO Fix eventsplot [1/3]
-***** TODO Color disappearing earlier that it should
+*** TODO Fix eventsplot [2/3]
+***** DONE Color disappearing earlier that it should
 ***** TODO Plot events, not just states
 ***** DONE setStatesColor, use state names
 *** TODO statematrix.py : Check if there are orphan states.
@@ -14,6 +14,7 @@
 *** DONE Column layout
 *** DONE Save session parameters (experimenter ...) call it SessionInfo
 *** TODO Close file if there is an error while saving to it
+*** TODO Create module for setting up layout given groups
 
 
 * TASKontrol
@@ -202,9 +203,11 @@
 
 
 * Misc:
-*** I can't run the emulator on Ubuntu 9.10 because of a bug (in glibc?) about threads.
+*** FIXED (2010-05-12) see ./compiling_FSMemulator.txt
+    I can't run the emulator on Ubuntu 9.10 because of a bug (in glibc?) about threads.
     It run fine on Ubuntu 9.04. I think the bug is related to:
     https://bugs.launchpad.net/ubuntu/+source/glib2.0/+bug/453898
+    https://bugzilla.gnome.org/show_bug.cgi?id=599079
 
 
 * Design:
