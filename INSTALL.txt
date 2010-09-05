@@ -10,7 +10,7 @@ ___________________________________
   sudo apt-get update
 
 * Install dependencies:
-  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib
+  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib python-tables
 
 * Create and go to the directory where you want the code:
   mkdir ~/src
