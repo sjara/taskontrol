@@ -118,6 +118,9 @@
     The comments seem to indicate that they get concatenated to the
     state matrix, but is this column or row-wise? Couldn't we just
     send the state matrix first and then the sched waves?
+*** Does the input_event_mapping need to know about ScheduleWaves?
+    Since it is sent to the server as the last row of the matrix, it seems so,
+    but then, what is the appropriate value for a SW input?
 *** Do event numbers start from 1 or 0 (when using GET_EVENTS %d %d)?
 *** What is the number of columns of the events-matrix? 4 or 5?
     The fifth one used to be the Nspike time. Is it still in use?
@@ -222,4 +225,11 @@
 *** parameters
     Object holding a label and value. It will be saved for each trial.
     It can be: label+editbox or menu
+
+* Adding schedule waves:
+*** output_routing has to know about the SW because setStateMatrix
+    sends a URLstring with that info.
+*** It looks like self.input_event_mapping does not need to change for SW
+    so there is no need for calling setInputEvents.
+*** 
 
