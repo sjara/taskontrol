@@ -161,7 +161,7 @@ class BaseClient(object):
         packer = struct.Struct(dtype)
         # -- Ensure that mat is a numpy array --
         if not isinstance(mat,np.ndarray):
-            mat = array(mat)
+            mat = np.array(mat)
         # NOTE: I thought this could be more efficient using the
         #       iterator ndarray.flat but it only works on the
         #       original order of the array (which is by default 'C')
