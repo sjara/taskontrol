@@ -111,8 +111,9 @@ class StateMachineClient(baseclient.BaseClient):
         self.setStateMachine(self.fsmID);
 
 
-    def sendMatrix(self,mat):
+    def _sendMatrix(self,mat):
         '''
+        NOT USED
         Send matrix (column-wise) to state matrix server.
 
         The matlab/C++ version in FSMClient.cpp requires sendData
@@ -121,7 +122,7 @@ class StateMachineClient(baseclient.BaseClient):
         '''
         ## See: ~/tmp/newbcontrol/Modules/NetClient/Socket.cpp
         ##       unsigned Socket::sendData
-        dataToSend = packmatrix(mat)
+        dataToSend = self._packmatrix(mat)
         self.socketClient.send(dataToSend)
 
 
@@ -157,7 +158,7 @@ class StateMachineClient(baseclient.BaseClient):
         self._verbose_print('Checking version of FSM server')
         verstr = self.doQueryCmd('VERSION',resultsize=1)
         ver = int(verstr.split()[0])
-        if (verstr >= MIN_SERVER_VERSION):
+        if (ver >= MIN_SERVER_VERSION):
             self._verbose_print('FSM server protocol version %s\n'%verstr)
         else:
             raise ValueError(('The FSM server does not meet the minimum protocol'+
@@ -234,7 +235,7 @@ class StateMachineClient(baseclient.BaseClient):
         '''
         if isinstance(val,int):
             # Create a vector of val entries [1,-1, 2,-2,...]
-            f = lambda x : (x/2+1)*(2*(x%2)-1)
+            f = lambda x : int(x/2+1)*(1-2*(x%2))
             val = map(f,range(val))
         # Assign vector of input events
         self.input_event_mapping = val
@@ -252,8 +253,10 @@ class StateMachineClient(baseclient.BaseClient):
         return self.input_event_mapping;
 
 
-    def setOutputRouting(self,routing):
+    def _setOutputRouting(self,routing):
         '''
+        NOT USED
+        
         Modify the output routing for a state machine.
 
         FIXME: This doc is from the matlab version. It should be
@@ -570,21 +573,26 @@ class StateMachineClient(baseclient.BaseClient):
         # -- If only one row, make it a 2d-array --
         if isinstance(sched_matrix[0],int):
             sched_matrix = [sched_matrix]
-        (nrows,ncols) = matsize(sched_matrix)
-        if(nrows<1 or ncols!=8):
-            raise TypeError('Matrix with schedule waves has to be m x 8.')
+        # FIXME: check for correct size of sched_matrix
+        #(nrows,ncols) = matsize(sched_matrix)
+        #if(nrows<1 or ncols!=8):
+        #    raise TypeError('Matrix with schedule waves has to be m x 8.')
         # -- Check for duplicates by checking IDs --
         schedwaveIDs = []
         for schedwave in sched_matrix:
             if schedwave[0] > 32:  # FIXME: Shouldn't this be 31?
                 raise ValueError('Schedule wave ID has to be less than 32.')            
-            if schedwave[0] in self.sched_waves_ao:
+            elif schedwave[0] in self.sched_waves_ao:
                 raise ValueError('There is an analog schedule wave with the '+
                                  'same ID as this one.')
-            if schedwave[0] in schedwaveIDs:
+            elif schedwave[0] in schedwaveIDs:
                 raise ValueError('There is a duplicate schedule wave ID.')
             else:
                 schedwaveIDs.append(schedwave[0])
+                self.input_event_mapping.extend((0,0))
+        # -- Add entry to output routing list --
+        if len(sched_matrix):
+            self.output_routing.append({'dtype':'sched_wave', 'data':'0'})
         self.sched_waves = sched_matrix
 
              
@@ -826,7 +834,8 @@ class StateMachineClient(baseclient.BaseClient):
 
     def stopDAQ(self):
         '''Stop the currently-running data acquisition. See StartDAQ().'''
-        doQueryCmd('STOP DAQ')
+        #doQueryCmd('STOP DAQ')
+        pass
 
 
     def registerEventsCallback(self):
@@ -1221,12 +1230,15 @@ class StateMachineClient(baseclient.BaseClient):
         '''
 
         # FIXME: Check the validity of the matrix
+        if not isinstance(state_matrix,np.ndarray):
+            state_matrix = np.array(state_matrix)
         (nStates, nEvents) = state_matrix.shape
         nInputEvents = len(self.input_event_mapping)
         nColsForTimer = 2                      # TIMEOUT_STATE, TIMEOUT_TIME
         nColsForOutputs = len(self.output_routing)
+        nSchedWaves = len(self.sched_waves) # Only DIO-SW
 
-        if(len(self.sched_waves)>0 or len(self.sched_waves_ao)>0):
+        if(nSchedWaves>0 or len(self.sched_waves_ao)>0):
             # Check ~/tmp/newbcontrol/Modules/@RTLSM2/SetStateMatrix.m
             # Verify that outputs for sched_waves are defined
             found=False
@@ -1273,13 +1285,12 @@ class StateMachineClient(baseclient.BaseClient):
         # did not work because matrices are send column-wise (and the
         # padding seems to be necessary).
         #
-        # The next piece of code converts (if :
+        # The next piece of code converts:
         #  sched_waves = [ [1,2,3,4,5,6,7,8], [9,10,11,12,13,14,15,16] ]
         # into:
         #  extraRows = [ [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         #                [12,13,14,15,16, 0, 0, 0, 0, 0 , 0 ] ]
         # and appends those rows to the state matrix
-        nSchedWaves = len(self.sched_waves)
         if nSchedWaves>0:
             oneExtraRow = []
             for oneSchedWave in self.sched_waves:
