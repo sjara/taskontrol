@@ -68,16 +68,18 @@ class EventsPlot(QtGui.QWidget):
         # -- Find states to plot --
         earliestTime = etime-self.xLims[1]
         eventsToInclude = timesAndStates[:,0]>=earliestTime
-        # IMPROVE: Ugly way of adding an extra state (with onset outside range)
-        eventsToInclude = np.r_[eventsToInclude[1:],eventsToInclude[0]] | eventsToInclude
-        self._lastStatesOnset = etime - timesAndStates[eventsToInclude,0]
-        self._lastStatesOnset[0] = self.xLims[1]
-        self._lastStatesOffset = np.r_[self._lastStatesOnset[1:],0]
-        lastStates = timesAndStates[eventsToInclude,1].astype('int')
-        #self._lastStatesColor = self.statesColor[lastStates]
-        # FIXME: there must be a better way!
-        self._lastStatesColor = [self.statesColor[s] for s in lastStates]
-        self.repaint()
+        if sum(eventsToInclude)>0:
+            # FIXME: Ugly way of adding an extra state (with onset outside range)
+            eventsToInclude = np.r_[eventsToInclude[1:],eventsToInclude[0]] | eventsToInclude
+            self._lastStatesOnset = etime - timesAndStates[eventsToInclude,0]
+            self._lastStatesOnset[0] = self.xLims[1]
+            self._lastStatesOffset = np.r_[self._lastStatesOnset[1:],0]
+            lastStates = timesAndStates[eventsToInclude,1].astype('int')
+            #self._lastStatesColor = self.statesColor[lastStates]
+            # FIXME: there must be a better way!
+            self._lastStatesColor = [self.statesColor[s] for s in lastStates]
+            self.repaint()
+        pass
 
     def paintEvent(self, event):
         self.pW = self.pWidth()      # Update plot width
@@ -89,7 +91,7 @@ class EventsPlot(QtGui.QWidget):
                                                self._lastStatesColor):
             painter.setBrush(QtGui.QBrush(oneColor))
             (pOnset,pOffset) = map(self.valueToPixel,(oneOnset,oneOffset))
-            oneRect = QtCore.QRectF(pOnset,self.pY+1,pOffset-pOnset+1,self.pH-1)
+            oneRect = QtCore.QRectF(pOnset,self.pY+1,pOffset-pOnset,self.pH-1)
             painter.drawRect(oneRect)
         self.drawAxis(painter)
         painter.end()
