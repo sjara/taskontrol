@@ -8,7 +8,7 @@ sma.addState(name='STATENAME', selftimer=3,
              transitions={'EVENT':NEXTSTATE}, actions={'OUTPUT':VALUE})
 
 Output:
-#         Ci  Co  Li  Lo  Ri  Ro  Tout  t  CONTo TRIGo
+#         Ci  Co  Li  Lo  Ri  Ro  Tup  t  CONTo TRIGo
 mat = [ [  0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0   ] ,\
 
 '''
@@ -27,7 +27,7 @@ class StateMatrix(object):
 
     The default state transition matrix without schedule waves has the
     following columns:
-    [ Cin  Cout  Lin  Lout  Rin  Rout  Tout  t  CONTo  TRIGo ]
+    [ Cin  Cout  Lin  Lout  Rin  Rout  Tup  t  CONTo  TRIGo ]
 
     Where the first six are for center, left and right ports, the next
     two columns are for the timer transition and its interval, and the
@@ -40,8 +40,8 @@ class StateMatrix(object):
         self._nextStateInd = 0
         # FIXME: These should depend on values from smclient
         self.eventsDict = {'Cin':0,'Cout':1,'Lin':2,'Lout':3,
-                           'Rin':4,'Rout':5,'Tout':6}
-        self.actionNamesDict = {'DOut':0,'SoundOut':1}
+                           'Rin':4,'Rout':5,'Tup':6}
+        self.actionNamesDict = {'Dout':0,'SoundOut':1}
         self.nInputEvents = len(self.eventsDict)-1   # Minus timer
         self.nOutputActions = 2
         self.readyForNextTrialStateName = readystate[0]
@@ -147,24 +147,24 @@ if __name__ == "__main__":
     sm.addState(name='wait_for_cpoke', selftimer=10,
                 transitions={'Cin':'play_target'})
     sm.addState(name='play_target', selftimer=0.5,
-                transitions={'Cout':'wait_for_apoke','Tout':'wait_for_apoke'},
-                actions={'DOut':5})
+                transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
+                actions={'Dout':5})
     sm.addState(name='wait_for_apoke', selftimer=0.5,
                 transitions={'Lout':'wait_for_cpoke','Rout':'wait_for_cpoke'})
     '''
     sm.addState(name='wait_for_cpoke', selftimer=10,
                     transitions={'Cin':'play_target'})
     sm.addState(name='play_target', selftimer=1,
-                    transitions={'Cout':'wait_for_apoke','Tout':'wait_for_apoke'},
-                    actions={'DOut':1})
+                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
+                    actions={'Dout':1})
     sm.addState(name='wait_for_apoke', selftimer=1,
-                    transitions={'Lin':'reward','Rin':'punish','Tout':'end_of_trial'})
+                    transitions={'Lin':'reward','Rin':'punish','Tup':'end_of_trial'})
     sm.addState(name='reward', selftimer=1,
-                    transitions={'Tout':'end_of_trial'},
-                    actions={'DOut':2})
+                    transitions={'Tup':'end_of_trial'},
+                    actions={'Dout':2})
     sm.addState(name='punish', selftimer=1,
-                    transitions={'Tout':'end_of_trial'},
-                    actions={'DOut':4})
+                    transitions={'Tup':'end_of_trial'},
+                    actions={'Dout':4})
     sm.addState(name='end_of_trial')
 
 
