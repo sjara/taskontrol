@@ -66,6 +66,11 @@
 
 
 * Bugs and fixes:
+*** TODO If using IPython there is a segfault if you run a protocol,
+    close its window and try to run it again.
+    It seems to be related to Qt4 not the StateMachine.
+    See .../test/test012_qt4segfault.py  and this link
+    http://mail.scipy.org/pipermail/ipython-user/2007-November/004797.html
 *** TODO A python bug? about conditionally importing modules.
     The following code for alternative loading of dummy smclient:
     if dummy:
