@@ -31,10 +31,10 @@ import sys
 from PyQt4 import QtCore 
 from PyQt4 import QtGui 
 import numpy as np
-from taskontrol.core import smclient
 from taskontrol.core import messenger
+from taskontrol.core import smclient
 
-reload(smclient)
+#reload(smclient)
 
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
@@ -57,11 +57,12 @@ class Dispatcher(QtGui.QGroupBox):
                  connectnow=True, interval=0.3, minwidth=200, dummy=False):
         super(Dispatcher, self).__init__(parent)
 
-        # -- Use dummy state machine if requested --
-        if dummy:
-            print '******************** USING DUMMY ************************'
-            #from taskontrol.plugins import smdummy as smclient
-            reload(smclient)
+        # -- Use dummy state machine if requested (DOES NOT SEEM TO WORK) --
+        #if dummy:
+        #    from taskontrol.plugins import smdummy as smclient
+        #else:
+        #    from taskontrol.core import smclient
+        #reload(smclient)
 
         # -- Set string formats --
         self._timeFormat = 'Time: %0.1f s'
@@ -102,7 +103,7 @@ class Dispatcher(QtGui.QGroupBox):
         self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
         self.buttonStartStop = QtGui.QPushButton('')
-        self.buttonStartStop.setCheckable(True)
+        self.buttonStartStop.setCheckable(False)
         self.buttonStartStop.setMinimumHeight(100)
         #self.buttonStartStop.setMinimumWidth(160)
         buttonFont = QtGui.QFont(self.buttonStartStop.font())
