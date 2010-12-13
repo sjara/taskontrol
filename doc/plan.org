@@ -3,48 +3,50 @@
 #+STARTUP: showall
 
 * To do next:
-*** DONE Organize module in subfolders (core, plugins, doc, test,...)
-*** TODO A simple protocol organized by trials (freq discrimination).
+*** TODO Create AddScheduleWaves method
+*** TODO Example protocol organized by trials (simplest use dispatcher).
+*** TODO Test what happens on each type of error (syntax, logic, ...).
+*** TODO statematrix.py : Check if there are orphan states.
+*** TODO Close file if there is an error while saving to it
+*** TODO Create module for setting up layout given groups
 *** TODO Fix eventsplot [2/3]
 ***** DONE Color disappearing earlier that it should
 ***** TODO Plot events, not just states
 ***** DONE setStatesColor, use state names
-*** TODO statematrix.py : Check if there are orphan states.
 *** DONE Fix layout of params, maybe use QFormLayout
 *** DONE Column layout
 *** DONE Save session parameters (experimenter ...) call it SessionInfo
-*** TODO Close file if there is an error while saving to it
-*** TODO Create module for setting up layout given groups
+*** DONE Organize module in subfolders (core, plugins, doc, test,...)
 
 
 * TASKontrol
 *** SMclient/RTLSMclient
-***** TODO SetStateMatrix() [2/3]
-******* DONE sendmatrix() which uses socket.socket.send()
-******* DONE basic matrix
-******* TODO with schedule waves
 ***** TODO [#C] GetStateProgram() :EMBEDDED_C:
 ***** TODO [#C] SetStateProgram() :EMBEDDED_C:
-***** DONE GetStateMachine()
-***** DONE SetStateMachine()
-***** DONE GetOutputRouting()
-***** DONE SetOutputRouting()
-***** TODO SetScheduledWavesDIO()
-      It needs to be changed to use numpy arrays.
 ***** TODO SetScheduledWavesAO()
 ***** TODO [#C] StartDAQ()
 ***** TODO [#C] GetDAQScans()
 ***** DONE [#C] StopDAQ()
 ***** TODO [#C] RegisterEventsCallback()
 ***** TODO [#C] StopEventsCallback()
+***** TODO GetAIMode()
+***** TODO SetAIMode()
+***** TODO SetStateProgram(), GetStateProgram()
+***** DONE SetStateMatrix() [3/3]
+******* DONE sendmatrix() which uses socket.socket.send()
+******* DONE basic matrix
+******* DONE with schedule waves
+***** DONE GetStateMachine()
+***** DONE SetStateMachine()
+***** DONE GetOutputRouting()
+***** DONE SetOutputRouting()
+***** DONE SetScheduledWavesDIO()
+      It needs to be changed to use numpy arrays.
 ***** DONE GetEvents() (new and old versions)
 ***** DONE GetTime()
 ***** DONE GetTimeEventsAndState()
-***** TODO GetAIMode()
-***** TODO SetAIMode()
 ***** DONE ForceState() and similar ones
       I will not implement any other besides the generic ForceState().
-***** TODO SetStateProgram(), GetStateProgram()
 *** SoundClient
 ***** TODO Test that stopping sounds works.
 *** Solo-like graphical module
@@ -66,6 +68,10 @@
 
 
 * Bugs and fixes:
+*** TODO currentTrial is sent by signal to startNewTrial(), but can also be
+    accessed from protocol.dispatcher.currentTrial
+*** TODO what happens if signal 'READY TO START TRIAL' is sent while on JumpState?
+    does it jump to new trial or waits for timeout?
 *** TODO If using IPython there is a segfault if you run a protocol,
     close its window and try to run it again.
     It seems to be related to Qt4 not the StateMachine.
@@ -208,7 +214,7 @@
 *** BControl and RTLinux FSM:
     http://brodylab.princeton.edu/bcontrol/index.php/Main_Page
     http://code.google.com/p/rt-fsm/
-
+    
 
 * Misc:
 *** FIXED (2010-05-12) see ./compiling_FSMemulator.txt
@@ -231,10 +237,47 @@
     Object holding a label and value. It will be saved for each trial.
     It can be: label+editbox or menu
 
+
 * Adding schedule waves:
 *** output_routing has to know about the SW because setStateMatrix
     sends a URLstring with that info.
 *** It looks like self.input_event_mapping does not need to change for SW
     so there is no need for calling setInputEvents.
-*** 
+
+
+* Debugging (and what happens on each type of error):
+*** Using 'ipython -pdb'
+*** SyntaxError: it shows location of error (does not enter debug mode).
+*** AttributeError, NameError, TypeError on __init__:
+    it stops before GUI and enters (ipdb) debug mode.
+*** NameError on prepareNextTrial():
+    ipdb> QCoreApplication::exec: The event loop is already running
+    (... indefinitely, until hitting CTRL-C)
+    If running outside ipython, it shows the error and continues.
+*** Two solutions:
+***** QtCore.pyqtRemoveInputHook()
+      On 'ipython -pdb' shows trace invokes pdb.
+      On 'python file.py' shows trace and continues.
+      On 'ipython -pdb -q4thread' shows trace and continues.
+      I don't know how to stop dispatcher using only that.
+***** Redefine sys.excepthook
+      On 'ipython -pdb' it can show trace and stop dispatcher.
+      On 'python file.py'  ???
+      On 'ipython -pdb -q4thread' ???
+      I don't know how to invoke pdb inside ipython when redefining sys.excepthook.
+***** Best option so far is use only QtCore.pyqtRemoveInputHook() and 'ipython -pdb'
+      But then if you run the protocol with 'python file.py', you may not realize
+      that there has been an error.
+*** TODO Deal with exceptions from PyQt4 app. If exception occurs during execution,
+    stop the timers. See test014_exceptionhandling.py and the following threads:
+    http://efreedom.com/Question/1-1736015/Debugging-PyQT4-App
+    http://www.mail-archive.com/pyqt@riverbankcomputing.com/msg10718.html
+    http://stackoverflow.com/questions/674067/how-to-display-errors-to-the-user-while-still-logging-it
+*** To invoke debugger from inside excepthook:
+    http://stackoverflow.com/questions/1237379/how-do-i-set-sys-excepthook-to-invoke-pdb-globally-in-python
+    This does not work when using PyQt4
+*** TODO If statematrix transition calls for an undefined state,
+    there is an error in /home/sjara/src/taskontrol/core/dispatcher.py(147)setStateMatrix()
+    Check for orphan states
+
 
