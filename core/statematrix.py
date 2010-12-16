@@ -47,6 +47,7 @@ class StateMatrix(object):
         self._nextSchedWaveInd = 0
 
         # FIXME: These should depend on values from smclient
+        # These dictionary is modified if SchedWaves are used.
         self.eventsDict = {'Cin':0,'Cout':1,'Lin':2,'Lout':3,
                            'Rin':4,'Rout':5,'Tup':6}
         self.actionNamesDict = {'Dout':0,'SoundOut':1}
@@ -59,9 +60,12 @@ class StateMatrix(object):
 
     def _makeDefaultRow(self,stateInd):
         '''Create a transition row for a state.'''
-        newrow = self.nInputEvents*[stateInd]    # Input events
+        nSchedWaves = len(self.schedWavesNameToIndex)
+        newrow = (self.nInputEvents+2*nSchedWaves)*[stateInd]    # Input events
         newrow.extend([stateInd, VERYLONGTIME])  # Self timer
         newrow.extend(self.nOutputActions*[0])   # Outputs
+        if nSchedWaves>0:
+            newrow.extend([0])   # One more column for SchedWaves
         return newrow
 
     def _initMat(self):
@@ -105,6 +109,7 @@ class StateMatrix(object):
     def addState(self,name='',selftimer=VERYLONGTIME,transitions={},actions={}):
         '''Add state to transition matrix.'''
         
+        nSchedWaves = len(self.schedWavesNameToIndex)
         # -- Find index for this state (create if necessary) --
         if name not in self.statesNameToIndex:
             self._appendStateToList(name)
@@ -112,7 +117,8 @@ class StateMatrix(object):
 
         # -- Add target states from specified events --
         NewRow = self._makeDefaultRow(thisStateInd)
-        NewRow[self.nInputEvents+1] = selftimer
+        colTimer = self.nInputEvents+2*nSchedWaves+1
+        NewRow[colTimer] = selftimer
         for (eventName,targetStateName) in transitions.iteritems():
             if targetStateName not in self.statesNameToIndex:
                 self._appendStateToList(targetStateName)
@@ -121,14 +127,15 @@ class StateMatrix(object):
 
         # -- Add output actions --
         for (actionName,actionValue) in actions.iteritems():
-            ActionColumn = self.actionNamesDict[actionName]+self.nInputEvents+2
-            NewRow[ActionColumn] = actionValue
+            actionColumn = self.actionNamesDict[actionName]+self.nInputEvents+2*nSchedWaves+2
+            NewRow[actionColumn] = actionValue
 
         # -- Add row to state transition matrix --
         # IMPROVE: seems very inefficient
         while len(self.statesMat)<(thisStateInd+1):
             self.statesMat.append([])
         self.statesMat[thisStateInd] = NewRow
+
 
     def addScheduleWave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
         '''Add a Scheduled Wave to this state machine.
@@ -157,12 +164,27 @@ class StateMatrix(object):
 
         # Define inEventCol, outEventCol according to swID
 
+        #if len(self.statesMat)>
         # -- Find index for this SW (create if necessary) --
         if name not in self.schedWavesNameToIndex:
             self._appendSchedWaveToList(name)
         swID = self.schedWavesNameToIndex[name]
-        schedWaveDefinition = [swID, inEventCol, outEventCol, DIOline, soundTrig,
-                               preamble, sustain, refraction]
+        (inEventCol,outEventCol) = self._updateEventsDict(name)
+        self.schedWavesMat.append([swID, inEventCol, outEventCol, DIOline,
+                                   soundTrig, preamble, sustain, refraction])
+        self._initMat() # Initialize again with different number of columns
+
+
+    def _updateEventsDict(self,name):
+        '''Add entries to the events dictionary according to the names of
+        scheduled waves.'''
+        # FIXME: the length of schedWavesNameToIndex may differ from swID+1
+        inEventCol = 2*(len(self.schedWavesNameToIndex)-1) + self.nInputEvents
+        outEventCol = inEventCol + 1
+        self.eventsDict['%s_In'%name] = inEventCol
+        self.eventsDict['%s_Out'%name] = outEventCol
+        self.eventsDict['Tup'] = outEventCol+1
+        return (inEventCol,outEventCol)
 
 
     def getMatrix(self):
@@ -187,6 +209,12 @@ class StateMatrix(object):
     def __str__(self):
         '''String representation of transition matrix.'''
         matstr = ''
+        revEventsDict = {}
+        for key in self.eventsDict:
+            revEventsDict[self.eventsDict[key]] = key
+        matstr += '\t\t\t'
+        matstr += '\t'.join([revEventsDict[k][0:4] for k in sorted(revEventsDict.keys())])
+        matstr += '\n'
         for (index,onerow) in enumerate(self.statesMat):
             if len(onerow):
                 matstr += '%s [%d] \t'%(self.statesIndexToName[index].ljust(16),index)
@@ -201,13 +229,15 @@ if __name__ == "__main__":
 
     
     sm = StateMatrix()
-    print sm.statesMat
-    '''
+    sm.addScheduleWave(name='mySW',preamble=1.2)
+    sm.addScheduleWave(name='my2SW',sustain=3.3)
     sm.addState(name='wait_for_cpoke', selftimer=10,
                 transitions={'Cin':'play_target'})
     sm.addState(name='play_target', selftimer=0.5,
                 transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
                 actions={'Dout':5})
+    print sm
+    '''
     sm.addState(name='wait_for_apoke', selftimer=0.5,
                 transitions={'Lout':'wait_for_cpoke','Rout':'wait_for_cpoke'})
 
