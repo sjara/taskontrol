@@ -134,7 +134,9 @@ class BaseClient(object):
     def sendString(self,stringToSend):
         '''Send string to server.'''
         try:
-            self.socketClient.send(stringToSend)
+            # NOTE: when using socket.send() the system will timeout,
+            #       so we use socket.sendall() instead.
+            self.socketClient.sendall(stringToSend)
         except:
             raise Exception(('Failed sending command to server '+
                             '(on port %d).')%self.port)
