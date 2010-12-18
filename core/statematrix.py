@@ -19,7 +19,8 @@ __created__ = '2009-12-16'
 
 
 # FIXME: what should be the SelfTimer period?
-VERYLONGTIME = 100   # Period to stay in a state if nothing happens
+VERYLONGTIME  = 100    # Time period to stay in a state if nothing happens
+VERYSHORTTIME = 0.0001 # Time period before jumping to next state "immediately"
 
 class StateMatrix(object):
     '''
@@ -68,16 +69,24 @@ class StateMatrix(object):
             newrow.extend([0])   # One more column for SchedWaves
         return newrow
 
+
     def _initMat(self):
-        '''Add row for state zero and ready-next-trial jump state.'''
-        #StateZeroRow = self._makeDefaultRow(self.readyForNextTrialState)
-        #StateZeroRow[IndexOfTimer] = VERYSHORTTIME
-        #self._updateStateDict('_STATEZERO',0)
-        #JumpStateRow = self._makeDefaultRow(self.readyForNextTrialStateInd)
+        '''Add row for state-zero and ready-next-trial jump state.
+
+        A default state-zero is necessary because as of Dec 2010
+        schedule waves cannot be triggered from the zeroth state. This
+        was found empirically, and it may be a bug in the server.
+        '''
+        self._updateStateDict('_STATEZERO',0)
+        self._nextStateInd = 1
+        if self._nextStateInd==self.readyForNextTrialStateInd:
+            self._nextStateInd += 1  # Skip readyForNextTrialState
+
+        self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME,transitions={'Tup':self._nextStateInd})
         self._updateStateDict(self.readyForNextTrialStateName,
                               self.readyForNextTrialStateInd)
-        #self.statesMat.insert(self.readyForNextTrialStateInd,JumpStateRow)
-        self.addState(name=self.readyForNextTrialStateName,selftimer=100)
+        self.addState(name=self.readyForNextTrialStateName,selftimer=VERYLONGTIME)
+
 
     def _updateStateDict(self,stateName,stateInd):
         '''Add name and index of a state to the dicts keeping the states list.'''
@@ -87,8 +96,8 @@ class StateMatrix(object):
 
     #def _updateSchedWaveDict(self,stateName,stateInd):
     #    '''Add name and index of a schedule wave to the dicts keeping the waves list.'''
-    #    self.sxxxxxtatesNameToIndex[stateName] = stateInd
-    #    self.sxxxxxtatesIndexToName[stateInd] = stateName
+    #    self.schedWavesNameToIndex[schedWaveName] = self._nextSchedWaveInd
+    #    self.schedWavesIndexToName[self._nextSchedWaveInd] = schedWaveName
 
 
     def _appendStateToList(self,stateName):
@@ -128,10 +137,17 @@ class StateMatrix(object):
         # -- Add output actions --
         for (actionName,actionValue) in actions.iteritems():
             actionColumn = self.actionNamesDict[actionName]+self.nInputEvents+2*nSchedWaves+2
-            NewRow[actionColumn] = actionValue
+            if actionName=='Dout':
+                NewRow[actionColumn] = actionValue
+            elif actionName=='SoundOut':
+                #NewRow[actionColumn] = actionValue
+                print 'CODE FOR SOUND OUTPUT NOT WRITTEN YET (statematrix.addstate)'
+            elif actionName=='SchedWaveTrig':
+                NewRow[actionColumn] = 2**self.schedWavesNameToIndex[actionValue]
+                
 
         # -- Add row to state transition matrix --
-        # IMPROVE: seems very inefficient
+        # FIXME: this way to do it seems very inefficient
         while len(self.statesMat)<(thisStateInd+1):
             self.statesMat.append([])
         self.statesMat[thisStateInd] = NewRow
@@ -154,17 +170,6 @@ class StateMatrix(object):
         From ExperPort/Modules/@StateMachineAssembler/add_scheduled_wave.m
 
         '''
-        # FIX ME:
-        # smclient.setScheduledWavesDIO should probably be called only once
-        #  so that it creates the right number of columns
-        # It need to concatenate SWs together
-        # It is dispatcher who sends the matrix to the Server (using smclient)
-
-        ### When to send SWs to Server? probably on self.dispatcher.setStateMatrix()
-
-        # Define inEventCol, outEventCol according to swID
-
-        #if len(self.statesMat)>
         # -- Find index for this SW (create if necessary) --
         if name not in self.schedWavesNameToIndex:
             self._appendSchedWaveToList(name)
@@ -184,12 +189,18 @@ class StateMatrix(object):
         self.eventsDict['%s_In'%name] = inEventCol
         self.eventsDict['%s_Out'%name] = outEventCol
         self.eventsDict['Tup'] = outEventCol+1
+        if 'SchedWaveTrig' not in self.actionNamesDict:
+            self.actionNamesDict['SchedWaveTrig']=2
         return (inEventCol,outEventCol)
 
 
     def getMatrix(self):
         # FIXME: check if there are orphan states or calls to nowhere
         return self.statesMat
+
+    def getSchedWaves(self):
+        # FIXME: check if there are orphan SW
+        return self.schedWavesMat
 
 
     def getStatesDict(self,order='NameToIndex'):
@@ -226,7 +237,6 @@ class StateMatrix(object):
 
 
 if __name__ == "__main__":
-
     
     sm = StateMatrix()
     sm.addScheduleWave(name='mySW',preamble=1.2)
