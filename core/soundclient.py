@@ -12,8 +12,6 @@ __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2009-11-19'
 
 import sys
-import socket
-import struct
 import numpy as np
 from taskontrol.core import baseclient
 
@@ -35,11 +33,12 @@ class SoundClient(baseclient.BaseClient):
     Port: 3334
     '''
     def __init__(self, host='localhost', port=3334, soundcardID=0,
+                                         samplerate = 200000,
                                          connectnow=True, verbose=False):
 
         super(SoundClient,self).__init__(host,port,connectnow,verbose)
         self.soundcardID = soundcardID
-        self.samplerate = 200000
+        self.samplerate = float(samplerate)
         if connectnow:
             self.connect()
 
@@ -68,7 +67,7 @@ class SoundClient(baseclient.BaseClient):
 
     def setSampleRate(self,srate):
         '''Set sample rate for future calls to loadSound().'''
-        self.samplerate = srate
+        self.samplerate = float(srate)
 
 
     def getSampleRate(self):
@@ -148,9 +147,9 @@ class SoundClient(baseclient.BaseClient):
         # To do it we flatten column-major (Fortran way)
         soundwave = soundwave.flatten('F')
 
-        if self.samplerate != 200000:
+        #if self.samplerate != 200000:
             # Why are we limited to srate of 200k?
-            raise ValueError('For now, the client only works for srate=200kHz.')
+            #raise ValueError('For now, the client only works for srate=200kHz.')
 
         # The parameters for the SET SOUND command are a mistery,
         # the Matlab client does not explain the details.
@@ -220,13 +219,17 @@ class SoundClient(baseclient.BaseClient):
 
 if __name__ == "__main__":
 
-    testSC = SoundClient('soul',verbose=True)
+    testSC = SoundClient('localhost',samplerate=44100,verbose=True)
     #soundwave = 0.1*np.random.standard_normal(200e3/10)
-    #soundwave = 0.1*np.random.standard_normal(1000)
-    soundwave = 0.1*np.tile(np.repeat([1,-1],100),2)
-
-    # NOTE: a sound of 1e4 samples does not work on the emulator, it
-    # times-out at 20sec.
+    #soundwave = 0.1*np.random.standard_normal(2*8193)
+    #soundwave = 0.1*np.tile(np.repeat([1,-1],100),2)
+    timeVec = np.arange(0,0.02,1/testSC.getSampleRate())
+    #soundwave = 1*np.sin(2*np.pi*1e3*timeVec)
+    soundwave = np.vstack((1*np.sin(2*np.pi*1000*timeVec),
+                           1*np.sin(2*np.pi*400*timeVec)))
+    
+    # NOTE: a sound of with more than 2^13 (8192) samples
+    # does not work on the emulator, it times-out even at 20sec.
     
     #testSC.loadSound(1,soundwave,predelay=0.001)
     testSC.loadSound(1,soundwave)
