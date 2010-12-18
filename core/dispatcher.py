@@ -136,16 +136,19 @@ class Dispatcher(QtGui.QGroupBox):
         self.isConnected = True
 
 
-    def setStateMatrix(self,statematrix):
+    def setStateMatrix(self,statesmatrix,schedwavesmatrix=None):
         '''
         Send state transition matrix to server.
+        If available, also send matrix of schedule waves.
 
-        The matrix can be given as a python array or a numpy array.
+        The matrices can be python arrays or a numpy arrays.
         '''
         if self.isConnected:
-            if not isinstance(statematrix,np.ndarray):
-                statematrix = np.array(statematrix)
-            self.statemachine.setStateMatrix(statematrix)        
+            #if not isinstance(statesmatrix,np.ndarray):
+            #    statesmatrix = np.array(statesmatrix)
+            if schedwavesmatrix:
+                self.statemachine.setScheduledWavesDIO(schedwavesmatrix)        
+            self.statemachine.setStateMatrix(statesmatrix)        
         else:
             print 'Call to setStateMatrix, but the client is not connected.\n'
 
