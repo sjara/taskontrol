@@ -82,12 +82,21 @@ class StateMatrix(object):
         if self._nextStateInd==self.readyForNextTrialStateInd:
             self._nextStateInd += 1  # Skip readyForNextTrialState
 
-        self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME,transitions={'Tup':self._nextStateInd})
+        #self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME,
+        #              transitions={'Tup':self._nextStateInd})
+        self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME)
+        self._forceTransition(self.statesNameToIndex['_STATEZERO'],self._nextStateInd)
         self._updateStateDict(self.readyForNextTrialStateName,
                               self.readyForNextTrialStateInd)
         self.addState(name=self.readyForNextTrialStateName,selftimer=VERYLONGTIME)
 
 
+    def _forceTransition(self,originStateID,destinationStateID):
+        '''Set Tup transition from one state to another give state numbers
+        instead of state names'''
+        self.statesMat[originStateID][self.eventsDict['Tup']] = destinationStateID
+        
+        
     def _updateStateDict(self,stateName,stateInd):
         '''Add name and index of a state to the dicts keeping the states list.'''
         self.statesNameToIndex[stateName] = stateInd
