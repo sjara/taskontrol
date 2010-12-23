@@ -69,7 +69,6 @@ class Protocol(QtGui.QMainWindow):
         lastTenEvents = self.dispatcher.eventsMat[-10:-1,:]
         print 'Last 10 events:'
         print lastTenEvents
-        self.setStateMatrix()
         self.dispatcher.readyToStartTrial()
 
 
