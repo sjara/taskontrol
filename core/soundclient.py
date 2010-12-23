@@ -128,7 +128,7 @@ class SoundClient(baseclient.BaseClient):
         # everything is binaural, and the user can create monoaural
         # sounds by making one channel full of zeros.
         if stopramp_ms<0:
-            raise TypeError('Stop ramp tau cannot be negative.')
+            raise ValueError('Stop ramp tau cannot be negative.')
 
         if soundwave.ndim==1:
             soundwave = np.vstack((soundwave,soundwave))
