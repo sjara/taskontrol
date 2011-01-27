@@ -3,12 +3,14 @@
 #+STARTUP: showall
 
 * To do next:
-*** TODO Create AddScheduleWaves method
-*** TODO Example protocol organized by trials (simplest use dispatcher).
-*** TODO Test what happens on each type of error (syntax, logic, ...).
+*** TODO Module for creating generic sounds (tones, noise, AM, FM, etc)
+*** TODO Graphical interface (detachable) for setting sound parameters.
+*** TODO Check doc string on each method of core (start with dispatcher)
+*** TODO Add test cases for each module/method
+*** TODO Design water reward module.
+*** TODO Write protocol for calibration water.
 *** TODO statematrix.py : Check if there are orphan states.
 *** TODO Close file if there is an error while saving to it
-*** TODO Create module for setting up layout given groups
 *** TODO Fix eventsplot [2/3]
 ***** DONE Color disappearing earlier that it should
 ***** TODO Plot events, not just states
@@ -17,6 +19,10 @@
 *** DONE Column layout
 *** DONE Save session parameters (experimenter ...) call it SessionInfo
 *** DONE Organize module in subfolders (core, plugins, doc, test,...)
+*** DONE Create AddScheduleWaves method
+*** DONE Example protocol organized by trials (simplest use dispatcher).
+*** DONE Test what happens on each type of error (syntax, logic, ...).
+*** DONE Create module for setting up layout given groups
 
 
 * TASKontrol
@@ -55,7 +61,9 @@
 *** EventsPlot
 ***** TODO Create all fill on init, and update by changing xvalues.
 ***** TODO Use blit()
-
+*** TODO If a parameter is modified before running the protocol,
+    the state matrix should be set accordingly
+*** TODO The first trial should contain valid data.
 
 * Improvements
 *** DONE Use isinstance(obj, int) instead of comparing types
@@ -68,6 +76,8 @@
 
 
 * Bugs and fixes:
+*** TODO it looks like sched waves cannot be triggered on State 0.
+*** TODO if the time from State 0 to another state is zero, it never moves.
 *** TODO currentTrial is sent by signal to startNewTrial(), but can also be
     accessed from protocol.dispatcher.currentTrial
 *** TODO what happens if signal 'READY TO START TRIAL' is sent while on JumpState?
@@ -140,7 +150,7 @@
     The only reason I see if you want the SM to do something while
     preparing the next trial, and don't want to jump out of it in the
     middle of something (but only when it reaches a special state).
-
+    
 
 * Notes on developing in python:
 *** Python style
@@ -225,17 +235,24 @@
 
 
 * Design:
-*** SMclient
-    setStateMatrix, run, halt, getEvents, readyToStartTrial
+*** StateMachineClient
+    connect, setStateMatrix, setScheduleWaves, run, halt, getEvents, and more.
 *** SoundClient
-*** dispatcher
-    Qt widget with a run button and a printout of the time and state of the SM.
-    keep time and trial count, interface to assemble matrix and get events back.
-*** protocol
-    design state matrix and parameters, send to dispatcher.
-*** parameters
+    connect, loadSound, and more.
+*** Dispatcher
+    Qt widget with a run button and a display of the time and state of the SM.
+    It keeps time and trial count, and serves as the interface for setting the state
+    transition matrix and getting events back.
+*** Protocol
+    Design state matrix and parameters.
+*** paramgui.Container
+    Dictionary holding all graphical parameter. It has methods to help layout.
+*** paramgui.StringParam, paramgui.NumericParam, paramgui.MenuParam
     Object holding a label and value. It will be saved for each trial.
     It can be: label+editbox or menu
+*** NOT IMPLEMENTED:
+***** SoundManager
+      It does not seem necessary. SoundClient.loadSound() would do.
 
 
 * Adding schedule waves:
@@ -246,14 +263,15 @@
 
 
 * Debugging (and what happens on each type of error):
+*** Best option so far is use only QtCore.pyqtRemoveInputHook() and 'ipython -pdb'
 *** Using 'ipython -pdb'
-*** SyntaxError: it shows location of error (does not enter debug mode).
-*** AttributeError, NameError, TypeError on __init__:
-    it stops before GUI and enters (ipdb) debug mode.
-*** NameError on prepareNextTrial():
-    ipdb> QCoreApplication::exec: The event loop is already running
-    (... indefinitely, until hitting CTRL-C)
-    If running outside ipython, it shows the error and continues.
+***** SyntaxError: it shows location of error (does not enter debug mode).
+***** AttributeError, NameError, TypeError on __init__:
+      it stops before GUI and enters (ipdb) debug mode.
+***** NameError on prepareNextTrial():
+      ipdb> QCoreApplication::exec: The event loop is already running
+      (... indefinitely, until hitting CTRL-C)
+      If running outside ipython, it shows the error and continues.
 *** Two solutions:
 ***** QtCore.pyqtRemoveInputHook()
       On 'ipython -pdb' shows trace invokes pdb.
