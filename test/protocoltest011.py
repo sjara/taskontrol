@@ -83,8 +83,6 @@ class Protocol(QtGui.QMainWindow):
         layoutCol0 = QtGui.QVBoxLayout()
         layoutCol1 = QtGui.QVBoxLayout()
         layoutCol2 = QtGui.QVBoxLayout()
-        #groupBox1 = QtGui.QGroupBox('Group 1')
-        #layoutBox1 = QtGui.QVBoxLayout()
 
         layoutMain.addLayout(layoutTop)
         layoutMain.addStretch()
@@ -94,21 +92,13 @@ class Protocol(QtGui.QMainWindow):
         layoutBottom.addLayout(layoutCol0)
         layoutBottom.addLayout(layoutCol1)
         layoutBottom.addLayout(layoutCol2)
-        #layoutBottom.setStretch(0,1)
-        #layoutBottom.setStretch(1,0)
 
         layoutCol0.addWidget(self.saveData)
         layoutCol0.addWidget(groupSessionInfo)
         layoutCol0.addWidget(self.dispatcher)
-        #layoutCol2.addStretch()
         layoutCol1.addWidget(self.manualControl)
         layoutCol1.addWidget(groupSound)
         layoutCol2.addWidget(groupOther)
-        #groupBox1.setLayout(layoutBox1)
-        # FIXME: Create instead an object for a group that has a defined layout order
-        #layoutOrder = ['soundDuration','irrelevantParam1','irrelevantParam2','chooseNumber']
-        #for paramkey in layoutOrder:
-        #    layoutBox1.addWidget(self.params[paramkey])
 
 
         centralWidget.setLayout(layoutMain)
