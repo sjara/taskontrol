@@ -32,7 +32,7 @@ from PyQt4 import QtCore
 from PyQt4 import QtGui 
 import numpy as np
 from taskontrol.core import messenger
-from taskontrol.core import smclient
+#from taskontrol.core import smclient
 
 #reload(smclient)
 
@@ -58,11 +58,11 @@ class Dispatcher(QtGui.QGroupBox):
         super(Dispatcher, self).__init__(parent)
 
         # -- Use dummy state machine if requested (DOES NOT SEEM TO WORK) --
-        #if dummy:
-        #    from taskontrol.plugins import smdummy as smclient
-        #else:
-        #    from taskontrol.core import smclient
-        #reload(smclient)
+        if dummy:
+            from taskontrol.plugins import smdummy as smclient
+        else:
+            from taskontrol.core import smclient
+        reload(smclient)
 
         # -- Set string formats --
         self._timeFormat = 'Time: %0.1f s'
@@ -99,9 +99,13 @@ class Dispatcher(QtGui.QGroupBox):
 
         # -- Create graphical objects --
         self.stateLabel = QtGui.QLabel(self._stateFormat%self.state)
+        self.stateLabel.setObjectName('DispatcherLabel')
         self.timeLabel = QtGui.QLabel(self._timeFormat%self.time)
+        self.timeLabel.setObjectName('DispatcherLabel')
         self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
+        self.eventCountLabel.setObjectName('DispatcherLabel')
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
+        self.currentTrialLabel.setObjectName('DispatcherLabel')
         self.buttonStartStop = QtGui.QPushButton('')
         self.buttonStartStop.setCheckable(False)
         self.buttonStartStop.setMinimumHeight(100)

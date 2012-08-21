@@ -26,11 +26,13 @@ class ManualControl(QtGui.QGroupBox):
         dictIterator = iter(sorted(rigsettings.DOUT.iteritems()))
         for key,value in dictIterator:
             self.outputButtons[key] = OutputButton(dispatcher, key,value)
+            self.outputButtons[key].setObjectName('ManualControlButton')
             row = nButtons//nCols # Integer division
             col = nButtons%nCols  # Modulo
             layout.addWidget(self.outputButtons[key], row, col)
             nButtons += 1
 
+        #layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         self.setTitle('Manual control')
 

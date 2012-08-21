@@ -135,6 +135,7 @@ class GenericParam(QtGui.QWidget):
         self._type = None
         self._value = None
         self.labelWidget = QtGui.QLabel(labelText)
+        self.labelWidget.setObjectName('ParamLabel')
         self.editWidget = None
 
     def getType(self):
@@ -165,6 +166,7 @@ class StringParam(GenericParam):
 
         # -- Define graphical interface --
         self.editWidget = QtGui.QLineEdit()
+        self.editWidget.setObjectName('ParamEdit')
 
         # -- Define value --
         self.setValue(value)
@@ -186,6 +188,7 @@ class NumericParam(GenericParam):
 
         # -- Define graphical interface --
         self.editWidget = QtGui.QLineEdit()
+        self.editWidget.setObjectName('ParamEdit')
 
         # -- Define value --
         self.setValue(value)
@@ -208,6 +211,7 @@ class MenuParam(GenericParam):
         # -- Define graphical interface --
         self.editWidget = QtGui.QComboBox()
         self.editWidget.addItems(menuItems)
+        self.editWidget.setObjectName('ParamMenu')
 
         # -- Define value --
         self._items = menuItems
