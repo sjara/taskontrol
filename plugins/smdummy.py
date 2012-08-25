@@ -4,32 +4,71 @@
 State machine client dummy.
 
 TO DO:
-- Do I need to define smclient.baseclient.AckError?
-
 '''
 
 
-__version__ = '0.0.1'
+__version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2009-12-30'
+__created__ = '2012-08-20'
 
 import time
-import random
 import numpy as np
 
-class Dummy(object):
-    def __init__(self):
-        state=0
-        
 
 class StateMachineClient(object):
 
-    def __init__(self, host='localhost', port=3333, fsmID=0, 
-                                         connectnow=True, verbose=False):
+    def __init__(self, connectnow=True, verbose=False):
         self.timeOfCreation = time.time()
         self.timeOfLastEvents = self.timeOfCreation
         self.lastTimeOfEvents = 0
+    def send_reset(self):
+        pass
+    def connect(self):
+        print 'DUMMY: Connect.'
+        pass
+    def set_output(self,output,value):
+        pass
+    def get_version(self):
+        pass
+    def get_inputs(self):
+        pass
+    def get_time(self):
+        pass
+    def run(self):
+        print 'DUMMY: Run.'
+    def stop(self):
+        pass
+    def get_events(self):
+        pass
+    def write(self,value):
+        pass
+    def set_state_matrix(self,stateMatrix):
+        pass
+    def send_matrix(self,someMatrix):
+        pass
+    def set_state_timers(self,timerValues):
+        pass
+    def set_state_outputs(self,stateOutputs):
+        pass
+    def report_state_matrix(self):
+        pass
+    def get_current_state(self):
+        pass
+    def force_state(self,stateID):
+        print 'DUMMY: Force state %d.'%stateID
+    def report_state_timers(self):
+        pass
+    def readlines(self):
+        pass
+    def read(self):
+        pass
+    def close(self):
+        print 'DUMMY: Close.'
 
+
+
+
+'''
     def connect(self):
         print 'DUMMY: Connect state machine client.'
 
@@ -75,3 +114,4 @@ class StateMachineClient(object):
 
     def close(self):
         print 'DUMMY: Close.'
+'''

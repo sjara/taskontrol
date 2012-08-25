@@ -5,12 +5,12 @@ Class for routing messages between modules.
 '''
 
 
-__version__ = '0.0.1'
+__version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2009-12-30'
 
 import time
-from PyQt4 import QtCore 
+from PySide import QtCore 
 
 class Message(object):
     '''

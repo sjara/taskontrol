@@ -2,6 +2,10 @@
 #+STARTUP: odd
 #+STARTUP: showall
 
+* To do (new version)
+*** TODO Dummy client (plugins/smdummy)
+
+
 * To do next:
 *** TODO Module for creating generic sounds (tones, noise, AM, FM, etc)
 *** TODO Graphical interface (detachable) for setting sound parameters.
@@ -186,6 +190,17 @@
 ***** TODO Automatic reloading of modules
       Running one script does not reload the modules it imports, so
       any changes to those modules are ignored until reloading explicitely.
+
+
+* PySide:
+*** To be able to stop an application with CTRL-C add:
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    See also: http://stackoverflow.com/questions/4938723/what-is-the-correct-way-to-make-my-pyqt-application-quit-when-killed-from-the-co
+*** New way of doing signals and slots (PySide)
+    http://qt-project.org/wiki/Signals_and_Slots_in_PySide
+*** If using QtCore.Signal(), it has to be placed before the constructor (__init__)
+    http://stackoverflow.com/questions/2970312/pyqt4-qtcore-pyqtsignal-object-has-no-attribute-connect
 
 
 * Links and tips on tools:
