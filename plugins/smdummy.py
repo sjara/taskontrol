@@ -13,6 +13,7 @@ __created__ = '2012-08-20'
 
 import time
 import numpy as np
+import datetime
 
 
 class StateMachineClient(object):
@@ -21,6 +22,9 @@ class StateMachineClient(object):
         self.timeOfCreation = time.time()
         self.timeOfLastEvents = self.timeOfCreation
         self.lastTimeOfEvents = 0
+        self.serverTime = 0
+        self.state = 0
+        self.lastEvents = []
     def send_reset(self):
         pass
     def connect(self):
@@ -33,17 +37,25 @@ class StateMachineClient(object):
     def get_inputs(self):
         pass
     def get_time(self):
-        pass
+        self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
+        return self.serverTime
     def run(self):
         print 'DUMMY: Run.'
     def stop(self):
-        pass
+        print 'DUMMY: Stop.'
     def get_events(self):
-        pass
+        self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
+        self.state = int(not self.state)
+        self.lastEvents = [self.serverTime,1234,self.state]
+        return self.lastEvents
     def write(self,value):
         pass
     def set_state_matrix(self,stateMatrix):
-        pass
+        print 'DUMMY: Set state matrix.'
+    def set_state_outputs(self,stateOutputs):
+        print 'DUMMY: Set state outputs.'
+    def set_state_outputs(self,stateTimers):
+        print 'DUMMY: Set state timers.'
     def send_matrix(self,someMatrix):
         pass
     def set_state_timers(self,timerValues):

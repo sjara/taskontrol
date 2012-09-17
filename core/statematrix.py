@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 
 '''
-State transition matrix with assembler.
+Assemble a state transition matrix as well as timers and outputs.
 
 Input format:
 sma.addState(name='STATENAME', selftimer=3,
-             transitions={'EVENT':NEXTSTATE}, actions={'OUTPUT':VALUE})
+             transitions={'EVENT':NEXTSTATE},
+             outputs={'OUTPUT':VALUE})
+
+
+  OUTPUT WILL CHANGE TO SEPARATE TRANSITION MATRIX AND TIMERS
 
 Output:
-#         Ci  Co  Li  Lo  Ri  Ro  Tup  t  CONTo TRIGo
-mat = [ [  0,  0,  0,  0,  0,  0,  2,  1.2,  0,   0   ] ,\
-
+#       Ci  Co  Li  Lo  Ri  Ro  Tup
+mat = [  0,  0,  0,  0,  0,  0,  2  ]
+      
 '''
 
-__version__ = '0.0.2'
+from taskontrol.settings import rigsettings
+
+__version__ = '0.1.0'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2009-12-16'
+__created__ = '2012-09-03'
 
 
 # FIXME: what should be the SelfTimer period?
@@ -26,20 +32,25 @@ class StateMatrix(object):
     '''
     State transition matrix.
 
-    The default state transition matrix without schedule waves has the
+    The default state transition matrix without extra timers has the
     following columns:
-    [ Cin  Cout  Lin  Lout  Rin  Rout  Tup  t  CONTo  TRIGo ]
+    [ Cin  Cout  Lin  Lout  Rin  Rout  Tup]
 
-    Where the first six are for center, left and right ports, the next
-    two columns are for the timer transition and its interval, and the
-    last two for digital outputs and sounds.
+    Where the first six are for center, left and right ports, and the
+    next column for the state timer.
 
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
-    def __init__(self,readystate=('ready_next_trial',1)):
+    #def __init__(self,readystate=('ready_next_trial',1)):
+    #def __init__(self):
+    def __init__(self,readystate='ready_next_trial'):
         self.statesMat = []
+        self.statesTimers = []
+        self.statesOutputs = []
+
         self.statesIndexToName = {}
         self.statesNameToIndex = {}
+
         self._nextStateInd = 0
 
         self.schedWavesMat = []
@@ -49,24 +60,27 @@ class StateMatrix(object):
 
         # FIXME: These should depend on values from smclient
         # These dictionary is modified if SchedWaves are used.
-        self.eventsDict = {'Cin':0,'Cout':1,'Lin':2,'Lout':3,
-                           'Rin':4,'Rout':5,'Tup':6}
-        self.actionNamesDict = {'Dout':0,'SoundOut':1}
-        self.nInputEvents = len(self.eventsDict)-1   # Minus timer
-        self.nOutputActions = 2
-        self.readyForNextTrialStateName = readystate[0]
-        self.readyForNextTrialStateInd = readystate[1]
+        self.eventsDict = rigsettings.INPUTS
+        self.nInputEvents = len(self.eventsDict)
+
+        #self.outputNamesDict = {'Dout':0,'SoundOut':1}
+        #self.nOutputs = 2
+
+        #self.readyForNextTrialStateName = readystate[0]
+        #self.readyForNextTrialStateInd = readystate[1]
+        self.readyForNextTrialStateName = readystate
         self._initMat()
 
 
     def _makeDefaultRow(self,stateInd):
         '''Create a transition row for a state.'''
-        nSchedWaves = len(self.schedWavesNameToIndex)
-        newrow = (self.nInputEvents+2*nSchedWaves)*[stateInd]    # Input events
-        newrow.extend([stateInd, VERYLONGTIME])  # Self timer
-        newrow.extend(self.nOutputActions*[0])   # Outputs
-        if nSchedWaves>0:
-            newrow.extend([0])   # One more column for SchedWaves
+        #nSchedWaves = len(self.schedWavesNameToIndex)
+        #newrow = (self.nInputEvents+2*nSchedWaves)*[stateInd]    # Input events
+        newrow = (self.nInputEvents)*[stateInd]    # Input events
+        #newrow.extend([stateInd, VERYLONGTIME])  # Self timer
+        #newrow.extend(self.nOutputs*[0])   # Outputs
+        #if nSchedWaves>0:
+        #    newrow.extend([0])   # One more column for SchedWaves
         return newrow
 
 
@@ -77,17 +91,18 @@ class StateMatrix(object):
         schedule waves cannot be triggered from the zeroth state. This
         was found empirically, and it may be a bug in the server.
         '''
+        '''
         self._updateStateDict('_STATEZERO',0)
         self._nextStateInd = 1
         if self._nextStateInd==self.readyForNextTrialStateInd:
             self._nextStateInd += 1  # Skip readyForNextTrialState
-
+        '''
         #self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME,
         #              transitions={'Tup':self._nextStateInd})
-        self.addState(name='_STATEZERO',selftimer=VERYSHORTTIME)
-        self._forceTransition(self.statesNameToIndex['_STATEZERO'],self._nextStateInd)
-        self._updateStateDict(self.readyForNextTrialStateName,
-                              self.readyForNextTrialStateInd)
+        #self.addState(name='STATEZERO',selftimer=VERYLONGTIME)
+        #self._forceTransition(self.statesNameToIndex['_STATEZERO'],self._nextStateInd)
+        #self._updateStateDict(self.readyForNextTrialStateName,
+        #                      self.readyForNextTrialStateInd)
         self.addState(name=self.readyForNextTrialStateName,selftimer=VERYLONGTIME)
 
 
@@ -111,8 +126,8 @@ class StateMatrix(object):
 
     def _appendStateToList(self,stateName):
         '''Add state to the list of available states.'''        
-        if self._nextStateInd==self.readyForNextTrialStateInd:
-            self._nextStateInd += 1  # Skip readyForNextTrialState
+        #if self._nextStateInd==self.readyForNextTrialStateInd:
+        #    self._nextStateInd += 1  # Skip readyForNextTrialState
         self._updateStateDict(stateName,self._nextStateInd)
         self._nextStateInd += 1
         
@@ -124,26 +139,28 @@ class StateMatrix(object):
         self._nextSchedWaveInd += 1
         
 
-    def addState(self,name='',selftimer=VERYLONGTIME,transitions={},actions={}):
+    def addState(self,name='',selftimer=VERYLONGTIME,transitions={},outputs={}):
         '''Add state to transition matrix.'''
         
         nSchedWaves = len(self.schedWavesNameToIndex)
+
         # -- Find index for this state (create if necessary) --
         if name not in self.statesNameToIndex:
             self._appendStateToList(name)
         thisStateInd = self.statesNameToIndex[name]
 
         # -- Add target states from specified events --
-        NewRow = self._makeDefaultRow(thisStateInd)
+        newRow = self._makeDefaultRow(thisStateInd)
         colTimer = self.nInputEvents+2*nSchedWaves+1
-        NewRow[colTimer] = selftimer
+        #NewRow[colTimer] = selftimer
         for (eventName,targetStateName) in transitions.iteritems():
             if targetStateName not in self.statesNameToIndex:
                 self._appendStateToList(targetStateName)
             targetStateInd = self.statesNameToIndex[targetStateName]
-            NewRow[self.eventsDict[eventName]] = targetStateInd
+            newRow[self.eventsDict[eventName]] = targetStateInd
 
         # -- Add output actions --
+        '''
         for (actionName,actionValue) in actions.iteritems():
             actionColumn = self.actionNamesDict[actionName]+self.nInputEvents+2*nSchedWaves+2
             if actionName=='Dout':
@@ -153,13 +170,20 @@ class StateMatrix(object):
                 print 'CODE FOR SOUND OUTPUT NOT WRITTEN YET (statematrix.addstate)'
             elif actionName=='SchedWaveTrig':
                 NewRow[actionColumn] = 2**self.schedWavesNameToIndex[actionValue]
-                
+        '''     
 
         # -- Add row to state transition matrix --
         # FIXME: this way to do it seems very inefficient
         while len(self.statesMat)<(thisStateInd+1):
             self.statesMat.append([])
-        self.statesMat[thisStateInd] = NewRow
+            self.statesTimers.append([])
+            self.statesOutputs.append([])
+        self.statesMat[thisStateInd] = newRow
+        self.statesTimers[thisStateInd] = selftimer
+        if outputs.has_key('Dout'):
+            self.statesOutputs[thisStateInd] = outputs['Dout']
+        else:
+            self.statesOutputs[thisStateInd] = 0
 
 
     def addScheduleWave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
@@ -179,6 +203,8 @@ class StateMatrix(object):
         From ExperPort/Modules/@StateMachineAssembler/add_scheduled_wave.m
 
         '''
+        print 'NOT IMPLEMENTED YET'
+        return
         # -- Find index for this SW (create if necessary) --
         if name not in self.schedWavesNameToIndex:
             self._appendSchedWaveToList(name)
@@ -198,8 +224,8 @@ class StateMatrix(object):
         self.eventsDict['%s_In'%name] = inEventCol
         self.eventsDict['%s_Out'%name] = outEventCol
         self.eventsDict['Tup'] = outEventCol+1
-        if 'SchedWaveTrig' not in self.actionNamesDict:
-            self.actionNamesDict['SchedWaveTrig']=2
+        if 'SchedWaveTrig' not in self.outputNamesDict:
+            self.outputNamesDict['SchedWaveTrig']=2
         return (inEventCol,outEventCol)
 
 
@@ -239,6 +265,8 @@ class StateMatrix(object):
             if len(onerow):
                 matstr += '%s [%d] \t'%(self.statesIndexToName[index].ljust(16),index)
                 matstr += '\t'.join(str(e) for e in onerow)
+                matstr += '\t|\t%0.2f'%self.statesTimers[index]
+                matstr += '\t%d'%self.statesOutputs[index]
             else:
                 matstr += 'EMPTY ROW'
             matstr += '\n'
@@ -246,16 +274,26 @@ class StateMatrix(object):
 
 
 if __name__ == "__main__":
-    
-    sm = StateMatrix()
-    sm.addScheduleWave(name='mySW',preamble=1.2)
-    sm.addScheduleWave(name='my2SW',sustain=3.3)
-    sm.addState(name='wait_for_cpoke', selftimer=10,
-                transitions={'Cin':'play_target'})
-    sm.addState(name='play_target', selftimer=0.5,
-                transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
-                actions={'Dout':5})
-    print sm
+    CASE = 1
+    if CASE==1:
+        sm = StateMatrix()
+        #elif CASE==100:
+        sm.addState(name='wait_for_cpoke', selftimer=12,
+                    transitions={'Cin':'play_target'})
+        sm.addState(name='play_target', selftimer=0.5,
+                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
+                    outputs={'Dout':rigsettings.DOUT['Center LED']})
+        print sm
+    elif CASE==2:
+        sm = StateMatrix()
+        sm.addScheduleWave(name='mySW',preamble=1.2)
+        sm.addScheduleWave(name='my2SW',sustain=3.3)
+        sm.addState(name='wait_for_cpoke', selftimer=10,
+                    transitions={'Cin':'play_target'})
+        sm.addState(name='play_target', selftimer=0.5,
+                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
+                    outputs={'Dout':5})
+        print sm
     '''
     sm.addState(name='wait_for_apoke', selftimer=0.5,
                 transitions={'Lout':'wait_for_cpoke','Rout':'wait_for_cpoke'})
@@ -265,15 +303,15 @@ if __name__ == "__main__":
     print sm.statesMat
     sm.addState(name='play_target', selftimer=1,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
-                    actions={'Dout':1})
+                    outputs={'Dout':1})
     sm.addState(name='wait_for_apoke', selftimer=1,
                     transitions={'Lin':'reward','Rin':'punish','Tup':'end_of_trial'})
     sm.addState(name='reward', selftimer=1,
                     transitions={'Tup':'end_of_trial'},
-                    actions={'Dout':2})
+                    outputs={'Dout':2})
     sm.addState(name='punish', selftimer=1,
                     transitions={'Tup':'end_of_trial'},
-                    actions={'Dout':4})
+                    outputs={'Dout':4})
     sm.addState(name='end_of_trial')
 
 

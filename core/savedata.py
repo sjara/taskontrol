@@ -18,16 +18,17 @@ __created__ = '2009-12-27'
 
 import os
 import time
-import tables
-from PyQt4 import QtCore 
-from PyQt4 import QtGui 
-from taskontrol.core import messenger
+import h5py
+from PySide import QtCore 
+from PySide import QtGui 
 from taskontrol.settings import rigsettings
 
+#class SaveData(QtGui.QWidget):
 class SaveData(QtGui.QGroupBox):
     '''
     Save data
     '''
+    logMessage = QtCore.Signal(str)
 
     def __init__(self, parent=None):
         super(SaveData, self).__init__(parent)
@@ -50,7 +51,7 @@ class SaveData(QtGui.QGroupBox):
         layout.addWidget(self.checkInteractive, 1,0)
         self.setLayout(layout)
         self.setTitle('Manage Data')
-        #self.connect(self.buttonSaveData,QtCore.SIGNAL('clicked()'),self.fileSave)
+        #self.buttonSaveData.clicked.connect(self.fileSave)
 
 
     def fileSave(self,paramContainer,eventsMatrix):
@@ -69,18 +70,31 @@ class SaveData(QtGui.QGroupBox):
         else:
             fname = defaultFileName
 
-        messenger.Messenger.send('Saving data...')
+        self.logMessage.emit('Saving data...')
 
         # -- Create data file --
         # FIXME: check that file opened correctly
-        h5file = tables.openFile(fname, mode = "w", title = "Behavioral session data")
-        eventsGroup = h5file.createGroup('/', 'events',
-                                         'Events that ocurred during the session')
-        h5file.createArray(eventsGroup, 'rawEvents', eventsMatrix, 'Matrix of raw events')
-        paramContainer.appendToFile(h5file)
+        h5file = h5py.File(fname,'w')
+        eventsGroup = h5file.create_group('/events') # Events that ocurred during the sessio
+        eventsGroup.create_dataset('rawEvents', dtype=float, data=eventsMatrix)
+        paramContainer.append_to_file(h5file)
 
         h5file.close()
 
         paramContainer.printItems()
-        messenger.Messenger.send('Saved data to %s'%fname)
+        self.logMessage.emit('Saved data to %s'%fname)
+        #messenger.Messenger.send('Saved data to %s'%fname)
         #messenger.Messenger.send('Saved data to %s'%fname,sender=__name__)
+
+if __name__ == "__main__":
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    import sys
+    app = QtGui.QApplication(sys.argv)
+    form = QtGui.QDialog()
+    saveData = SaveData()
+    layoutMain = QtGui.QHBoxLayout()
+    layoutMain.addWidget(saveData)
+    form.setLayout(layoutMain)
+    form.show()
+    app.exec_()

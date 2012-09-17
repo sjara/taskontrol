@@ -2,10 +2,19 @@
 
 '''
 Plugin for controlling outputs manually.
+
+
+THIS MODULE NEEDS TO BE CHANGED TO WORK WITH ANY DISPATCHER/CLIENT
+
+
 '''
 
-from PyQt4 import QtCore 
-from PyQt4 import QtGui 
+__version__ = '0.1.1'
+__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__created__ = '2012-08-27'
+
+from PySide import QtCore 
+from PySide import QtGui 
 from taskontrol.settings import rigsettings
 
 BUTTON_COLORS = {'on':'red','off':'black'}
