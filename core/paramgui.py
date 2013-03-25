@@ -5,6 +5,7 @@ Classes for graphical protocol parameters.
 
 Two parameters classes are defined:
 - NumericParam: For a numeric entry and its label.
+- StringParam: For entry of a string.
 - MenuParam: For a menu entry and its label.
 
 TODO:
@@ -59,7 +60,7 @@ class Container(dict):
 
     def print_items(self):
         for key,item in self.iteritems():
-            print '[%s] %s : %s'%(type(item),key,str(item.getValue()))
+            print '[%s] %s : %s'%(type(item),key,str(item.get_value()))
 
     def layout_group(self,groupName):
         '''Create box and layout with all parameters of a given group'''
@@ -75,9 +76,9 @@ class Container(dict):
         '''Append the value of each parameter (to track) for this trial.'''
         for key in self._paramsToKeepHistory:
             try:
-                self.history[key].append(self[key].getValue())
+                self.history[key].append(self[key].get_value())
             except KeyError: # If the key does not exist yet (e.g. first trial)
-                self.history[key] = [self[key].getValue()]
+                self.history[key] = [self[key].get_value()]
 
     def append_to_file(self,h5file):
         dataParent = 'trialData'      # Parameters from each trial
@@ -98,12 +99,12 @@ class Container(dict):
                 # FIXME: not very ObjectOriented to use getType
                 #        the object should be able to save itself
                 if item.get_type()=='menu':
-                    #h5file.createArray(menuItemsGroup, key, item.getItems(),
+                    #h5file.createArray(menuItemsGroup, key, item.get_items(),
                     #                   '%s menu items'%paramLabel)
-                    menuItemsGroup.create_dataset(key, data=item.getItems())
+                    menuItemsGroup.create_dataset(key, data=item.get_items())
                     dset.attrs['Description'] = '%s menu items'%item.get_label()
             else: # -- Store parameters without history (Session parameters) --
-                dset = sessionDataGroup.create_dataset(sessionDataGroup, key, data=item.getValue())
+                dset = sessionDataGroup.create_dataset(sessionDataGroup, key, data=item.get_value())
                 dset.attrs['Description'] = item.get_label()
 
 class ParamGroupLayout(QtGui.QGridLayout):
@@ -146,7 +147,7 @@ class GenericParam(QtGui.QWidget):
 
 class StringParam(GenericParam):
     def __init__(self, labelText='', value='', group=None,
-                 history=True, labelWidth=80, parent=None):
+                 history=False, labelWidth=80, parent=None):
         super(StringParam, self).__init__(labelText, value, group,
                                            history, labelWidth,  parent)
         self._type = 'string'
@@ -159,13 +160,13 @@ class StringParam(GenericParam):
         self.editWidget.setObjectName('ParamEdit')
 
         # -- Define value --
-        self.setValue(value)
+        self.set_value(value)
 
-    def setValue(self,value):
+    def set_value(self,value):
         self._value = value
         self.editWidget.setText(str(value))
 
-    def getValue(self):
+    def get_value(self):
         return str(self.editWidget.text())
 
 
@@ -181,13 +182,13 @@ class NumericParam(GenericParam):
         self.editWidget.setObjectName('ParamEdit')
 
         # -- Define value --
-        self.setValue(value)
+        self.set_value(value)
 
-    def setValue(self,value):
+    def set_value(self,value):
         self._value = value
         self.editWidget.setText(str(value))
 
-    def getValue(self):
+    def get_value(self):
         return float(self.editWidget.text())
 
 
@@ -205,30 +206,30 @@ class MenuParam(GenericParam):
 
         # -- Define value --
         self._items = menuItems
-        self.setValue(value)
+        self.set_value(value)
 
-    def setValue(self,value):
+    def set_value(self,value):
         self._value = value
         self.editWidget.setCurrentIndex(value)
 
-    def setString(self,newstring):
+    def set_string(self,newstring):
         # FIXME: graceful warning if wrong string (ValueError exception)
         value = self._items.index(newstring)
         self._value = value
         self.editWidget.setCurrentIndex(value)
 
-    def getValue(self):
+    def get_value(self):
         return self.editWidget.currentIndex()
 
-    def getString(self):
+    def get_string(self):
         return str(self.editWidget.currentText())
 
-    def getItems(self):
+    def get_items(self):
         return self._items
 
     #def appendToFile(self,h5file,dataParent,itemsParent):
     #    h5file.createArray(dataParent, key, paramContainer.history[key], paramLabel)
-    #    h5file.createArray(menuItemsGroup, key, paramContainer[key].getItems(),
+    #    h5file.createArray(menuItemsGroup, key, paramContainer[key].get_items(),
     #                               '%s menu items'%paramLabel)
 
 
@@ -257,4 +258,4 @@ if __name__ == "__main__":
 
 
     # To get the item (as string) of a menuparam for the last trial in the history:
-    #protocol.params['chooseNumber'].getItems()[protocol.params.history['chooseNumber'][-1]]
+    #protocol.params['chooseNumber'].get_items()[protocol.params.history['chooseNumber'][-1]]
