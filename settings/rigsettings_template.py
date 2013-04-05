@@ -9,34 +9,31 @@ You should make a copy named 'settings.py' for each rig and change the
 appropriate settings on that file.
 '''
 
-__version__ = '0.1.1'
+__version__ = '0.2'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2012-08-28'
+__created__ = '2013-03-18'
 
 
-STATE_MACHINE_TYPE = 'maple_dummy'
+#STATE_MACHINE_TYPE = 'dummy'
+STATE_MACHINE_TYPE = 'arduino_due'
 #SOUND_SERVER = STATE_MACHINE_SERVER
 
 DATA_DIR = '/tmp/'
 
 # -- The following must match the state machine settings --
 INPUTS = {
-    'Cin'  :0,
-    'Cout' :1,
-    'Lin'  :2,
-    'Lout' :3,
-    'Rin'  :4,
-    'Rout' :5,
-    'Tup'  :6,
+    'C'  :0,
+    'L'  :1,
+    'R'  :2,
 }
 
-DOUT = {
-    'Center Water':1,
-    'Center LED'  :2,
-    'Left Water'  :4,
-    'Left LED'    :8,
-    'Right Water' :16,
-    'Right LED'   :32,
-    'Stim 1'      :64,
-    'Stim 2'      :128,
+OUTPUTS = {
+    'CenterWater':0,
+    'CenterLED'  :1,
+    'LeftWater'  :2,
+    'LeftLED'    :3,
+    'RightWater' :4,
+    'RightLED'   :5,
+    'Stim1'      :6,
+    'Stim2'      :7,
 }

@@ -27,27 +27,33 @@ import struct
 SERIAL_PORT_PATH = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
 SERIAL_TIMEOUT = 0.1
+NINPUTS = 8
+NOUTPUTS = 16
 
 # -- COMMANDS --
 opcode = {
-    'RESET'              : 0x01,     #OBSOLETE
     'OK'                 : 0xaa,
-    'CONNECT'            : 0x64,
-    'TEST_CONNECTION'    : 0x65,
-    'GET_SERVER_VERSION' : 0x09,
-    'GET_TIME'           : 0x0a,
-    'GET_INPUTS'         : 0x0c,
-    'FORCE_OUTPUT'       : 0x16,
-    'SET_STATE_MATRIX'   : 0x0d,
-    'RUN'                : 0x0b,
-    'STOP'               : 0x0e,
-    'GET_EVENTS'         : 0x0f,
-    'REPORT_STATE_MATRIX': 0x10,
-    'GET_CURRENT_STATE'  : 0x11,
-    'FORCE_STATE'        : 0x12,
-    'SET_STATE_TIMERS'   : 0x13,
-    'REPORT_STATE_TIMERS': 0x14,
-    'SET_STATE_OUTPUTS'  : 0x15,
+    'RESET'              : 0x01,     #OBSOLETE
+    'CONNECT'            : 0x02,
+    'TEST_CONNECTION'    : 0x03,
+    'SET_SIZES'          : 0x04,
+    'GET_SERVER_VERSION' : 0x05,
+    'GET_TIME'           : 0x06,
+    'GET_INPUTS'         : 0x0e,
+    'FORCE_OUTPUT'       : 0x0f,
+    'SET_STATE_MATRIX'   : 0x10,
+    'RUN'                : 0x11,
+    'STOP'               : 0x12,
+    'GET_EVENTS'         : 0x13,
+    'REPORT_STATE_MATRIX': 0x14,
+    'GET_CURRENT_STATE'  : 0x15,
+    'FORCE_STATE'        : 0x16,
+    'SET_STATE_TIMERS'   : 0x17,
+    'REPORT_STATE_TIMERS': 0x18,
+    'SET_STATE_OUTPUTS'  : 0x19,
+    'SET_EXTRA_TIMERS'   : 0x1a,
+    'SET_EXTRA_TRIGGERS' : 0x1b,
+    'REPORT_EXTRA_TIMERS': 0x1c,
     'ERROR'              : 0xff,
 }
 for k,v in opcode.iteritems():
@@ -56,12 +62,21 @@ for k,v in opcode.iteritems():
 class StateMachineClient(object):
     def __init__(self,connectnow=True):
         '''
+        State machine client for the Arduino Due.
+        '''
+        '''
         # -- Check if there are multiple serial USB ports --
         allSerialPorts = glob.glob(SERIAL_PORT_PATH)
         if len(allSerialPorts)>1:
             raise
         self.port = allSerialPorts[0]
         '''
+        # -- These values will be set by set_sizes() --
+        self.nInputs = 0
+        self.nOutputs = 0
+        self.nExtraTimers = 0
+        self.nActions = 1
+
         self.port = SERIAL_PORT_PATH
         self.ser = None  # To be created on self.connect()
         if connectnow:
@@ -87,8 +102,9 @@ class StateMachineClient(object):
         time.sleep(0.2)  # FIXME: why does it need extra time? 0.1 does not work!
         self.ser.write(opcode['CONNECT'])
         while not fsmReady:
-            fsmReady = (self.ser.read(1)==opcode['OK'])
             print 'Establishing connection...'
+            sys.stdout.flush()
+            fsmReady = (self.ser.read(1)==opcode['OK'])
         self.ser.setTimeout(SERIAL_TIMEOUT)
         print 'Connected!'
         #self.ser.flushOutput()
@@ -100,6 +116,24 @@ class StateMachineClient(object):
         else:
             raise IOError('Connection to state machine was lost.')
             #print 'Connection lost'
+    def error_check(self):
+        status = self.ser.read()
+        if status=='\xff':
+            therest = self.ser.readline()
+            raise Exception('The state machine server sent an error opcode and %s'%therest)
+        elif status!='':
+            therest = self.ser.readline()
+            raise Exception('The state machine server sent: %s%s'%(status,therest))
+    def set_sizes(self,nInputs,nOutputs,nExtraTimers):
+        self.nInputs = nInputs
+        self.nOutputs = nOutputs
+        self.nExtraTimers = nExtraTimers
+        # -- nActions: two per input, one state timer, and extra timers --
+        self.nActions = 2*self.nInputs + 1 + self.nExtraTimers
+        self.ser.write(opcode['SET_SIZES'])
+        self.ser.write(chr(nInputs))
+        self.ser.write(chr(nOutputs))
+        self.ser.write(chr(nExtraTimers))
     def force_output(self,outputIndex,outputValue):
         self.ser.write(opcode['FORCE_OUTPUT']+chr(outputIndex)+chr(outputValue))
     def get_version(self):
@@ -116,22 +150,23 @@ class StateMachineClient(object):
         self.ser.flushInput()  ## WHY
         self.ser.write(opcode['GET_INPUTS'])
         #inputValues = self.ser.readlines()
+        # FIXME: verify that the number of inputs from server matches client
         nInputs = ord(self.ser.read(1))
         inputValuesChr = self.ser.read(nInputs)
         inputValues = [ord(x) for x in inputValuesChr]
         return inputValues
     def get_time(self):
         '''Request server time.
-        Returns: string
+        Returns time in seconds.
         '''
         self.ser.write(opcode['GET_TIME'])
         serverTime = self.ser.readline()
-        return serverTime.strip()
+        return 1e-3*float(serverTime.strip())
     def run(self):
         self.ser.write(opcode['RUN'])
     def stop(self):
         self.ser.write(opcode['STOP'])
-    def get_events(self):
+    def get_events_raw_strings(self):
         '''Request list of events
         Returns: strings (NEEDS MORE DETAIL)
         '''
@@ -141,9 +176,25 @@ class StateMachineClient(object):
         for inde in range(nEvents):
             eventsList.append(self.ser.readline())
         return eventsList
+    def get_events(self):
+        # FIXME: translation of the events strings to a matrix may be slow
+        #        it need to be tested carefully.
+        eventsList = self.get_events_raw_strings()
+        eventsMat = []
+        for oneEvent in eventsList:
+            eventItems = [int(x) for x in oneEvent.split()]
+            eventItems[0] = 1e-3*eventItems[0]
+            eventsMat.append(eventItems)
+        return eventsMat
     def write(self,value):
         self.ser.write(value)
     def set_state_matrix(self,stateMatrix):
+        for onerow in stateMatrix:
+            if len(onerow)!=self.nActions:
+                raise ValueError('The states transition matrix does not have the '+\
+                                 'correct number of columns.\n'+\
+                                 'It should be {0} not {1}'.format(self.nActions,
+                                                                   len(onerow)))
         self.ser.write(opcode['SET_STATE_MATRIX'])
         self.send_matrix(stateMatrix)
     def send_matrix(self,someMatrix):
@@ -158,18 +209,53 @@ class StateMachineClient(object):
                 #print repr(chr(oneItem)) ### DEBUG
                 self.ser.write(chr(oneItem))
     def set_state_timers(self,timerValues):
+        '''
+        Values should be in seconds.
+        '''
         self.ser.write(opcode['SET_STATE_TIMERS'])
+        # FIXME: test if the value is too large
+        for oneval in timerValues:
+            if oneval<0:
+                raise ValueError('Value of timers should be positive.')
+        timerValuesInMillisec = [int(1e3*x) for x in timerValues]
         # Send unsigned long ints (4bytes) little endian
-        for oneTimerValue in timerValues:
+        for oneTimerValue in timerValuesInMillisec:
             packedValue = struct.pack('<L',oneTimerValue)
             self.ser.write(packedValue)
-    def set_state_outputs(self,stateOutputs):
+    def set_extra_timers(self,extraTimersValues):
+        '''
+        Send the values for each extra timer. Values should be in seconds.
+        '''
+        self.ser.write(opcode['SET_EXTRA_TIMERS'])
+        # FIXME: test if the value is too large
+        for oneval in extraTimersValues:
+            if oneval<0:
+                raise ValueError('Value of timers should be positive.')
+        timerValuesInMillisec = [int(1e3*x) for x in extraTimersValues]
+        # Send unsigned long ints (4bytes) little endian
+        for oneTimerValue in timerValuesInMillisec:
+            packedValue = struct.pack('<L',oneTimerValue)
+            self.ser.write(packedValue)
+    def set_extra_triggers(self,stateTriggerEachExtraTimer):
+        '''
+        Send the state that will trigger each extra timer.
+        '''
+        self.ser.write(opcode['SET_EXTRA_TRIGGERS'])
+        for onestate in stateTriggerEachExtraTimer:
+            self.ser.write(chr(onestate))
+    def OLD_set_state_outputs(self,stateOutputs):
         '''Each element of stateOutputs must be one byte.
         A future version may include a 'mask' so that the output
         is not changed when entering that state.'''
         self.ser.write(opcode['SET_STATE_OUTPUTS'])
         for outputsOneState in stateOutputs:
             self.ser.write(outputsOneState)
+    def set_state_outputs(self,stateOutputs):
+        '''stateOutputs is a python array [nStates][nOutputs]
+        a value of -1 means the output will not be changed.
+        '''
+        self.ser.write(opcode['SET_STATE_OUTPUTS'])
+        self.send_matrix(stateOutputs)
     def report_state_matrix(self):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
@@ -184,6 +270,9 @@ class StateMachineClient(object):
         self.ser.write(chr(stateID))        
     def report_state_timers(self):
         self.ser.write(opcode['REPORT_STATE_TIMERS'])
+        return self.ser.readlines()
+    def report_extra_timers(self):
+        self.ser.write(opcode['REPORT_EXTRA_TIMERS'])
         return self.ser.readlines()
     def readlines(self):
         return self.ser.readlines()
@@ -204,18 +293,41 @@ class StateMachineClient(object):
 
 
 if __name__ == "__main__":
-    c = ToyClient()
-    #c.set_output(1,1)
 
-    #import time; time.sleep(0.5)
-    stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
-    c.set_state_matrix(stateMatrix)
-    c.set_state_timers([1000,500])
-    stateOutputs = ['\x00','\xff']
-    c.set_state_outputs(stateOutputs)
-    c.run()
+    CASE = 1
 
-    sys.exit()
+    if CASE==0:
+        c = StateMachineClient()
+        #c.set_output(1,1)
+
+        #import time; time.sleep(0.5)
+        c.set_sizes(3,3,0) # inputs,outputs,extratimers
+        stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
+        c.set_state_matrix(stateMatrix)
+        c.set_state_timers([1, 0.5])
+        #stateOutputs = ['\x00','\xff']
+        stateOutputs = [[1,8,8],[0,8,8]]
+        c.set_state_outputs(stateOutputs)
+
+        c.run()
+
+        sys.exit()
+
+    elif CASE==1:
+        c = StateMachineClient()
+        c.set_sizes(3,3,1) # inputs,outputs,extratimers
+        stateMatrix = [[1,0, 0,0, 0,0, 1, 0] , [0,1, 1,1, 1,1, 0, 1]]
+        c.set_state_matrix(stateMatrix)
+        c.set_state_timers([1, 0.5])
+        stateOutputs = [[1,7,7],[0,7,7]]
+        c.set_state_outputs(stateOutputs)
+
+        #c.run()
+        c.set_extra_timers([1.2])
+        c.set_extra_triggers([1])
+        sys.exit()
+
+
 
     '''
     # -- Test with a large matrix --

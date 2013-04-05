@@ -30,7 +30,11 @@ class StateMachineClient(object):
     def connect(self):
         print 'DUMMY: Connect.'
         pass
-    def set_output(self,output,value):
+    def set_sizes(self,nInputs,nOutputs,nExtraTimers):
+        self.nInputs = nInputs
+        self.nOutputs = nOutputs
+        self.nExtraTimers = nExtraTimers
+    def force_output(self,output,value):
         pass
     def get_version(self):
         pass
@@ -46,7 +50,7 @@ class StateMachineClient(object):
     def get_events(self):
         self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
         self.state = int(not self.state)
-        self.lastEvents = [self.serverTime,1234,self.state]
+        self.lastEvents = [[self.serverTime,1234,self.state]]
         return self.lastEvents
     def write(self,value):
         pass
@@ -60,6 +64,10 @@ class StateMachineClient(object):
         pass
     def set_state_timers(self,timerValues):
         pass
+    def set_extra_timers(self,extraTimersValues):
+        pass
+    def set_extra_triggers(self,stateTriggerEachExtraTimer):
+        pass
     def set_state_outputs(self,stateOutputs):
         pass
     def report_state_matrix(self):
@@ -69,6 +77,8 @@ class StateMachineClient(object):
     def force_state(self,stateID):
         print 'DUMMY: Force state %d.'%stateID
     def report_state_timers(self):
+        pass
+    def report_extra_timers(self):
         pass
     def readlines(self):
         pass

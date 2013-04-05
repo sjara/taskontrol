@@ -18,8 +18,9 @@ mat = [  0,  0,  0,  0,  0,  0,  2  ]
 '''
 
 from taskontrol.settings import rigsettings
+reload(rigsettings)
 
-__version__ = '0.1.0'
+__version__ = '0.2'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2012-09-03'
 
@@ -44,9 +45,9 @@ class StateMatrix(object):
     #def __init__(self,readystate=('ready_next_trial',1)):
     #def __init__(self):
     def __init__(self,readystate='ready_next_trial'):
-        self.statesMat = []
-        self.statesTimers = []
-        self.statesOutputs = []
+        self.stateMatrix = []
+        self.stateTimers = []
+        self.stateOutputs = []
 
         self.statesIndexToName = {}
         self.statesNameToIndex = {}
@@ -58,18 +59,23 @@ class StateMatrix(object):
         self.schedWavesNameToIndex = {}
         self._nextSchedWaveInd = 0
 
-        # FIXME: These should depend on values from smclient
-        # These dictionary is modified if SchedWaves are used.
-        self.eventsDict = rigsettings.INPUTS
+        # This dictionary is modified if ExtraTimers are used.
+        self.inputsDict = rigsettings.INPUTS
+        self.eventsDict = {}
+        for key,val in self.inputsDict.iteritems():
+            self.eventsDict[key+'in'] = 2*val
+            self.eventsDict[key+'out'] = 2*val+1
+        self.eventsDict['Tup'] = len(self.eventsDict)
+
         self.nInputEvents = len(self.eventsDict)
 
-        #self.outputNamesDict = {'Dout':0,'SoundOut':1}
-        #self.nOutputs = 2
+        self.outputsDict = rigsettings.OUTPUTS
+        self.nOutputs = len(rigsettings.OUTPUTS)
 
         #self.readyForNextTrialStateName = readystate[0]
         #self.readyForNextTrialStateInd = readystate[1]
         self.readyForNextTrialStateName = readystate
-        self._initMat()
+        self._init_mat()
 
 
     def _make_default_row(self,stateInd):
@@ -109,7 +115,7 @@ class StateMatrix(object):
     def _force_transition(self,originStateID,destinationStateID):
         '''Set Tup transition from one state to another give state numbers
         instead of state names'''
-        self.statesMat[originStateID][self.eventsDict['Tup']] = destinationStateID
+        self.stateMatrix[originStateID][self.eventsDict['Tup']] = destinationStateID
         
         
     def _update_state_dict(self,stateName,stateInd):
@@ -139,7 +145,8 @@ class StateMatrix(object):
         self._nextSchedWaveInd += 1
         
 
-    def add_state(self,name='',statetimer=VERYLONGTIME,transitions={},outputs={}):
+    def add_state(self,name='',statetimer=VERYLONGTIME,transitions={},
+                  outputsOn=[],outputsOff=[]):
         '''Add state to transition matrix.'''
         
         nSchedWaves = len(self.schedWavesNameToIndex)
@@ -172,19 +179,34 @@ class StateMatrix(object):
                 NewRow[actionColumn] = 2**self.schedWavesNameToIndex[actionValue]
         '''     
 
+
+        ########### FINISH THIS ############
+        # The new way of defining outputs requires a vector of 0,1 or higher
+        # for each state
+
+
         # -- Add row to state transition matrix --
         # FIXME: this way to do it seems very inefficient
-        while len(self.statesMat)<(thisStateInd+1):
-            self.statesMat.append([])
-            self.statesTimers.append([])
-            self.statesOutputs.append([])
-        self.statesMat[thisStateInd] = newRow
-        self.statesTimers[thisStateInd] = statetimer
+        KEEP = 7
+        while len(self.stateMatrix)<(thisStateInd+1):
+            self.stateMatrix.append([])
+            self.stateTimers.append([])
+            self.stateOutputs.append(self.nOutputs*[KEEP])
+        self.stateMatrix[thisStateInd] = newRow
+        self.stateTimers[thisStateInd] = statetimer
+        for oneOutput in outputsOn:
+            outputInd = self.outputsDict[oneOutput]
+            self.stateOutputs[thisStateInd][outputInd] = 1
+        for oneOutput in outputsOff:
+            outputInd = self.outputsDict[oneOutput]
+            self.stateOutputs[thisStateInd][outputInd] = 0
+            
+        '''
         if outputs.has_key('Dout'):
-            self.statesOutputs[thisStateInd] = outputs['Dout']
+            self.stateOutputs[thisStateInd] = outputs['Dout']
         else:
-            self.statesOutputs[thisStateInd] = 0
-
+            self.stateOutputs[thisStateInd] = 0
+        '''
 
     def add_schedule_wave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
         '''Add a Scheduled Wave to this state machine.
@@ -231,7 +253,13 @@ class StateMatrix(object):
 
     def get_matrix(self):
         # FIXME: check if there are orphan states or calls to nowhere
-        return self.statesMat
+        return self.stateMatrix
+
+    def get_outputs(self):
+        return self.stateOutputs
+
+    def get_state_timers(self):
+        return self.stateTimers
 
     def get_sched_waves(self):
         # FIXME: check if there are orphan SW
@@ -260,18 +288,29 @@ class StateMatrix(object):
             revEventsDict[self.eventsDict[key]] = key
         matstr += '\t\t\t'
         matstr += '\t'.join([revEventsDict[k][0:4] for k in sorted(revEventsDict.keys())])
+        matstr += '\t\tTimers\tOutputs'
         matstr += '\n'
-        for (index,onerow) in enumerate(self.statesMat):
+        for (index,onerow) in enumerate(self.stateMatrix):
             if len(onerow):
                 matstr += '%s [%d] \t'%(self.statesIndexToName[index].ljust(16),index)
                 matstr += '\t'.join(str(e) for e in onerow)
-                matstr += '\t|\t%0.2f'%self.statesTimers[index]
-                matstr += '\t%d'%self.statesOutputs[index]
+                matstr += '\t|\t%0.2f'%self.stateTimers[index]
+                matstr += '\t%s'%self._output_as_str(self.stateOutputs[index])
             else:
                 matstr += 'EMPTY ROW'
             matstr += '\n'
         return matstr
-
+    def _output_as_str(self,outputVec):
+        #outputStr = '-'*len(outputVec)
+        outputStr = ''
+        for indo,outputValue in enumerate(outputVec):
+            if outputValue==1:
+                outputStr += '1'
+            elif outputValue==0:
+                outputStr += '0'
+            else:
+                outputStr += '-'
+        return outputStr
 
 if __name__ == "__main__":
     CASE = 1
@@ -279,10 +318,11 @@ if __name__ == "__main__":
         sm = StateMatrix()
         #elif CASE==100:
         sm.add_state(name='wait_for_cpoke', statetimer=12,
-                    transitions={'Cin':'play_target'})
+                    transitions={'Cin':'play_target'},
+                    outputsOff=['CenterLED'])
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
-                    outputs={'Dout':rigsettings.OUTPUTS['Center LED']})
+                    outputsOn=['CenterLED'])
         print sm
     elif CASE==2:
         sm = StateMatrix()
@@ -300,7 +340,7 @@ if __name__ == "__main__":
 
     sm.add_state(name='wait_for_cpoke', statetimer=10,
                     transitions={'Cin':'play_target'})
-    print sm.statesMat
+    print sm.stateMatrix
     sm.add_state(name='play_target', statetimer=1,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
                     outputs={'Dout':1})
