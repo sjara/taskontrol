@@ -2,27 +2,36 @@
 
 '''
 Run a simple state matrix that alternates between two states.
-A state change happens either from a 2 sec timer or from the center port in.
+A state change happens either from a 2 sec timer or from the first
+two inputs (center port in, left port in).
 '''
 
 __author__ = 'Santiago Jaramillo'
-__created__ = '2010-12-11'
+__created__ = '2013-03-17'
 
 from taskontrol.core import smclient
-import numpy as np
 
-testSM = smclient.StateMachineClient('localhost')
-testSM.VERBOSE = True
+nInputs = 3  # Inputs: C,L,R
+nOutputs = 3 # Outputs
+nExtraTimers = 0  # No extra timers, just the one timer for each state
 
-testSM.initialize()
+#                Ci  Co  Li  Lo  Ri  Ro  Tup
+stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1 ] ,
+                [ 2,  1,  1,  1,  1,  1,  2 ] ,
+                [ 2,  2,  1,  2,  2,  2,  1 ] ]
 
-#        Ci  Co  Li  Lo  Ri  Ro  Tout  t   CONTo  Sound
-mat = [ [ 0,  0,  0,  0,  0,  0,  1,  0.1,   0,     0 ] ,
-        [ 2,  1,  1,  1,  1,  1,  2,  4.0,  2**1,   0 ] ,
-        [ 1,  2,  2,  2,  2,  2,  1,  4.0,  2**2,   0 ] ]
+#stateOutputs = ['\x00','\xff','\x00']
+stateOutputs = [[0,0,0],[1,1,1],[0,0,0]]
+stateTimers  = [  0.1,    0.8 ,    1.2  ]
 
-mat = np.array(mat)
-testSM.setStateMatrix(mat)
-testSM.run()
 
-print('To stop type: testSM.halt()')
+sm = smclient.StateMachineClient()
+
+sm.set_sizes(nInputs,nOutputs,nExtraTimers)
+sm.set_state_matrix(stateMatrix)
+sm.set_state_outputs(stateOutputs)
+sm.set_state_timers(stateTimers)
+sm.run()
+
+print('To stop state transitions, type: sm.stop()')
+print('To close the client, type: sm.close()')

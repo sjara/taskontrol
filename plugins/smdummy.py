@@ -50,7 +50,7 @@ class StateMachineClient(object):
     def get_events(self):
         self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
         self.state = int(not self.state)
-        self.lastEvents = [[self.serverTime,1234,self.state]]
+        self.lastEvents = [[self.serverTime,-999,self.state]]
         return self.lastEvents
     def write(self,value):
         pass

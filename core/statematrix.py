@@ -6,7 +6,7 @@ Assemble a state transition matrix as well as timers and outputs.
 Input format:
 sma.add_state(name='STATENAME', statetimer=3,
              transitions={'EVENT':NEXTSTATE},
-             outputs={'OUTPUT':VALUE})
+             outputsOn=[], outputsOff=[])
 
 
   OUTPUT WILL CHANGE TO SEPARATE TRANSITION MATRIX AND TIMERS
@@ -19,6 +19,7 @@ mat = [  0,  0,  0,  0,  0,  0,  2  ]
 
 from taskontrol.settings import rigsettings
 reload(rigsettings)
+from taskontrol.core import extrafuncs
 
 __version__ = '0.2'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
@@ -27,7 +28,7 @@ __created__ = '2012-09-03'
 
 # FIXME: what should be the Statetimer period?
 VERYLONGTIME  = 100    # Time period to stay in a state if nothing happens
-VERYSHORTTIME = 0.0001 # Time period before jumping to next state "immediately"
+#VERYSHORTTIME = 0.0001 # Time period before jumping to next state "immediately" OBSOLETE, use 0.
 
 class StateMatrix(object):
     '''
@@ -54,10 +55,11 @@ class StateMatrix(object):
 
         self._nextStateInd = 0
 
-        self.schedWavesMat = []
-        self.schedWavesIndexToName = {}
-        self.schedWavesNameToIndex = {}
-        self._nextSchedWaveInd = 0
+        self.extraTimersIndexToName = {}
+        self.extraTimersNameToIndex = {}
+        self._nextExtraTimerInd = 0
+        self.extraTimersDuration = []
+        self.extraTimersTriggers = []
 
         # This dictionary is modified if ExtraTimers are used.
         self.inputsDict = rigsettings.INPUTS
@@ -77,38 +79,28 @@ class StateMatrix(object):
         self.readyForNextTrialStateName = readystate
         self._init_mat()
 
+    def append_to_file(self,h5file,currentTrial):
+        '''Append states definitions to open HDF5 file
+        It ignores currentTrial'''
+        statematGroup = h5file.create_group('/stateMatrix')
+        extrafuncs.append_dict_to_HDF5(statematGroup,'eventsNames',self.eventsDict)
+        extrafuncs.append_dict_to_HDF5(statematGroup,'outputsNames',self.outputsDict)
+        extrafuncs.append_dict_to_HDF5(statematGroup,'statesNames',self.statesNameToIndex)
+        extrafuncs.append_dict_to_HDF5(statematGroup,'extraTimersNames',self.extraTimersNameToIndex)
 
     def _make_default_row(self,stateInd):
         '''Create a transition row for a state.'''
-        #nSchedWaves = len(self.schedWavesNameToIndex)
-        #newrow = (self.nInputEvents+2*nSchedWaves)*[stateInd]    # Input events
-        newrow = (self.nInputEvents)*[stateInd]    # Input events
-        #newrow.extend([stateInd, VERYLONGTIME])  # Self timer
-        #newrow.extend(self.nOutputs*[0])   # Outputs
-        #if nSchedWaves>0:
-        #    newrow.extend([0])   # One more column for SchedWaves
+        nExtraTimers = len(self.extraTimersNameToIndex)
+        newrow = (self.nInputEvents+nExtraTimers)*[stateInd]    # Input events
         return newrow
 
 
     def _init_mat(self):
-        '''Add row for state-zero and ready-next-trial jump state.
-
-        A default state-zero is necessary because as of Dec 2010
-        schedule waves cannot be triggered from the zeroth state. This
-        was found empirically, and it may be a bug in the server.
         '''
+        Initialize state transition matrix with a row for the readystate.
         '''
-        self._update_state_dict('_STATEZERO',0)
-        self._nextStateInd = 1
-        if self._nextStateInd==self.readyForNextTrialStateInd:
-            self._nextStateInd += 1  # Skip readyForNextTrialState
-        '''
-        #self.add_state(name='_STATEZERO',statetimer=VERYSHORTTIME,
-        #              transitions={'Tup':self._nextStateInd})
-        #self.add_state(name='STATEZERO',statetimer=VERYLONGTIME)
-        #self._force_transition(self.statesNameToIndex['_STATEZERO'],self._nextStateInd)
-        #self._update_state_dict(self.readyForNextTrialStateName,
-        #                      self.readyForNextTrialStateInd)
+        if len(self.stateMatrix)>1:
+            raise Exception('You need to create all extra timers before creating any state.')
         self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME)
 
 
@@ -124,10 +116,10 @@ class StateMatrix(object):
         self.statesIndexToName[stateInd] = stateName
 
 
-    #def _updateSchedWaveDict(self,stateName,stateInd):
+    #def _updateExtraTimerDict(self,stateName,stateInd):
     #    '''Add name and index of a schedule wave to the dicts keeping the waves list.'''
-    #    self.schedWavesNameToIndex[schedWaveName] = self._nextSchedWaveInd
-    #    self.schedWavesIndexToName[self._nextSchedWaveInd] = schedWaveName
+    #    self.extraTimersNameToIndex[schedWaveName] = self._nextExtraTimerInd
+    #    self.extraTimersIndexToName[self._nextExtraTimerInd] = schedWaveName
 
 
     def _append_state_to_list(self,stateName):
@@ -138,18 +130,18 @@ class StateMatrix(object):
         self._nextStateInd += 1
         
 
-    def _append_sched_wave_to_list(self,schedWaveName):
-        '''Add schedule wave to the list of available schedule waves.'''        
-        self.schedWavesNameToIndex[schedWaveName] = self._nextSchedWaveInd
-        self.schedWavesIndexToName[self._nextSchedWaveInd] = schedWaveName
-        self._nextSchedWaveInd += 1
+    def _append_extratimer_to_list(self,extraTimerName):
+        '''Add schedule wave to the list of available schedule waves.'''
+        self.extraTimersNameToIndex[extraTimerName] = self._nextExtraTimerInd
+        self.extraTimersIndexToName[self._nextExtraTimerInd] = extraTimerName
+        self._nextExtraTimerInd += 1
         
 
-    def add_state(self,name='',statetimer=VERYLONGTIME,transitions={},
-                  outputsOn=[],outputsOff=[]):
+    def add_state(self, name='', statetimer=VERYLONGTIME, transitions={},
+                  outputsOn=[], outputsOff=[], trigger=[]):
         '''Add state to transition matrix.'''
         
-        nSchedWaves = len(self.schedWavesNameToIndex)
+        nExtraTimers = len(self.extraTimersNameToIndex)
 
         # -- Find index for this state (create if necessary) --
         if name not in self.statesNameToIndex:
@@ -158,32 +150,13 @@ class StateMatrix(object):
 
         # -- Add target states from specified events --
         newRow = self._make_default_row(thisStateInd)
-        colTimer = self.nInputEvents+2*nSchedWaves+1
+        colTimer = self.nInputEvents+2*nExtraTimers+1
         #NewRow[colTimer] = statetimer
         for (eventName,targetStateName) in transitions.iteritems():
             if targetStateName not in self.statesNameToIndex:
                 self._append_state_to_list(targetStateName)
             targetStateInd = self.statesNameToIndex[targetStateName]
             newRow[self.eventsDict[eventName]] = targetStateInd
-
-        # -- Add output actions --
-        '''
-        for (actionName,actionValue) in actions.iteritems():
-            actionColumn = self.actionNamesDict[actionName]+self.nInputEvents+2*nSchedWaves+2
-            if actionName=='Dout':
-                NewRow[actionColumn] = actionValue
-            elif actionName=='SoundOut':
-                #NewRow[actionColumn] = actionValue
-                print 'CODE FOR SOUND OUTPUT NOT WRITTEN YET (statematrix.addstate)'
-            elif actionName=='SchedWaveTrig':
-                NewRow[actionColumn] = 2**self.schedWavesNameToIndex[actionValue]
-        '''     
-
-
-        ########### FINISH THIS ############
-        # The new way of defining outputs requires a vector of 0,1 or higher
-        # for each state
-
 
         # -- Add row to state transition matrix --
         # FIXME: this way to do it seems very inefficient
@@ -200,22 +173,37 @@ class StateMatrix(object):
         for oneOutput in outputsOff:
             outputInd = self.outputsDict[oneOutput]
             self.stateOutputs[thisStateInd][outputInd] = 0
-            
-        '''
-        if outputs.has_key('Dout'):
-            self.stateOutputs[thisStateInd] = outputs['Dout']
-        else:
-            self.stateOutputs[thisStateInd] = 0
-        '''
 
-    def add_schedule_wave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
+        # -- Add this state to the list of triggers for extra timers --
+        for oneExtraTimer in trigger:
+            extraTimerInd = self.extraTimersNameToIndex[oneExtraTimer]
+            self.extraTimersTriggers[extraTimerInd] = thisStateInd
+        pass
+    
+    
+    def add_extratimer(self, name='', duration=0):
+        '''
+        Add an extra timer that will be trigger when entering a defined state,
+        but can continue after state transitions.
+        '''
+        if name not in self.extraTimersNameToIndex:
+            self._append_extratimer_to_list(name)
+        else:
+            raise Exception('Extra timer ({0}) has already been defined.'.format(name))
+        extraTimerEventCol = self.nInputEvents + len(self.extraTimersNameToIndex)-1
+        self.eventsDict['%s_Up'%name] = extraTimerEventCol
+        self._init_mat() # Initialize again with different number of columns
+        self.extraTimersDuration.append(duration)
+        self.extraTimersTriggers.append(None) # Will be filled by add_state
+
+    def OLD_add_schedule_wave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
         '''Add a Scheduled Wave to this state machine.
 
         Example:
           add_schedule_wave(self, name='mySW',preamble=1.2)
           self.sm.add_state(name='first_state', statetimer=100,
                            transitions={'Cin':'second_state'},
-                           actions={'Dout':LeftLED, 'SchedWaveTrig':'mySW'})
+                           actions={'Dout':LeftLED, 'ExtraTimerTrig':'mySW'})
           self.sm.add_state(name='second_state', statetimer=100,
                            transitions={'mySW_In':'first_state'})
 
@@ -227,32 +215,35 @@ class StateMatrix(object):
         '''
         print 'NOT IMPLEMENTED YET'
         return
-        # -- Find index for this SW (create if necessary) --
-        if name not in self.schedWavesNameToIndex:
-            self._append_schedwave_to_list(name)
-        swID = self.schedWavesNameToIndex[name]
-        (inEventCol,outEventCol) = self._update_events_dict(name)
-        self.schedWavesMat.append([swID, inEventCol, outEventCol, DIOline,
-                                   soundTrig, preamble, sustain, refraction])
-        self._init_mat() # Initialize again with different number of columns
 
 
-    def _update_events_dict(self,name):
+    def OLD_update_events_dict(self,name):
+
+        ######### TEST THIS ########
+
         '''Add entries to the events dictionary according to the names of
-        scheduled waves.'''
-        # FIXME: the length of schedWavesNameToIndex may differ from swID+1
-        inEventCol = 2*(len(self.schedWavesNameToIndex)-1) + self.nInputEvents
-        outEventCol = inEventCol + 1
-        self.eventsDict['%s_In'%name] = inEventCol
-        self.eventsDict['%s_Out'%name] = outEventCol
-        self.eventsDict['Tup'] = outEventCol+1
-        if 'SchedWaveTrig' not in self.outputNamesDict:
-            self.outputNamesDict['SchedWaveTrig']=2
-        return (inEventCol,outEventCol)
+        extra timers.
+        OBSOLETE: see instead code in add_extratimer
+        '''
+        # FIXME: the length of extraTimersNameToIndex may differ from swID+1 ???
+        extraTimerEventCol = self.nInputEvents + len(self.extraTimersNameToIndex)
+        self.eventsDict['%s_Up'%name] = extraTimerEventCol
+        
+        ###outEventCol = inEventCol + 1
+        #self.eventsDict['%s_In'%name] = inEventCol
+        #self.eventsDict['%s_Out'%name] = outEventCol
+        #self.eventsDict['Tup'] = outEventCol+1
+        #if 'ExtraTimerTrig' not in self.outputNamesDict:
+        #    self.outputNamesDict['ExtraTimerTrig']=2
+        #return (inEventCol,outEventCol)
 
 
     def get_matrix(self):
-        # FIXME: check if there are orphan states or calls to nowhere
+        # -- Check if there are orphan states or calls to nowhere --
+        maxStateIDdefined = len(self.stateMatrix)-1
+        for (stateName,stateID) in self.statesNameToIndex.iteritems():
+            if (stateID>maxStateIDdefined) or not len(self.stateMatrix[stateID]):
+                raise ValueError('State "{0}" was not defined.'.format(stateName))
         return self.stateMatrix
 
     def get_outputs(self):
@@ -263,7 +254,7 @@ class StateMatrix(object):
 
     def get_sched_waves(self):
         # FIXME: check if there are orphan SW
-        return self.schedWavesMat
+        return self.extraTimersMat
 
 
     def get_states_dict(self,order='NameToIndex'):
@@ -313,7 +304,7 @@ class StateMatrix(object):
         return outputStr
 
 if __name__ == "__main__":
-    CASE = 1
+    CASE = 4
     if CASE==1:
         sm = StateMatrix()
         #elif CASE==100:
@@ -334,6 +325,25 @@ if __name__ == "__main__":
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
                     outputs={'Dout':5})
         print sm
+    elif CASE==3:
+        sm = StateMatrix()
+        sm.add_extratimer('mytimer', duration=0.6)
+        sm.add_extratimer('secondtimer', duration=0.3)
+        sm.add_state(name='wait_for_cpoke', statetimer=12,
+                    transitions={'Cin':'play_target', 'mytimer_Up':'third_state'},
+                    outputsOff=['CenterLED'],  trigger=['mytimer'])
+        print sm
+    elif CASE==4:
+        sm = StateMatrix()
+        sm.add_state(name='wait_for_cpoke', statetimer=12,
+                    transitions={'Cin':'play_target','Tup':'play_target'},
+                    outputsOff=['CenterLED'])
+        sm.add_state(name='play_target', statetimer=0.5,
+                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
+                    outputsOn=['CenterLED'])
+        print sm
+        sm.get_matrix()
+       
     '''
     sm.add_state(name='wait_for_apoke', statetimer=0.5,
                 transitions={'Lout':'wait_for_cpoke','Rout':'wait_for_cpoke'})

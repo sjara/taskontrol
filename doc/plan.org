@@ -2,84 +2,70 @@
 #+STARTUP: odd
 #+STARTUP: showall
 
-* To do (new version)
-*** TODO Dummy client (plugins/smdummy)
-
-
-* To do next:
-*** TODO Module for creating generic sounds (tones, noise, AM, FM, etc)
-*** TODO Graphical interface (detachable) for setting sound parameters.
+* To do soon:
+*** DONE Save results and parameters on the same location 'root/trialData'
+*** TODO Disassemble events and extract choice, times, etc.
+*** TODO StateMatrix:
+***** TODO The objects should be created only once per paradigm
+***** TODO On each trial, it once should 'reset-trasitions', and redefine them
+      This way the list of states is unique (valid for all trials)
+***** TODO Is a state exists, use it and update its transitions
+*** DONE Add extra timers to statematrix.py
+*** DONE Connect run/stop signals to messenger (example007)
+*** DONE Load data saved by SaveData. See examples/test002_readdata.py
+*** TODO Make a protocol that uses extra timers with statematrix.py
 *** TODO Check doc string on each method of core (start with dispatcher)
+*** TODO statematrix.py : Check if there are orphan states.
+*** TODO SaveData:
+***** DONE Avoid error when saving before RUN
+***** DONE Fix interactive saving
+***** DONE Close file if there is an error while saving to it
+***** TODO Save rawEvents as one array of times and one of integer transitions
+*** TODO savedata.SaveData.to_file() should not have a parameter of type paramgui.Container
+    because it is defined in another module and I should avoid dependencies.
+
+* MINIPROJECT:
+*** TODO Separate rawEvents into times and transitions.
+*** Data comes to dispatcher as [prevstate time nextstate]
+*** Should save as [time] and [prevstate, nextstate]
+*** protocol.save_to_file() calls
+    self.saveData.to_file(self.params,self.dispatcherModel.eventsMat)
+
+* To do later:
 *** TODO Add test cases for each module/method
 *** TODO Design water reward module.
 *** TODO Write protocol for calibration water.
-*** TODO statematrix.py : Check if there are orphan states.
-*** TODO Close file if there is an error while saving to it
+*** TODO Make specific exceptions when needed.
+*** TODO Make an emulator (in addition to the dummy)
+*** TODO SaveData.to_file takes very specific inputs (like a paramgui.Container)
+
+* To do (extra plugins):
 *** TODO Fix eventsplot [2/3]
 ***** DONE Color disappearing earlier that it should
 ***** TODO Plot events, not just states
 ***** DONE setStatesColor, use state names
-*** DONE Fix layout of params, maybe use QFormLayout
-*** DONE Column layout
-*** DONE Save session parameters (experimenter ...) call it SessionInfo
-*** DONE Organize module in subfolders (core, plugins, doc, test,...)
-*** DONE Create AddScheduleWaves method
-*** DONE Example protocol organized by trials (simplest use dispatcher).
-*** DONE Test what happens on each type of error (syntax, logic, ...).
-*** DONE Create module for setting up layout given groups
-
-
-* TASKontrol
-*** SMclient/RTLSMclient
-***** TODO [#C] GetStateProgram() :EMBEDDED_C:
-***** TODO [#C] SetStateProgram() :EMBEDDED_C:
-***** TODO SetScheduledWavesAO()
-***** TODO [#C] StartDAQ()
-***** TODO [#C] GetDAQScans()
-***** DONE [#C] StopDAQ()
-***** TODO [#C] RegisterEventsCallback()
-***** TODO [#C] StopEventsCallback()
-***** TODO GetAIMode()
-***** TODO SetAIMode()
-***** TODO SetStateProgram(), GetStateProgram()
-***** DONE SetStateMatrix() [3/3]
-******* DONE sendmatrix() which uses socket.socket.send()
-******* DONE basic matrix
-******* DONE with schedule waves
-***** DONE GetStateMachine()
-***** DONE SetStateMachine()
-***** DONE GetOutputRouting()
-***** DONE SetOutputRouting()
-***** DONE SetScheduledWavesDIO()
-      It needs to be changed to use numpy arrays.
-***** DONE GetEvents() (new and old versions)
-***** DONE GetTime()
-***** DONE GetTimeEventsAndState()
-***** DONE ForceState() and similar ones
-      I will not implement any other besides the generic ForceState().
-*** SoundClient
-***** TODO Test that stopping sounds works.
-*** Solo-like graphical module
-*** Dispatcher-like module
-***** Receive time, states and events.
-*** EventsPlot
-***** TODO Create all fill on init, and update by changing xvalues.
-***** TODO Use blit()
-*** TODO If a parameter is modified before running the protocol,
-    the state matrix should be set accordingly
-*** TODO The first trial should contain valid data.
-
-* Improvements
-*** DONE Use isinstance(obj, int) instead of comparing types
-*** TODO Do not compare with == (singleton), use 'is'
-*** TODO Don't compare boolean values to True or False using ==
-*** DONE Use .join() instead of +=
-*** TODO Be explicit about which exception is catched
-*** DONE endswith() instead of slicing string
-*** TODO Use code-testing: :CODE_TESTING:
+*** TODO Module for creating generic sounds (tones, noise, AM, FM, etc)
+*** TODO Graphical interface (detachable) for setting sound parameters.
 
 
 * Bugs and fixes:
+*** TODO What happens if Dispatcher.timeout() gets called too often?
+    Should I stop the calls to timeout while processing things inside it?
+*** TODO When importing core modules from core modules, should I do it absolute or
+    relative (from taskontrol.core import xxx, or just import xxx)
+*** TODO Check the way paramgui.MenuItems are saved. Maybe use append_dict_to_HDF5
+    instead of attributes.
+*** TODO On sidesplot, the graph jumps (changes slightly the x axes) after the first
+    trial. It must be something weird about pyqtgraph.
+*** TODO When saving a file that existed before, h5py seems to load information from the 
+    old file not the truncated version. SOLUTION: maybe the file was still open in ipython
+*** TODO The rawEvents could be saved as one matrix [eventTime eventCode nextState]
+    or as three vectors (float, int, int). The latter option will make file smaller (and
+    maybe faster), but more cumbersome to save/load.
+*** TODO For default 2-AFC paradigm:
+        # FIXME: There is an alternative way with states 'RewardLeft' 'RewardRight'
+        ###### FIXME: you should define the states only once, but define transitions
+        ############# for each trial. That way you ensure the same statesDict every time.
 *** TODO it looks like sched waves cannot be triggered on State 0.
 *** TODO if the time from State 0 to another state is zero, it never moves.
 *** TODO currentTrial is sent by signal to startNewTrial(), but can also be
@@ -156,6 +142,15 @@
     middle of something (but only when it reaches a special state).
     
 
+* Python tips and code improvements:
+*** DONE Use isinstance(obj, int) instead of comparing types
+*** TODO Do not compare with == (singleton), use 'is'
+*** TODO Don't compare boolean values to True or False using ==
+*** DONE Use .join() instead of +=
+*** TODO Be explicit about which exception is catched
+*** DONE endswith() instead of slicing string
+*** TODO Use code-testing: :CODE_TESTING:
+
 * Notes on developing in python:
 *** Python style
 ***** Style guide: http://www.python.org/dev/peps/pep-0008/
@@ -202,6 +197,11 @@
 *** If using QtCore.Signal(), it has to be placed before the constructor (__init__)
     http://stackoverflow.com/questions/2970312/pyqt4-qtcore-pyqtsignal-object-has-no-attribute-connect
 
+* pyqtgraph:
+*** This is one possibility for efficient plots in the main paradigm window.
+    http://www.pyqtgraph.org/
+*** It requires scipy.
+*** 
 
 * Links and tips on tools:
 *** Git:
@@ -314,3 +314,13 @@
     Check for orphan states
 
 
+* Arduino (Ubuntu):
+*** http://arduino.cc/en/main/software
+*** Download, decompress, and place in some folder (e.g., /opt/)
+*** Run /opt/arduino-1.5.2/arduino
+*** Select Tools>Board>ArduinoDue(prog)
+*** Add yourself to the dialout group
+    sudo usermod -aG dialout <username>
+    (you need to re-login for it to take effect)
+*** Select Tools>SerialPort>/dev/ttyACM0
+*** Code is in ~/src/arduino/statemachine

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Classes for graphical protocol parameters.
+Classes for graphical paradigm parameters.
 
 Two parameters classes are defined:
 - NumericParam: For a numeric entry and its label.
@@ -80,21 +80,26 @@ class Container(dict):
             except KeyError: # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [self[key].get_value()]
 
-    def append_to_file(self,h5file):
-        dataParent = 'trialData'      # Parameters from each trial
-        itemsParent = 'menuItems'     # Items in menu parameters
+    def append_to_file(self, h5file,currentTrial):
+        '''Append parameters' history to an HDF5 file.
+        It truncates data to the trial before currentTrial '''
+        dataParent = 'resultsData'      # Parameters from each trial
+        itemsParent = 'resultsLabels'     # Items in menu parameters
         sessionParent = 'sessionData' # Parameters for the whole session
         descriptionAttr = 'Description'
         # FIXME: the contents of description should not be the label, but the
         #        description of the parameter (including its units)
-        trialDataGroup = h5file.create_group(dataParent)
-        menuItemsGroup = h5file.create_group(itemsParent)
-        sessionDataGroup = h5file.create_group(sessionParent)
+        trialDataGroup = h5file.require_group(dataParent)
+        menuItemsGroup = h5file.require_group(itemsParent)
+        sessionDataGroup = h5file.require_group(sessionParent)
         for key,item in self.iteritems():
             # -- Store parameters with history --
             if item.history_enabled():
                 #h5file.createDataset(trialDataGroup, key, self.history[key], paramLabel)
-                dset = trialDataGroup.create_dataset(key, data=self.history[key])
+                if key not in self.history:
+                    raise ValueError('No history was recorded for "{0}". '.format(key) +\
+                           'Did you use paramgui.Container.updateHistory() correctly?')
+                dset = trialDataGroup.create_dataset(key, data=self.history[key][:currentTrial])
                 dset.attrs['Description'] = item.get_label()
                 # FIXME: not very ObjectOriented to use getType
                 #        the object should be able to save itself
@@ -104,7 +109,12 @@ class Container(dict):
                     menuItemsGroup.create_dataset(key, data=item.get_items())
                     dset.attrs['Description'] = '%s menu items'%item.get_label()
             else: # -- Store parameters without history (Session parameters) --
-                dset = sessionDataGroup.create_dataset(sessionDataGroup, key, data=item.get_value())
+                if item.get_type()=='string':
+                    print('WARNING! saving string parameters is not implemented yet.')
+                    #str_type = h5py.new_vlen(str) ### FIXME: requires h5py
+                    #dset = sessionDataGroup.create_dataset(sessionDataGroup, key, dtype=str_type)
+                else:
+                    dset = sessionDataGroup.create_dataset(sessionDataGroup, key, data=item.get_value())
                 dset.attrs['Description'] = item.get_label()
 
 class ParamGroupLayout(QtGui.QGridLayout):

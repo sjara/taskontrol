@@ -16,6 +16,7 @@ __created__ = '2013-03-18'
 
 #STATE_MACHINE_TYPE = 'dummy'
 STATE_MACHINE_TYPE = 'arduino_due'
+
 #SOUND_SERVER = STATE_MACHINE_SERVER
 
 DATA_DIR = '/tmp/'

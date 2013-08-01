@@ -14,13 +14,13 @@ The steps necessary to get started on any operating system are as follows :
 - Test your system with one of the example protocols.
 
 
-===== Installation steps for Ubuntu 10.04 =====
+===== Installation steps for Ubuntu 12.04 =====
 
 * Before starting you may need to update the list of packages:
   sudo apt-get update
 
 * Install dependencies:
-  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib python-tables
+  sudo apt-get install git-core ipython python-pyside python-numpy python-matplotlib python-h5py
 
 * Create and go to the directory where you want the code:
   mkdir ~/src
@@ -32,22 +32,36 @@ The steps necessary to get started on any operating system are as follows :
 * Define the settings for this rig:
   cd ~/src/taskontrol/settings/
   cp rigsettings_template.py rigsettings.py
-  [edit rigsettings.py to match your settings, e.g. the IP address of the server]
+  [edit rigsettings.py to match your settings, e.g. STATE_MACHINE_TYPE]
 
 * Add directory to python path:
   export PYTHONPATH=$PYTHONPATH:~/src
   (this only works for the current terminal, edit ~/.bashrc
    if you want the path change to be permanent)
 
+* If using an arduino as server, you need to have access to the serial port:
+  - Add yourself to the dialout group:
+    sudo usermod -aG dialout <username>
+  - You need to re-login for this to take effect.
+
 * Test the system:
-  cd ~/src/taskontrol/examples/
-  python example003.py
-  [you should see
+  - Set the appropriate value for STATE_MACHINE_TYPE in
+    ~/src/taskontrol/settings/rigsettings.py
+  - In a terminal, go to the examples directory:
+    cd ~/src/taskontrol/examples/
+  - Run a simple example:
+    python example003.py
+    [you should see a small window with a 'run' button]
+
 
 
 ===== TROUBLESHOOTING: =====
 
 For each error (E) we describe a probable cause (C) and solution (S):
+
+E: System only shows "Waiting for Arduino to be ready..." and never connects:
+C: You have no access to the serial port, or the arduino is not available (unplugged).
+S: See above for how to add yourself to the 'dialout' group.
 
 E: 'ImportError: No module named PyQt4'
 C: The necessary modules (in this case PyQt4) have not been installed correctly.
@@ -76,5 +90,6 @@ S: Disable the firewall (iptables) on the server.
   matplotlib. Make sure you have a newer version.
 
 
-
+=== OLD NOTES ===
+  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib python-tables
 

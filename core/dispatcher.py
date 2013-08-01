@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 '''
-Dispatcher for behavioral protocols.
+Dispatcher for behavioral paradigm.
 
-It is meant to be the interface between a trial-structured protocol
+It is meant to be the interface between a trial-structured paradigm
 and the state machine. It will for example halt the state machine
 until the next trial has been prepared and ready to start.
 
@@ -40,20 +40,22 @@ import numpy as np
 class Dispatcher(QtCore.QObject):
     '''
     Dispatcher is the trial controller. It is an interface between a
-    trial-structured protocol and the state machine.
+    trial-structured paradigm and the state machine.
 
     It emits the following signals:
     - 'timerTic'        : at every tic of the dispatcher timer.
                           It sends: serverTime,currentState,eventCount,currentTrial
     - 'prepareNextTrial': whenever one of the prepare-next-trial-states is reached.
                           It sends: 'nextTrial'
+
+    REMOVED:
     - 'startNewTrial'   : whenever READY TO START TRIAL is sent to state machine.
                           It sends: 'currentTrial'
     '''
     # -- Create signals (they need to be before constructor) --
     timerTic = QtCore.Signal(float,int,int,int)
     prepareNextTrial = QtCore.Signal(int)
-    startNewTrial = QtCore.Signal(int)
+    startNewTrial = QtCore.Signal(int) ### FIXME: is this really necessary?
     logMessage = QtCore.Signal(str)
 
     def __init__(self, parent=None,serverType='dummy', connectnow=True, interval=0.3,
@@ -86,12 +88,13 @@ class Dispatcher(QtCore.QObject):
         self.serverTime = 0.0   # Time on the state machine
         self.currentState = 0   # State of the state machine
         self.eventCount = 0     # Number of events so far
-        self.currentTrial = 0   # Current trial
+        self.currentTrial = -1   # Current trial (first trials will be 0)
         #self.lastEvents = np.array([])   # Matrix with info about last events
         #self.eventsMat = np.empty((0,3)) # Matrix with info about all events
         self.lastEvents = []   # Matrix with info about last events
         self.eventsMat = []    # Matrix with info about all events
         self._stateMatrixStatus = False # To indicate if a matrix has been set
+        self.indexLastEventEachTrial = [] # index of last event for each trial
 
         # -- Create timer --
         self.interval = interval # Polling interval (sec)
@@ -128,7 +131,9 @@ class Dispatcher(QtCore.QObject):
         else:
             print 'Call to setStateMatrix, but the client is not connected.\n'
 
-    def setPrepareNextTrialStates(self,prepareNextTrialStatesAsStrings,statesDict):
+    def set_prepare_next_trial_states(self,prepareNextTrialStatesAsStrings,statesDict):
+        '''Defines the list of states from which the state machine returns control
+        to the client to prepare the next trial.'''
         if not isinstance(prepareNextTrialStatesAsStrings,list):
             raise TypeError('prepareNextTrialStatesAsStrings must be a list of strings')
         for oneState in prepareNextTrialStatesAsStrings:
@@ -138,10 +143,10 @@ class Dispatcher(QtCore.QObject):
         '''
         Tell the state machine that it can jump to state 0 and start new trial.
         '''
-        self.statemachine.force_state(1)
         self.currentTrial += 1
+        self.statemachine.force_state(1)
         self.preparingNextTrial = False
-        self.startNewTrial.emit(self.currentTrial)
+        ### self.startNewTrial.emit(self.currentTrial) # FIXME: is this really necessary?
 
     def timeout(self):
         self.query_state_machine()
@@ -154,9 +159,10 @@ class Dispatcher(QtCore.QObject):
         if self.currentState in self.prepareNextTrialStates:
             #print "SIGNAL WILL BE EMITTED"  # DEBUG
             self.preparingNextTrial = True
+            self.update_trial_borders()
             self.prepareNextTrial.emit(self.currentTrial+1)
-
-        ########## FIX THIS FOR OTHER STATES ##########
+        # FIXME: Should I stop the clock/timeouts here? until everything is processed?
+        # FIXME: fix what to do for other preparation states
         '''
         if self.currentState and not self.preparingNextTrial) or \
                 (len(self.lastEvents)>0 and not self.preparingNextTrial:
@@ -177,7 +183,7 @@ class Dispatcher(QtCore.QObject):
         if self.isConnected:
             if self._stateMatrixStatus:
                 self.statemachine.run()
-                self.logMessage.emit('Resume')
+                self.logMessage.emit('Started')
             else:
                 raise Exception('A state matrix has not been set')
         else:
@@ -190,7 +196,7 @@ class Dispatcher(QtCore.QObject):
         # -- Start state machine --
         if self.isConnected:
             self.statemachine.stop()
-            self.logMessage.emit('Pause')
+            self.logMessage.emit('Stopped')
         else:
             print 'The dispatcher is not connected to the state machine server.'
 
@@ -205,8 +211,61 @@ class Dispatcher(QtCore.QObject):
                 self.eventsMat.extend(self.lastEvents)
                 self.currentState = self.eventsMat[-1][2]
                 self.eventCount = len(self.eventsMat)
-            # FIXME: this may fail if eventsMat is empty on the first call
+                # FIXME: this may fail if eventsMat is empty on the first call
+                ### print self.eventsMat ### DEBUG
 
+    def update_trial_borders(self):
+        '''Find last index of last trial '''
+        # FIXME: slow way to find end of trial
+        if self.eventCount>0:
+            for inde in xrange(self.eventCount-1,0,-1):
+                # NOTE: initialState=0 is hardcoded here
+                if self.eventsMat[inde][2]==0:
+                    break
+            self.indexLastEventEachTrial.append(inde)
+        # WARNING: make sure this method is not called before the events
+        #          at the end of the trials are sent to the client/dispatcher
+
+    def events_one_trial(self,trialID):
+        '''Return events for one trial'''
+        #if trialID<0: eventsThisTrial = np.empty((0,3)) # NOTE: hardcoded size
+        indLast = self.indexLastEventEachTrial[-1]
+        if trialID==0:
+            indPrev = 0
+        else:
+            indPrev = self.indexLastEventEachTrial[-2]
+        eventsThisTrial = self.eventsMat[indPrev:indLast+1] # eventsMat is a list
+        return np.array(eventsThisTrial)
+        ####### FIXME: this seems inefficient because eventsMat is an array and we
+        #######        need only a set of trials. Do we need to convert the whole thing?
+
+
+    def append_to_file(self,h5file,currentTrial=None):
+        '''Add events information to an open HDF5 file.
+        At this point, it ignores the value of 'currentTrial'.
+        '''
+        if not (self.indexLastEventEachTrial): # not len(self.eventsMat):
+            raise UserWarning('WARNING: No trials have been completed. No events were saved.')
+        eventsGroup = h5file.create_group('/events') # Events that ocurred during the session
+        eventsMatrixAsArray = np.array(self.eventsMat)
+        eventsGroup.create_dataset('eventTime', dtype=float, data=eventsMatrixAsArray[:,0])
+        eventsGroup.create_dataset('eventCode', dtype=int, data=eventsMatrixAsArray[:,1])
+        eventsGroup.create_dataset('nextState', dtype=int, data=eventsMatrixAsArray[:,2])
+        eventsGroup.create_dataset('indexLastEventEachTrial', dtype=int,
+                                   data=np.array(self.indexLastEventEachTrial))
+
+        print 'FIXME: what happens (on trial 1) when indexLastEventEachTrial is empty'
+        ###### FIXME: what happens (on trial 1) when indexLastEventEachTrial is empty? #####
+
+
+        #rawEventsColumnsLabels = ['eventTime','eventCode','nextState']
+        #eventsGroup.create_dataset('rawEvents', dtype=float, data=dispatcherModel.eventsMatrix)
+        #dtstr = h5py.special_dtype(vlen=str)
+        #eventsGroup.create_dataset('rawEventsColumnsLabels', dtype=dtstr,
+        #                           data=rawEventsColumnsLabels)
+        #return True
+        
+        
     def die(self):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.pause()
@@ -336,7 +395,9 @@ if __name__ == "__main__":
     elif TESTCASE==2:
         import signal
         signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-        app = QtGui.QApplication(sys.argv)
+        app=QtGui.QApplication.instance() # checks if QApplication already exists 
+        if not app: # create QApplication if it doesnt exist 
+            app = QtGui.QApplication(sys.argv)
         form = QtGui.QDialog()
         form.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         #form.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)

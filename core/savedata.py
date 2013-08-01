@@ -55,15 +55,15 @@ class SaveData(QtGui.QGroupBox):
         #self.buttonSaveData.clicked.connect(self.fileSave)
 
 
-    def to_file(self,paramContainer,dispatcherModel):
+    def to_file(self,listOfContainers,currentTrial=None):
+        ###paramContainer,dispatcherModel,stateMatrixObj ### DELETE THIS
         '''
-        Save history of parameters and events to a file.
-        paramContainer must be an instance of paramgui.Container
-        dispatcherModel an instance of dispatcher.Dispatcher
-          which contains the information about events.
-        OLD:eventsMatrix can be created by dispatcher.query_state_machine()
+        Save history of parameters, events and results to a file.
+        listOfContainers must be a list of objects that have a method 'append_to_file'.
+                         examples of these are: paramgui.Container,
+                         dispatcher.Dispatcher, statematrix.StateMatrix
+        currentTrial is used to limit how many elements are stored for some arrays
         '''
-        rawEventsColumnsLabels = ['eventTime','eventCode','nextState']
         thissession=dict()
         thissession['date'] = time.strftime('%Y%m%d',time.localtime())
         thissession['experimenter'] = 'santiago'
@@ -75,7 +75,6 @@ class SaveData(QtGui.QGroupBox):
 
         self.logMessage.emit('Saving data...')
 
-        # FIXME: what happens if the user presses the CANCEL button?
         if self.checkInteractive.checkState():
             #fname = unicode(QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*'))
             fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
@@ -85,29 +84,23 @@ class SaveData(QtGui.QGroupBox):
         else:
             fname = defaultFileName
 
-        if not len(eventsMatrix):
-            self.logMessage.emit('WARNING: No events have occurred. Nothing was saved.')
-            return
-
         # -- Create data file --
         # FIXME: check that file opened correctly
         if os.path.exists(fname):
-            print('File exists. I will rewrite {0}'.format(fname))
+            self.logMessage.emit('File exists. I will rewrite {0}'.format(fname))
         h5file = h5py.File(fname,'w')
-        try:
-            eventsGroup = h5file.create_group('/events') # Events that ocurred during the sessio
-            eventsGroup.create_dataset('rawEvents', dtype=float, data=eventsMatrix)
-            dtstr = h5py.special_dtype(vlen=str)
-            eventsGroup.create_dataset('rawEventsColumnsLabels', dtype=dtstr,
-                                       data=rawEventsColumnsLabels)
-            paramContainer.append_to_file(h5file)
-        except:
-            h5file.close()
-            raise
 
+        for container in listOfContainers:
+            try:
+                container.append_to_file(h5file,currentTrial)
+            except UserWarning as uwarn:
+                self.logMessage.emit(uwarn.message)
+                print uwarn.message
+            except:
+                h5file.close()
+                raise
         h5file.close()
 
-        #paramContainer.print_items()
         self.logMessage.emit('Saved data to %s'%fname)
         #messenger.Messenger.send('Saved data to %s'%fname)
         #messenger.Messenger.send('Saved data to %s'%fname,sender=__name__)
@@ -125,10 +118,31 @@ if __name__ == "__main__":
     layoutMain = QtGui.QHBoxLayout()
     layoutMain.addWidget(saveData)
     form.setLayout(layoutMain)
+    class Dispatcher(object):
+        eventsMatrix = [[0,0,0]]
+    dispatcherModel = Dispatcher()
     def onbutton():
         import paramgui
         params = paramgui.Container()
-        saveData.to_file(params,[[0,0,0]])
+        saveData.to_file(params,dispatcherModel)
     saveData.buttonSaveData.clicked.connect(onbutton)
     form.show()
     app.exec_()
+
+
+
+'''
+        try:
+            ###print dispatcherModel.eventsMat ### DEBUG
+            success = dispatcherModel.append_to_file(h5file)
+            if not success:
+                self.logMessage.emit('WARNING: No trials have been completed. Nothing was saved.')
+                h5file.close()
+                return
+            paramContainer.append_to_file(h5file)
+            stateMatrixObj.append_to_file(h5file)
+        except:
+            h5file.close()
+            raise
+'''
+

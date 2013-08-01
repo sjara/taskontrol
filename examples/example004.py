@@ -1,98 +1,109 @@
 #!/usr/bin/env python
 
 '''
-This example shows a very simple protocol with graphical interface that
-makes use of schedule waves.
-It is very similar to example003.py, but in addition it uses methods in
-'statematrix' to add schedule waves.
+This example shows a simple paradigm organized by trials (using dispatcher)
+and how to use the statematrix module to assemble the matrix easily.
 '''
 
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2010-12-14'
+__created__ = '2013-03-18'
 
 import sys
-from PyQt4 import QtCore 
-from PyQt4 import QtGui 
+from PySide import QtCore 
+from PySide import QtGui 
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
+import signal
 
-reload(statematrix)
-
-class Protocol(QtGui.QMainWindow):
+class Paradigm(QtGui.QMainWindow):
     def __init__(self, parent=None):
-        super(Protocol, self).__init__(parent)
+        super(Paradigm, self).__init__(parent)
 
         # -- Read settings --
-        smhost = rigsettings.STATE_MACHINE_SERVER
+        smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Create dispatcher --
-        self.dispatcher = dispatcher.Dispatcher(host=smhost,interval=0.3)
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.5)
+        self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
 
         # -- Add graphical widgets to main window --
         centralWidget = QtGui.QWidget()
         layoutMain = QtGui.QVBoxLayout()
-        layoutMain.addWidget(self.dispatcher)
+        layoutMain.addWidget(self.dispatcherView)
         centralWidget.setLayout(layoutMain)
         self.setCentralWidget(centralWidget)
 
+        # -- Center in screen --
+        self.center_in_screen()
+
         # --- Create state matrix ---
-        self.setStateMatrix()
+        self.set_state_matrix()
 
         # -- Connect signals from dispatcher --
-        self.connect(self.dispatcher,QtCore.SIGNAL('PrepareNextTrial'),self.prepareNextTrial)
-        self.connect(self.dispatcher,QtCore.SIGNAL('StartNewTrial'),self.startNewTrial)
-        self.connect(self.dispatcher,QtCore.SIGNAL('TimerTic'),self.timerTic)
+        self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
+        self.dispatcherModel.startNewTrial.connect(self.start_new_trial)
+        self.dispatcherModel.timerTic.connect(self.timer_tic)
 
+    def center_in_screen(self):
+        qr = self.frameGeometry()
+        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
-    def setStateMatrix(self):
-        LeftLED  = rigsettings.DOUT['Left LED']
-        RightLED = rigsettings.DOUT['Right LED']
-
-        self.sm = statematrix.StateMatrix(readystate=('ready_next_trial',1))
-
-        self.sm.addScheduleWave(name='firstSW',preamble=0.5,sustain=1.0,DIOline=4)
-        self.sm.addScheduleWave(name='secondSW',preamble=1.0,sustain=0.5,DIOline=5)
+    def set_state_matrix(self):
+        self.sm = statematrix.StateMatrix(readystate='ready_next_trial')
 
         # -- Set state matrix --
-        self.sm.addState(name='first_state', selftimer=100,
-                    transitions={'firstSW_In':'second_state','Tup':'first_state'},
-                    actions={'Dout':LeftLED, 'SchedWaveTrig':'firstSW'})
-        self.sm.addState(name='second_state', selftimer=100,
-                    transitions={'secondSW_Out':'ready_next_trial','Tup':'second_state'},
-                    actions={'Dout':RightLED, 'SchedWaveTrig':'secondSW'})
+        self.sm.add_state(name='first_state', statetimer=1,
+                    transitions={'Cin':'second_state','Tup':'second_state'},
+                    outputsOn={'CenterWater'})
+        self.sm.add_state(name='second_state', statetimer=2,
+                    transitions={'Lin':'first_state','Tup':'ready_next_trial'},
+                    outputsOff={'CenterWater'})
+        print self.sm
 
-        prepareNextTrialStates = ('ready_next_trial')
-        self.dispatcher.setPrepareNextTrialStates(prepareNextTrialStates,
-                                                  self.sm.getStatesDict())
-        self.dispatcher.setStateMatrix(self.sm.getMatrix(),self.sm.getSchedWaves())
+        prepareNextTrialStates = ['ready_next_trial']
+        self.dispatcherModel.setPrepareNextTrialStates(prepareNextTrialStates,
+                                                  self.sm.get_states_dict())
 
+        self.dispatcherModel.set_state_matrix(self.sm.get_matrix(),
+                                              self.sm.get_outputs(),
+                                              self.sm.get_state_timers())
 
-    def prepareNextTrial(self, nextTrial):
+    def prepare_next_trial(self, nextTrial):
         print '\nPrepare trial %d'%nextTrial
-        lastTenEvents = self.dispatcher.eventsMat[-10:-1,:]
+        lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
         print 'Last 10 events:'
-        print lastTenEvents
-        self.dispatcher.readyToStartTrial()
+        for oneEvent in lastTenEvents:
+            print '%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
+            #print np.array(lastTenEvents)
+        self.dispatcherModel.ready_to_start_trial()
 
 
-    def startNewTrial(self, currentTrial):
+    def start_new_trial(self, currentTrial):
         print '\n======== Started trial %d ======== '%currentTrial
 
 
-    def timerTic(self,etime,lastEvents):
+    def timer_tic(self,etime,lastEvents):
         print '.',
         sys.stdout.flush() # Force printing on the screen at this point
 
 
     def closeEvent(self, event):
-        self.dispatcher.die()
+        '''
+        Executed when closing the main window.
+        This method is inherited from QtGui.QMainWindow, which explains
+        its camelCase naming.
+        '''
+        self.dispatcherModel.die()
         event.accept()
 
 
 if __name__ == "__main__":
-    QtCore.pyqtRemoveInputHook() # To stop looping if error occurs
+    #QtCore.pyqtRemoveInputHook() # To stop looping if error occurs (for PyQt not PySide)
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
     app = QtGui.QApplication(sys.argv)
-    protocol = Protocol()
-    protocol.show()
+    paradigm = Paradigm()
+    paradigm.show()
     app.exec_()

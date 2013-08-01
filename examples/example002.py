@@ -1,34 +1,50 @@
 #!/usr/bin/env python
 
 '''
-Use schedule waves to alternate between two states.
-A state change also occurs on a center port in event.
+Run a simple state matrix with extra timers.
+It has three states:
+- State0: does nothing, jumps to State1 in 100ms.
+- State1: turns light on and triggers two extra timers (0.5s and 1s).
+          From here ExtraTimer0 will force a transition to State2.
+- State2: turns light off.
+          From here ExtraTimer1 will force a transition to State0.
 '''
 
 __author__ = 'Santiago Jaramillo'
-__created__ = '2010-12-11'
+__created__ = '2013-04-04'
 
 from taskontrol.core import smclient
+import numpy as np
 
-testSM = smclient.StateMachineClient('localhost')
-testSM.VERBOSE = True
+nInputs = 3  # Inputs: C,L,R
+nOutputs = 3 # Outputs
+nExtraTimers = 2  # Two extra timers
 
-testSM.initialize()
+#                Ci  Co  Li  Lo  Ri  Ro  Tup  eT0 eT1
+stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1,   0,  0 ] ,
+                [ 2,  1,  1,  1,  1,  1,  1,   2,  1 ] ,
+                [ 2,  2,  1,  2,  2,  2,  2,   1,  0 ] ]
 
-# -- Define schedule waves --
-# ID  InEventCol  OutEventCol    DIOline    SoundTrig  Preamble  Sustain  Refraction
-# See smclient.setScheduledWavesDIO() for other options
-schedwaves = [ [ 0, 6, 7,  4,   0,  0.5, 1.0,  0 ],
-               [ 1, 8, 9,  5,   0,  1.0, 0.5,  0 ] ]
+stateOutputs = [[0,0,0],[1,1,1],[0,0,0]]
+stateTimers  = [  0.1,    9 ,    9  ]
 
-#        Ci  Co  Li  Lo  Ri  Ro  SW0u SW0d SW1u SW1d Tup   t   CONTo Sound  SW
-mat = [ [ 0,  0,  0,  0,  0,  0,   0,  0,    0,  0,   1,  0.1,   0,    0,   0   ] ,
-        [ 2,  1,  1,  1,  1,  1,   1,  2,    1,  1,   1,  100,  2**1,  0,  2**0 ] ,
-        [ 1,  2,  2,  2,  2,  2,   2,  2,    2,  1,   2,  100,  2**2,  0,  2**1 ] ]
+extraTimers = [0.5, 1]
+triggerStateEachExtraTimer = [1, 1]
 
-testSM.setScheduledWavesDIO(schedwaves)
-testSM.setStateMatrix(mat)
+sm = smclient.StateMachineClient()
 
-testSM.run()
+sm.set_sizes(nInputs,nOutputs,nExtraTimers)
+sm.set_state_matrix(stateMatrix)
+sm.set_state_outputs(stateOutputs)
+sm.set_state_timers(stateTimers)
 
-print('To stop type: testSM.halt()')
+sm.set_extra_timers(extraTimers)
+sm.set_extra_triggers(triggerStateEachExtraTimer)
+
+sm.run()
+
+print('To stop state transitions, type: sm.stop()')
+print('To close the client, type: sm.close()')
+
+#import sys; sys.exit()
+
