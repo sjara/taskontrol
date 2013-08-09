@@ -5,13 +5,14 @@ ___________________________________
 
 
 The steps necessary to get started on any operating system are as follows :
-- Install python, pyQt4, numpy, matplotlib and pytables.
+- Install python, PySide (which depends on Qt4), numpy and h5py.
+- For data plots you will also need matplotlib and pyqtgraph.
 - Download the TASKontrol source code (using git).
 - Create the file .../settings/rigsettings.py based on
   rigsettings_template.py and change values according to
   your setup.
 - Add the folder containing 'taskontrol' to the Python path.
-- Test your system with one of the example protocols.
+- Test your system with one of the example paradigms.
 
 
 ===== Installation steps for Ubuntu 12.04 =====
@@ -53,6 +54,7 @@ The steps necessary to get started on any operating system are as follows :
     python example003.py
     [you should see a small window with a 'run' button]
 
+* More details and documentation can be found in the 'doc' folder.
 
 
 ===== TROUBLESHOOTING: =====
@@ -63,33 +65,10 @@ E: System only shows "Waiting for Arduino to be ready..." and never connects:
 C: You have no access to the serial port, or the arduino is not available (unplugged).
 S: See above for how to add yourself to the 'dialout' group.
 
-E: 'ImportError: No module named PyQt4'
-C: The necessary modules (in this case PyQt4) have not been installed correctly.
+E: 'ImportError: No module named PySide
+C: The necessary modules (in this case PySide) have not been installed correctly.
 S: Install all the dependencies as explained above.
 
 E: 'ImportError: No module named taskontrol.settings'
 C:  Your PYTHON path is not setup correctly.
 S:  export PYTHONPATH=$PYTHONPATH:~/src
-
-E: 'socket.error: [Errno 111] Connection refused'
-C: Your computer cannot connect to the server.
-S: Verify your settings.py has the correct IP address for the server.
-S: Disable the firewall (iptables) on the server.
-
-
-===== NOTES: =====
-
-* In older version of Ubuntu the pytables package from the repository
-  seems to have a bug. Install the .egg from their webpage instead.
-
-* If application fonts look bad (no anti-aliasing) on Gnome, you can
-  change them to ‘DejaVuSansBook’ in
-  System>Preferences>Appearance>Fonts>ApplicationFont
-
-* Numpy 1.2.1 produces a segmentation fault when using
-  matplotlib. Make sure you have a newer version.
-
-
-=== OLD NOTES ===
-  sudo apt-get install git-core ipython python-qt4 python-numpy python-matplotlib python-tables
-
