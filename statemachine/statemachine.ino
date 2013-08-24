@@ -12,6 +12,7 @@ FIXME:
 
 */
 
+#define HARDWARE_TEST
 
 #define OK                   0xaa
 #define RESET                0x01  // OBSOLETE
@@ -159,14 +160,17 @@ void execute_cycle() {
   // -- Check for any changes in inputs --
   for (indi = 0; indi < nInputs; indi++) {
     previousValue = inputValues[indi];
+#ifdef HARDWARE_TEST
+    inputValues[indi] = !digitalRead(inputPins[indi]);  // FIXME: DEBUG: inverting signals
+#else
     inputValues[indi] = digitalRead(inputPins[indi]);
-    //inputValues[indi] = !digitalRead(inputPins[indi]);  // FIXME: DEBUG: inverting signals
+#endif
     if (inputValues[indi]!=previousValue) {
       // The codes are as follows:
       // For input0: 0=up, 1=down, for input1: 2=up, 3=down
       add_event(2*indi + previousValue);
     }
-  }
+}
   
   // -- Test if the state timer finished --
   currentTime = millis();
@@ -270,6 +274,10 @@ void loop(){
 	Serial.write(OK);
 	break;
       }
+      case GET_SERVER_VERSION: {
+	Serial.println(VERSION);
+	break;
+      }
       case SET_SIZES: {
 	while (!Serial.available()) {}  // Wait for data
 	nInputs = Serial.read();
@@ -279,10 +287,6 @@ void loop(){
 	nExtraTimers = Serial.read();
 	nActions = 2*nInputs + 1 + nExtraTimers;
 	sizesSetFlag = true;
-	break;
-      }
-      case GET_SERVER_VERSION: {
-	Serial.println(VERSION);
 	break;
       }
       case GET_TIME: {
@@ -298,10 +302,8 @@ void loop(){
 	break;
       }
       case FORCE_OUTPUT: {
-
 	// FIXME: this must change given the new way of dealing with outputs
 	//        and I should check if nOutputs have been defined.
-
 	while (!Serial.available()) {} // Wait for data
 	indo = Serial.read();          // Read the output index
 	while (!Serial.available()) {} // Wait for data
@@ -342,10 +344,26 @@ void loop(){
 	}
 	break;
       }
+      case RUN: {
+	runningState = true;
+	//enable_interrupts();
+	break;
+      }
+      case STOP: {
+	runningState = false;
+	//disable_interrupts();
+	break;
+      }
       case SET_STATE_TIMERS: {
 	for (inds=0; inds<nStates; inds++) {
 	  stateTimers[inds] = read_uint32_serial();
 	}
+	break;
+      }
+      case REPORT_STATE_TIMERS: {
+	for (inds=0; inds<nStates; inds++) {
+	  Serial.println(stateTimers[inds]);
+	}	
 	break;
       }
       case SET_EXTRA_TIMERS: {
@@ -359,12 +377,6 @@ void loop(){
 	  while (!Serial.available()) {}  // Wait for data
 	  triggerStateEachExtraTimer[indt] = Serial.read();
 	}
-	break;
-      }
-      case REPORT_STATE_TIMERS: {
-	for (inds=0; inds<nStates; inds++) {
-	  Serial.println(stateTimers[inds]);
-	}	
 	break;
       }
       case REPORT_EXTRA_TIMERS: {
@@ -387,16 +399,6 @@ void loop(){
 	    stateOutputs[indRow][indCol] = Serial.read();
 	  }
 	}
-	break;
-      }
-      case RUN: {
-	runningState = true;
-	//enable_interrupts();
-	break;
-      }
-      case STOP: {
-	runningState = false;
-	//disable_interrupts();
 	break;
       }
       case GET_EVENTS: {
