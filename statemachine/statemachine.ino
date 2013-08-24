@@ -14,28 +14,30 @@ FIXME:
 
 #define HARDWARE_TEST
 
-#define OK                   0xaa
-#define RESET                0x01  // OBSOLETE
-#define CONNECT              0x02
-#define TEST_CONNECTION      0x03
-#define SET_SIZES            0x04
-#define GET_SERVER_VERSION   0x05
-#define GET_TIME             0x06
-#define GET_INPUTS           0x0e
-#define FORCE_OUTPUT         0x0f
-#define SET_STATE_MATRIX     0x10
-#define RUN                  0x11
-#define STOP                 0x12
-#define GET_EVENTS           0x13
-#define REPORT_STATE_MATRIX  0x14
-#define GET_CURRENT_STATE    0x15
-#define FORCE_STATE          0x16
-#define SET_STATE_TIMERS     0x17
-#define REPORT_STATE_TIMERS  0x18
-#define SET_STATE_OUTPUTS    0x19
-#define SET_EXTRA_TIMERS     0x1a
-#define SET_EXTRA_TRIGGERS   0x1b
-#define REPORT_EXTRA_TIMERS  0x1c
+#define OK                    0xaa
+#define RESET                 0x01  // OBSOLETE
+#define CONNECT               0x02
+#define TEST_CONNECTION       0x03
+#define SET_SIZES             0x04
+#define GET_SERVER_VERSION    0x05
+#define GET_TIME              0x06
+#define GET_INPUTS            0x0e
+#define FORCE_OUTPUT          0x0f
+#define SET_STATE_MATRIX      0x10
+#define RUN                   0x11
+#define STOP                  0x12
+#define GET_EVENTS            0x13
+#define REPORT_STATE_MATRIX   0x14
+#define GET_CURRENT_STATE     0x15
+#define FORCE_STATE           0x16
+#define SET_STATE_TIMERS      0x17
+#define REPORT_STATE_TIMERS   0x18
+#define SET_STATE_OUTPUTS     0x19
+#define SET_EXTRA_TIMERS      0x1a
+#define SET_EXTRA_TRIGGERS    0x1b
+#define REPORT_EXTRA_TIMERS   0x1c
+#define SET_SERIAL_OUTPUTS    0x1d
+#define REPORT_SERIAL_OUTPUTS 0x1e
 
 #define TEST                 0xee
 #define ERROR                0xff
@@ -57,12 +59,14 @@ unsigned int previousValue;
 #define ledPin 13
 // NOTE: outputPins needs to be consistent with MAXNOUTPUTS
 unsigned int outputPins[] = {22,23,24,25, 26,27,28,29, 30,31,32,33, 34,35,36,37};
-unsigned int outputValues[MAXNOUTPUTS];
+//unsigned int outputValues[MAXNOUTPUTS]; // UNUSED
+unsigned int serialOutputs[MAXNSTATES]; // One byte serial output per state
 unsigned int indpin;
 unsigned long currentTime = 0;
 unsigned long lastTime = 0;
 unsigned int bytecounter = 0;
 unsigned char serialByte;
+
 
 // NOTE: volatile qualifier is needed for variables changed within interrupt calls
 unsigned long eventTime = 0;
@@ -126,10 +130,16 @@ void initialize() {
   }
   for (indo=0; indo < MAXNOUTPUTS; indo++) {
     pinMode(outputPins[indo],OUTPUT);
-    outputValues[indo] = LOW;
+    //outputValues[indo] = LOW;  // UNUSED
     digitalWrite(outputPins[indo],LOW);
   }
 
+  // -- Set all serial outputs to no-output --
+  for (inds=0; inds<MAXNSTATES; inds++) {
+    serialOutputs[inds] = 0;
+  }
+
+  // -- Inactivate all extra timers --
   for (indt=0; indt < MAXNEXTRATIMERS; indt++) {
     activeExtraTimers[indt] = false;
   }
@@ -225,11 +235,8 @@ void enter_state(unsigned char newState) {
   }
 
   // -- Send output through SerialUSB --
-  // ======== TEST =========
-  if (newState==3) {
-    //SerialUSB.print(millis(),DEC);
-    //SerialUSB.print('\n');
-    SerialUSB.write(0x01);
+  if (serialOutputs[newState]) {
+    SerialUSB.write(serialOutputs[newState]);
   }
 
 }
@@ -362,7 +369,8 @@ void loop(){
       }
       case REPORT_STATE_TIMERS: {
 	for (inds=0; inds<nStates; inds++) {
-	  Serial.println(stateTimers[inds]);
+	  Serial.print(stateTimers[inds]);
+	  Serial.print('\n');
 	}	
 	break;
       }
@@ -399,6 +407,21 @@ void loop(){
 	    stateOutputs[indRow][indCol] = Serial.read();
 	  }
 	}
+	break;
+      }
+      case SET_SERIAL_OUTPUTS: {
+	for (inds=0; inds<nStates; inds++) {
+	  while (!Serial.available()) {}  // Wait for data
+	  serialOutputs[inds] = Serial.read();
+	}
+	break;
+      }
+      case REPORT_SERIAL_OUTPUTS: {
+	for (inds=0; inds<nStates; inds++) {
+	  Serial.print(serialOutputs[inds],DEC);
+	  Serial.print(' ');
+	}
+	Serial.print('\n');
 	break;
       }
       case GET_EVENTS: {

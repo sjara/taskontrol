@@ -12,7 +12,7 @@ TO DO:
 
 '''
 
-__version__ = '0.1'
+__version__ = '0.2'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2012-10-09'
 
@@ -54,6 +54,8 @@ opcode = {
     'SET_EXTRA_TIMERS'   : 0x1a,
     'SET_EXTRA_TRIGGERS' : 0x1b,
     'REPORT_EXTRA_TIMERS': 0x1c,
+    'SET_SERIAL_OUTPUTS' : 0x1d,
+    'REPORT_SERIAL_OUTPUTS': 0x1e,
     'ERROR'              : 0xff,
 }
 for k,v in opcode.iteritems():
@@ -225,11 +227,23 @@ class StateMachineClient(object):
         self.ser.write(opcode['REPORT_EXTRA_TIMERS'])
         return self.ser.readlines()
     def set_state_outputs(self,stateOutputs):
-        '''stateOutputs is a python array [nStates][nOutputs]
-        a value of -1 means the output will not be changed.
+        '''stateOutputs is a python array with integer values.
+        The size should be [nStates][nOutputs] 
+        Values should be either 0 (for low), 1 (for high), other (for no change)
         '''
         self.ser.write(opcode['SET_STATE_OUTPUTS'])
         self.send_matrix(stateOutputs)
+    def set_serial_outputs(self,serialOutputs):
+        '''serialOutputs is a python array of length [nStates]
+        with integer values in the range 0-255.
+        A value of 0 means no serial output for that state.
+        '''
+        self.ser.write(opcode['SET_SERIAL_OUTPUTS'])
+        for oneOutput in serialOutputs:
+            self.ser.write(chr(oneOutput))
+    def report_serial_outputs(self):
+        self.ser.write(opcode['REPORT_SERIAL_OUTPUTS'])
+        return self.ser.readline()
     def get_events_raw_strings(self):
         '''Request list of events
         Returns: strings (NEEDS MORE DETAIL)
@@ -296,12 +310,11 @@ class StateMachineClient(object):
 
 if __name__ == "__main__":
 
-    CASE = 1
+    CASE = 4
 
     if CASE==0:
         c = StateMachineClient()
         #c.set_output(1,1)
-
         #import time; time.sleep(0.5)
         c.set_sizes(3,3,0) # inputs,outputs,extratimers
         stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
@@ -310,11 +323,8 @@ if __name__ == "__main__":
         #stateOutputs = ['\x00','\xff']
         stateOutputs = [[1,8,8],[0,8,8]]
         c.set_state_outputs(stateOutputs)
-
         c.run()
-
         sys.exit()
-
     elif CASE==1:
         c = StateMachineClient()
         c.set_sizes(3,3,1) # inputs,outputs,extratimers
@@ -323,82 +333,63 @@ if __name__ == "__main__":
         c.set_state_timers([1, 0.5])
         stateOutputs = [[1,7,7],[0,7,7]]
         c.set_state_outputs(stateOutputs)
-
         #c.run()
         c.set_extra_timers([1.2])
         c.set_extra_triggers([1])
         sys.exit()
+    elif CASE==2:
+        # -- Test with a large matrix --
+        m=reshape(arange(400)%10,(20,20))
+        c.set_state_matrix(m)
+        c.report_state_matrix()
+    elif CASE==3:
+        stateMatrix=[]
+        # INPUTS          i1 i2
+        #stateMatrix.append([ 1 , 2 ])
+        #stateMatrix.append([ 2 , 0 ])
+        #stateMatrix.append([ 0 , 1 ])
 
+        # FIXME: there is a limit on the size of the matrix
+        #        one due to the number of rows or cols (has to be <128)
+        #        another probably due to the serial buffer size
+        # On what platform was this problem seen? maple or arduino due?
 
+        #stateMatrix.append(range(0,4))
+        #stateMatrix.append(range(100,104))
+        stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
+        stateTimers = [200000,1000000] # in microseconds
+        #stateMatrix = [[1,0, 1] , [0,1, 0]]
+        #stateTimers = [0,0] # in microseconds
+        stateOutputs = ['\x00','\xff']
 
-    '''
-    # -- Test with a large matrix --
-    m=reshape(arange(400)%10,(20,20))
-    c.set_state_matrix(m)
-    c.report_state_matrix()
-    '''
-
-    stateMatrix=[]
-    # INPUTS          i1 i2
-    #stateMatrix.append([ 1 , 2 ])
-    #stateMatrix.append([ 2 , 0 ])
-    #stateMatrix.append([ 0 , 1 ])
-
-    # FIXME: there is a limit on the size of the matrix
-    #        one due to the number of rows or cols (has to be <128)
-    #        another probably due to the serial buffer size
-
-    #stateMatrix.append(range(0,4))
-    #stateMatrix.append(range(100,104))
-    stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
-    stateTimers = [200000,1000000] # in microseconds
-    #stateMatrix = [[1,0, 1] , [0,1, 0]]
-    #stateTimers = [0,0] # in microseconds
-    stateOutputs = ['\x00','\xff']
-
-    import time
-    time.sleep(0.5)
-    c.set_state_matrix(stateMatrix)
-    #time.sleep(0.1)
-    #print c.readlines()
-    c.set_state_timers(stateTimers)
-    #time.sleep(0.1)
-    #print c.readlines()
-    c.set_state_outputs(stateOutputs)
-    #time.sleep(0.1)
-    unwantedData = c.readlines()
-    if unwantedData:
-        print unwantedData
-    c.run()
-    '''
-    '''
-    #c.send_timers(200)
-
-'''
-nRows = len(stateMatrix)
-nCols = len(stateMatrix[0])
-
-ser.write(chr(SEND_STATE_MATRIX))
-ser.write(chr(nRows))
-ser.write(chr(nCols))
-for oneRow in stateMatrix:
-    for oneItem in oneRow:
-        ser.write(chr(oneItem))
-
-ser.write(chr(SEND_STATE_MATRIX))
-while not fsmReady:
-    oneline = ser.readlines()
-    print ''.join(oneline)
-    #print oneline
-    if oneline[-1]=='STA:READY\r\n':
-        break
-'''
-
-'''
-for ind in range(100):
-    oneItem = ser.read()
-    print oneItem,
-'''
-
+        import time
+        time.sleep(0.5)
+        c.set_state_matrix(stateMatrix)
+        #time.sleep(0.1)
+        #print c.readlines()
+        c.set_state_timers(stateTimers)
+        #time.sleep(0.1)
+        #print c.readlines()
+        c.set_state_outputs(stateOutputs)
+        #time.sleep(0.1)
+        unwantedData = c.readlines()
+        if unwantedData:
+            print unwantedData
+        c.run()
+        '''
+        '''
+        #c.send_timers(200)
+    elif CASE==4:
+        c = StateMachineClient()
+        c.set_sizes(3,3,0) # inputs,outputs,extratimers
+        stateMatrix = [[1,0, 0,0, 0,0, 1] , [0,1, 1,1, 1,1, 0]]
+        c.set_state_matrix(stateMatrix)
+        c.set_state_timers([100, 1])
+        stateOutputs = [[1,7,7],[0,7,7]]
+        c.set_state_outputs(stateOutputs)
+        serialOutputs = [0,67]
+        c.set_serial_outputs(serialOutputs)
+        #c.run()
+        sys.exit()
 
 
