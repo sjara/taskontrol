@@ -116,14 +116,13 @@ class StateMachineClient(object):
         else:
             raise IOError('Connection to state machine was lost.')
             #print 'Connection lost'
-    def error_check(self):
-        status = self.ser.read()
-        if status=='\xff':
-            therest = self.ser.readline()
-            raise Exception('The state machine server sent an error opcode and %s'%therest)
-        elif status!='':
-            therest = self.ser.readline()
-            raise Exception('The state machine server sent: %s%s'%(status,therest))
+    def get_version(self):
+        '''Request version number from server.
+        Returns: string
+        '''
+        self.ser.write(opcode['GET_SERVER_VERSION'])
+        versionString = self.ser.readline()
+        return versionString.strip()
     def set_sizes(self,nInputs,nOutputs,nExtraTimers):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
@@ -134,15 +133,13 @@ class StateMachineClient(object):
         self.ser.write(chr(nInputs))
         self.ser.write(chr(nOutputs))
         self.ser.write(chr(nExtraTimers))
-    def force_output(self,outputIndex,outputValue):
-        self.ser.write(opcode['FORCE_OUTPUT']+chr(outputIndex)+chr(outputValue))
-    def get_version(self):
-        '''Request version number from server.
-        Returns: string
+    def get_time(self):
+        '''Request server time.
+        Returns time in seconds.
         '''
-        self.ser.write(opcode['GET_SERVER_VERSION'])
-        versionString = self.ser.readline()
-        return versionString.strip()
+        self.ser.write(opcode['GET_TIME'])
+        serverTime = self.ser.readline()
+        return 1e-3*float(serverTime.strip())
     def get_inputs(self):
         '''Request values of inputs.
         Returns: string
@@ -155,39 +152,8 @@ class StateMachineClient(object):
         inputValuesChr = self.ser.read(nInputs)
         inputValues = [ord(x) for x in inputValuesChr]
         return inputValues
-    def get_time(self):
-        '''Request server time.
-        Returns time in seconds.
-        '''
-        self.ser.write(opcode['GET_TIME'])
-        serverTime = self.ser.readline()
-        return 1e-3*float(serverTime.strip())
-    def run(self):
-        self.ser.write(opcode['RUN'])
-    def stop(self):
-        self.ser.write(opcode['STOP'])
-    def get_events_raw_strings(self):
-        '''Request list of events
-        Returns: strings (NEEDS MORE DETAIL)
-        '''
-        self.ser.write(opcode['GET_EVENTS'])
-        nEvents = ord(self.ser.read())
-        eventsList = []
-        for inde in range(nEvents):
-            eventsList.append(self.ser.readline())
-        return eventsList
-    def get_events(self):
-        # FIXME: translation of the events strings to a matrix may be slow
-        #        it need to be tested carefully.
-        eventsList = self.get_events_raw_strings()
-        eventsMat = []
-        for oneEvent in eventsList:
-            eventItems = [int(x) for x in oneEvent.split()]
-            eventItems[0] = 1e-3*eventItems[0]
-            eventsMat.append(eventItems)
-        return eventsMat
-    def write(self,value):
-        self.ser.write(value)
+    def force_output(self,outputIndex,outputValue):
+        self.ser.write(opcode['FORCE_OUTPUT']+chr(outputIndex)+chr(outputValue))
     def set_state_matrix(self,stateMatrix):
         for onerow in stateMatrix:
             if len(onerow)!=self.nActions:
@@ -208,6 +174,15 @@ class StateMachineClient(object):
             for oneItem in oneRow:
                 #print repr(chr(oneItem)) ### DEBUG
                 self.ser.write(chr(oneItem))
+    def report_state_matrix(self):
+        self.ser.write(opcode['REPORT_STATE_MATRIX'])
+        sm = self.ser.readlines()
+        for line in sm:
+            print line,
+    def run(self):
+        self.ser.write(opcode['RUN'])
+    def stop(self):
+        self.ser.write(opcode['STOP'])
     def set_state_timers(self,timerValues):
         '''
         Values should be in seconds.
@@ -222,6 +197,9 @@ class StateMachineClient(object):
         for oneTimerValue in timerValuesInMillisec:
             packedValue = struct.pack('<L',oneTimerValue)
             self.ser.write(packedValue)
+    def report_state_timers(self):
+        self.ser.write(opcode['REPORT_STATE_TIMERS'])
+        return self.ser.readlines()
     def set_extra_timers(self,extraTimersValues):
         '''
         Send the values for each extra timer. Values should be in seconds.
@@ -243,24 +221,35 @@ class StateMachineClient(object):
         self.ser.write(opcode['SET_EXTRA_TRIGGERS'])
         for onestate in stateTriggerEachExtraTimer:
             self.ser.write(chr(onestate))
-    def OLD_set_state_outputs(self,stateOutputs):
-        '''Each element of stateOutputs must be one byte.
-        A future version may include a 'mask' so that the output
-        is not changed when entering that state.'''
-        self.ser.write(opcode['SET_STATE_OUTPUTS'])
-        for outputsOneState in stateOutputs:
-            self.ser.write(outputsOneState)
+    def report_extra_timers(self):
+        self.ser.write(opcode['REPORT_EXTRA_TIMERS'])
+        return self.ser.readlines()
     def set_state_outputs(self,stateOutputs):
         '''stateOutputs is a python array [nStates][nOutputs]
         a value of -1 means the output will not be changed.
         '''
         self.ser.write(opcode['SET_STATE_OUTPUTS'])
         self.send_matrix(stateOutputs)
-    def report_state_matrix(self):
-        self.ser.write(opcode['REPORT_STATE_MATRIX'])
-        sm = self.ser.readlines()
-        for line in sm:
-            print line,
+    def get_events_raw_strings(self):
+        '''Request list of events
+        Returns: strings (NEEDS MORE DETAIL)
+        '''
+        self.ser.write(opcode['GET_EVENTS'])
+        nEvents = ord(self.ser.read())
+        eventsList = []
+        for inde in range(nEvents):
+            eventsList.append(self.ser.readline())
+        return eventsList
+    def get_events(self):
+        # FIXME: translation of the events strings to a matrix may be slow
+        #        it need to be tested carefully.
+        eventsList = self.get_events_raw_strings()
+        eventsMat = []
+        for oneEvent in eventsList:
+            eventItems = [int(x) for x in oneEvent.split()]
+            eventItems[0] = 1e-3*eventItems[0]
+            eventsMat.append(eventItems)
+        return eventsMat
     def get_current_state(self):
         self.ser.write(opcode['GET_CURRENT_STATE'])
         currentState = self.ser.read()
@@ -268,18 +257,31 @@ class StateMachineClient(object):
     def force_state(self,stateID):
         self.ser.write(opcode['FORCE_STATE'])
         self.ser.write(chr(stateID))        
-    def report_state_timers(self):
-        self.ser.write(opcode['REPORT_STATE_TIMERS'])
-        return self.ser.readlines()
-    def report_extra_timers(self):
-        self.ser.write(opcode['REPORT_EXTRA_TIMERS'])
-        return self.ser.readlines()
+
+    def write(self,value):
+        self.ser.write(value)
+    def OLD_set_state_outputs(self,stateOutputs):
+        '''Each element of stateOutputs must be one byte.
+        A future version may include a 'mask' so that the output
+        is not changed when entering that state.'''
+        self.ser.write(opcode['SET_STATE_OUTPUTS'])
+        for outputsOneState in stateOutputs:
+            self.ser.write(outputsOneState)
     def readlines(self):
         return self.ser.readlines()
     def read(self):
         oneline = self.ser.readlines()
         #print ''.join(oneline)
         print oneline
+    def error_check(self):
+        # FIXME: is this implemented correctly? It has not been tested
+        status = self.ser.read()
+        if status==opcode['ERROR']:
+            therest = self.ser.readline()
+            raise Exception('The state machine server sent an error opcode and %s'%therest)
+        elif status!='':
+            therest = self.ser.readline()
+            raise Exception('The state machine server sent: %s%s'%(status,therest))
     def close(self):
         self.stop()
         #for ... force_output() # Force every output to zero
