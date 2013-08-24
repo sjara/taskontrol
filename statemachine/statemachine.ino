@@ -13,9 +13,6 @@ FIXME:
 */
 
 
-// FIXME: this value is innacurate. For maple it comes from board/board.h
-//#define CYCLES_PER_MICROSECOND   24 // This number was for maple. Due runs at 84Mhz
-
 #define OK                   0xaa
 #define RESET                0x01  // OBSOLETE
 #define CONNECT              0x02
@@ -42,7 +39,7 @@ FIXME:
 #define TEST                 0xee
 #define ERROR                0xff
 
-#define VERSION        "0.1"
+#define VERSION        "0.2"
 
 #define MAXNEVENTS 512
 #define MAXNSTATES 256
@@ -51,14 +48,14 @@ FIXME:
 #define MAXNOUTPUTS  16
 #define MAXNACTIONS 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
-//unsigned int inputPins[] = {22,23,24,25, 26,27,28,29}; // Needs to be consistent with MAXNINPUTS
-unsigned int inputPins[] = {53,52,51,50, 49,48,47,46}; // Needs to be consistent with MAXNINPUTS
+// NOTE: inputPins needs to be consistent with MAXNINPUTS
+unsigned int inputPins[] = {53,52,51,50, 49,48,47,46};
 unsigned int inputValues[MAXNINPUTS];
 unsigned int previousValue;
 
 #define ledPin 13
-//unsigned int outputPins[] = {ledPin,52,51,50, 49,48,47,46, 45,44,43,42, 41,40,39,38}; // Needs to be consistent with MAXNOUTPUTS
-unsigned int outputPins[] = {22,23,24,25, 26,27,28,29, 30,31,32,33, 34,35,36,37}; // Needs to be consistent with MAXNOUTPUTS
+// NOTE: outputPins needs to be consistent with MAXNOUTPUTS
+unsigned int outputPins[] = {22,23,24,25, 26,27,28,29, 30,31,32,33, 34,35,36,37};
 unsigned int outputValues[MAXNOUTPUTS];
 unsigned int indpin;
 unsigned long currentTime = 0;
@@ -84,14 +81,11 @@ unsigned char nActions; // Number of actions (rise/fall for each input, plus tim
 unsigned char nOutputs; // Number of outputs
 boolean sizesSetFlag; // Set when sizes of inputs, outputs, etc, have been defined
 
-//int stateMatrix[MAXNSTATES][MAXNACTIONS];
 unsigned char stateMatrix[MAXNSTATES][MAXNACTIONS];
 unsigned long stateTimers[MAXNSTATES];
 unsigned char stateOutputs[MAXNSTATES][MAXNOUTPUTS];
 unsigned long extraTimers[MAXNEXTRATIMERS];
 unsigned char triggerStateEachExtraTimer[MAXNEXTRATIMERS];
-
-//   unsigned char extraTimersTriggers[MAXNEXTRATIMERS];
 
 unsigned int inds; // To index states
 unsigned int inde; // To index events
@@ -144,7 +138,9 @@ void initialize() {
 }
 
 void setup() {
-  Serial.begin(115200);  // NOTE: baud rate ignored for usb virtual serial?
+  Serial.begin(115200);  // Connection to client
+  SerialUSB.begin(115200); // Serial output (for sound-module, for example)
+  // NOTE: is the baud rate ignored for usb virtual serial?
   initialize();  // As a function, in case we need to re-initialize
 }
 
@@ -223,6 +219,15 @@ void enter_state(unsigned char newState) {
 	digitalWrite(outputPins[indo],LOW);
     }
   }
+
+  // -- Send output through SerialUSB --
+  // ======== TEST =========
+  if (newState==3) {
+    //SerialUSB.print(millis(),DEC);
+    //SerialUSB.print('\n');
+    SerialUSB.write(0x01);
+  }
+
 }
 
 // -- Update state machine according to events in queue --
