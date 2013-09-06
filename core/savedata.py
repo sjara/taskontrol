@@ -24,6 +24,7 @@ from PySide import QtGui
 from taskontrol.settings import rigsettings
 import numpy as np
 
+
 #class SaveData(QtGui.QWidget):
 class SaveData(QtGui.QGroupBox):
     '''
@@ -55,23 +56,34 @@ class SaveData(QtGui.QGroupBox):
         #self.buttonSaveData.clicked.connect(self.fileSave)
 
 
-    def to_file(self,listOfContainers,currentTrial=None):
-        ###paramContainer,dispatcherModel,stateMatrixObj ### DELETE THIS
+    def to_file(self,listOfContainers,currentTrial=None,experimenter='experimenter',
+                subject='subject',paradigm='paradigm',date=None,suffix='1',filename=None):
         '''
         Save history of parameters, events and results to a file.
         listOfContainers must be a list of objects that have a method 'append_to_file'.
                          examples of these are: paramgui.Container,
                          dispatcher.Dispatcher, statematrix.StateMatrix
         currentTrial is used to limit how many elements are stored for some arrays
+
+        You can specify the 'filename', or instead define the 'experimenter',
+        'subject', 'date' and 'suffix'.
+        If date is not specified, today's date will be used.
+        The file will be saved to DATADIR/experimenter/subject/subject
+        The default format 
         '''
-        thissession=dict()
-        thissession['date'] = time.strftime('%Y%m%d',time.localtime())
-        thissession['experimenter'] = 'santiago'
-        thissession['subject'] = 'saja000'
-        dataDir = rigsettings.DATA_DIR
-        fileExt = 'h5'
-        fileNameOnly = '%s_%s.%s'%(thissession['subject'],thissession['date'],fileExt)
-        defaultFileName = os.path.join(dataDir,fileNameOnly)
+
+        if filename is not None:
+            defaultFileName = filename
+        else:
+            if date is None:
+                date = time.strftime('%Y%m%d',time.localtime())
+            dataRootDir = rigsettings.DATA_DIR
+            fileExt = 'h5'
+            dataDir = os.path.join(dataRootDir,experimenter,subject)
+            if not os.path.exists(dataDir):
+                os.makedirs(dataDir)
+            fileNameOnly = '%s_%s_%s-%s.%s'%(subject,paradigm,date,suffix,fileExt)
+            defaultFileName = os.path.join(dataDir,fileNameOnly)
 
         self.logMessage.emit('Saving data...')
 
