@@ -30,55 +30,60 @@ class StateMachineClient(object):
     def connect(self):
         print 'DUMMY: Connect.'
         pass
+    def test_connection(self):
+        pass
+    def get_version(self):
+        pass
     def set_sizes(self,nInputs,nOutputs,nExtraTimers):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
         self.nExtraTimers = nExtraTimers
-    def force_output(self,output,value):
-        pass
-    def get_version(self):
-        pass
-    def get_inputs(self):
-        pass
     def get_time(self):
         self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
         return self.serverTime
+    def get_inputs(self):
+        pass
+    def force_output(self,output,value):
+        print 'DUMMY: Force output {0} to {1}'.format(output,value)
+        pass
+    def set_state_matrix(self,stateMatrix):
+        print 'DUMMY: Set state matrix.'
+    def send_matrix(self,someMatrix):
+        pass
+    def report_state_matrix(self):
+        pass
     def run(self):
         print 'DUMMY: Run.'
     def stop(self):
         print 'DUMMY: Stop.'
-    def get_events(self):
-        self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
-        self.state = int(not self.state)
-        self.lastEvents = [[self.serverTime,-999,self.state]]
-        return self.lastEvents
-    def write(self,value):
-        pass
-    def set_state_matrix(self,stateMatrix):
-        print 'DUMMY: Set state matrix.'
-    def set_state_outputs(self,stateOutputs):
-        print 'DUMMY: Set state outputs.'
-    def set_state_outputs(self,stateTimers):
-        print 'DUMMY: Set state timers.'
-    def send_matrix(self,someMatrix):
-        pass
     def set_state_timers(self,timerValues):
+        pass
+    def report_state_timers(self):
         pass
     def set_extra_timers(self,extraTimersValues):
         pass
     def set_extra_triggers(self,stateTriggerEachExtraTimer):
         pass
+    def report_extra_timers(self):
+        pass
     def set_state_outputs(self,stateOutputs):
+        print 'DUMMY: Set state outputs.'
         pass
-    def report_state_matrix(self):
+    def set_serial_outputs(self,serialOutputs):
         pass
+    def report_serial_outputs(self):
+        pass
+    def get_events(self):
+        self.serverTime = datetime.datetime.now().second  ######## DEBUG ##########
+        self.state = int(not self.state)
+        self.lastEvents = [[self.serverTime,-999,self.state]]
+        return self.lastEvents
     def get_current_state(self):
         pass
     def force_state(self,stateID):
-        print 'DUMMY: Force state %d.'%stateID
-    def report_state_timers(self):
-        pass
-    def report_extra_timers(self):
+        print 'DUMMY: Force state {0}.'.format(stateID)
+
+    def write(self,value):
         pass
     def readlines(self):
         pass
