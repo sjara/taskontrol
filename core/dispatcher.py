@@ -23,7 +23,7 @@ TODO:
 '''
 
 
-__version__ = '0.1.1'
+__version__ = '0.2'
 __author__ = 'Santiago Jaramillo <jara@cshl.edu>'
 __created__ = '2012-08-20'
 
@@ -66,6 +66,8 @@ class Dispatcher(QtCore.QObject):
             from taskontrol.core import smclient as smclient
         elif serverType=='dummy':
             from taskontrol.plugins import smdummy as smclient
+        elif serverType=='emulator':
+            from taskontrol.plugins import smemulator as smclient
         else:
             pass
         
@@ -108,14 +110,15 @@ class Dispatcher(QtCore.QObject):
         self.statemachine.set_sizes(self.nInputs,self.nOutputs,0)
         self.isConnected = True
 
-    def set_state_matrix(self,stateMatrix,stateOutputs,stateTimers,schedwavesmatrix=None):
+    def set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,schedwavesmatrix=None):
         '''
         Send state transition matrix to server.
         If available, also send matrix of schedule waves.     FIXME (sched waves?)
 
         Data must be python lists (2D), not numpy arrays.
         stateMatrix: [nStates][nActions]  (where nActions is 2*nInputs+1+nExtraTimers)
-        stateOutputs: [nStates] (where each value is one byte corresponding to 8 outputs)
+        stateOutputs: FIXME: WRONG![nStates] (where each value is one byte corresponding to 8 outputs)
+        serialOutputs: [nStates] (where each value is one byte corresponding to 8 outputs)
         stateTimers: [nStates] (in sec)
         '''
         if self.isConnected:
@@ -126,6 +129,7 @@ class Dispatcher(QtCore.QObject):
                 print 'Sending sched waves; Not implemented yet.'
             self.statemachine.set_state_matrix(stateMatrix)
             self.statemachine.set_state_outputs(stateOutputs)
+            self.statemachine.set_serial_outputs(serialOutputs)
             self.statemachine.set_state_timers(stateTimers)
             self._stateMatrixStatus = True
         else:
@@ -227,7 +231,7 @@ class Dispatcher(QtCore.QObject):
         #          at the end of the trials are sent to the client/dispatcher
 
     def events_one_trial(self,trialID):
-        '''Return events for one trial'''
+        '''Return events for one trial as a numpy array'''
         #if trialID<0: eventsThisTrial = np.empty((0,3)) # NOTE: hardcoded size
         indLast = self.indexLastEventEachTrial[-1]
         if trialID==0:
@@ -287,11 +291,18 @@ class DispatcherGUI(QtGui.QGroupBox):
 
         self.runningState = False
 
+        '''
         # -- Set string formats --
         self._timeFormat = 'Time: %0.1f s'
         self._stateFormat = 'State: %d'
         self._eventCountFormat = 'Events: %d'
         self._currentTrialFormat = 'Trial: %d'
+        '''
+        # -- Set string formats --
+        self._timeFormat = 'Time: {0:0.1f} s'
+        self._stateFormat = 'State: {0}'
+        self._eventCountFormat = 'Events: {0}'
+        self._currentTrialFormat = 'Trial: {0}'
 
         ################ FIX ME TEMPORARY. SHOULD NOT BE HERE !!!  #############
         self.time = 0.0         # Time on the state machine
@@ -299,15 +310,21 @@ class DispatcherGUI(QtGui.QGroupBox):
         self.eventCount = 0     # Number of events so far
         self.currentTrial = 0   # Current trial
         
+        '''
         # -- Create graphical objects --
         self.stateLabel = QtGui.QLabel(self._stateFormat%self.state)
         self.stateLabel.setObjectName('DispatcherLabel')
         self.timeLabel = QtGui.QLabel(self._timeFormat%self.time)
         self.timeLabel.setObjectName('DispatcherLabel')
-        self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.time)
+        self.eventCountLabel = QtGui.QLabel(self._eventCountFormat%self.eventCount)
         self.eventCountLabel.setObjectName('DispatcherLabel')
         self.currentTrialLabel = QtGui.QLabel(self._currentTrialFormat%self.currentTrial)
-        self.currentTrialLabel.setObjectName('DispatcherLabel')
+        '''
+        # -- Create graphical objects --
+        self.stateLabel = QtGui.QLabel()
+        self.timeLabel = QtGui.QLabel()
+        self.eventCountLabel = QtGui.QLabel()
+        self.currentTrialLabel = QtGui.QLabel()
         self.buttonStartStop = QtGui.QPushButton('')
         self.buttonStartStop.setCheckable(False)
         self.buttonStartStop.setMinimumHeight(100)
@@ -316,6 +333,16 @@ class DispatcherGUI(QtGui.QGroupBox):
         buttonFont.setPointSize(buttonFont.pointSize()+10)
         self.buttonStartStop.setFont(buttonFont)
         self.setMinimumWidth(minwidth)
+
+        self.update(self.time,self.state,self.eventCount,self.currentTrial)
+
+        '''
+        # -- To have a reference for StyleSheets ? --
+        self.stateLabel.setObjectName('DispatcherLabel')
+        self.timeLabel.setObjectName('DispatcherLabel')
+        self.eventCountLabel.setObjectName('DispatcherLabel')
+        self.currentTrialLabel.setObjectName('DispatcherLabel')
+        '''
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
@@ -339,10 +366,16 @@ class DispatcherGUI(QtGui.QGroupBox):
     #@QtCore.Slot(float,int,int,int)  # FIXME: is this really needed?
     def update(self,serverTime,currentState,eventCount,currentTrial):
         '''Update display of time and events.'''
+        '''
         self.timeLabel.setText(self._timeFormat%serverTime)
         self.stateLabel.setText(self._stateFormat%currentState)
         self.eventCountLabel.setText(self._eventCountFormat%eventCount)
         self.currentTrialLabel.setText(self._currentTrialFormat%currentTrial)
+        '''
+        self.timeLabel.setText(self._timeFormat.format(serverTime))
+        self.stateLabel.setText(self._stateFormat.format(currentState))
+        self.eventCountLabel.setText(self._eventCountFormat.format(eventCount))
+        self.currentTrialLabel.setText(self._currentTrialFormat.format(currentTrial))
 
     def startOrStop(self):
         '''Toggle (start or stop) state machine and dispatcher timer.'''
@@ -354,7 +387,7 @@ class DispatcherGUI(QtGui.QGroupBox):
     def start(self):
         '''Resume state machine.'''
         # -- Change button appearance --
-        stylestr = 'QWidget {background-color: %s}'%BUTTON_COLORS['stop']
+        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
 
