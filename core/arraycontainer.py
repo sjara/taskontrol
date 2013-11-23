@@ -6,10 +6,10 @@ Container for non-graphical variables (like choice, outcome, etc)
 '''
 
 __version__ = '0.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2013-07-27'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
-from taskontrol.core import extrafuncs
+
+from taskontrol.core import utils
 
 
 class Container(dict):
@@ -27,7 +27,7 @@ class Container(dict):
             dset = resultsDataGroup.create_dataset(key, data=item[:currentTrial])
         for key,item in self.labels.iteritems():
             # FIXME: Make sure items of self.labels are dictionaries
-            extrafuncs.append_dict_to_HDF5(resultsLabelsGroup,key,item)
+            utils.append_dict_to_HDF5(resultsLabelsGroup,key,item)
 
 if __name__ == "__main__":
     import h5py

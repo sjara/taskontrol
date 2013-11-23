@@ -10,25 +10,38 @@ sma.add_state(name='STATENAME', statetimer=3,
 
 
   OUTPUT WILL CHANGE TO SEPARATE TRANSITION MATRIX AND TIMERS
-
 Output:
 #       Ci  Co  Li  Lo  Ri  Ro  Tup
 mat = [  0,  0,  0,  0,  0,  0,  2  ]
-      
+
+
+WRITE DOCUMENTATION ABOUT:
+sm.statesNameToIndex
+self.eventsDict
+...
+
+NOTES:
+- The state matrix is represented by a python list (of lists), in which
+  each element (row) corresponds to the transitions from one state.
+- The state timers are represented as a list of floats.
+  One element per state.
+- The outputs are represented as a list (of lists). Each element contains
+  the outputs for each state as a list of 0 (off), 1 (on) or another integer
+  which indicates the output should not be changed from its previous value.
 '''
 
-from taskontrol.settings import rigsettings
-reload(rigsettings)
-from taskontrol.core import extrafuncs
 
-__version__ = '0.2'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2012-09-03'
+#from taskontrol.settings import rigsettings
+#reload(rigsettings)
+from taskontrol.core import utils
 
+__version__ = '0.3'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 # FIXME: what should be the Statetimer period?
 VERYLONGTIME  = 100    # Time period to stay in a state if nothing happens
 #VERYSHORTTIME = 0.0001 # Time period before jumping to next state "immediately" OBSOLETE, use 0.
+SAMEOUTPUT = 7
 
 class StateMatrix(object):
     '''
@@ -43,12 +56,21 @@ class StateMatrix(object):
 
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
-    #def __init__(self,readystate=('ready_next_trial',1)):
-    #def __init__(self):
-    def __init__(self,readystate='ready_next_trial'):
+    def __init__(self,inputs={},outputs={},readystate='ready_next_trial'):
+        '''
+        Args:
+            inputs (dict): Labels for inputs. Elements should be of type str:int.
+            outputs (dict): Labels for outputs. Elements should be of type str:int.
+            readystate (str): name of ready-for-next-trial state.
+        
+        '''
+        self.inputsDict = inputs
+        self.outputsDict = outputs
+
         self.stateMatrix = []
         self.stateTimers = []
         self.stateOutputs = []
+        self.serialOutputs = []
 
         self.statesIndexToName = {}
         self.statesNameToIndex = {}
@@ -62,7 +84,6 @@ class StateMatrix(object):
         self.extraTimersTriggers = []
 
         # This dictionary is modified if ExtraTimers are used.
-        self.inputsDict = rigsettings.INPUTS
         self.eventsDict = {}
         for key,val in self.inputsDict.iteritems():
             self.eventsDict[key+'in'] = 2*val
@@ -70,9 +91,7 @@ class StateMatrix(object):
         self.eventsDict['Tup'] = len(self.eventsDict)
 
         self.nInputEvents = len(self.eventsDict)
-
-        self.outputsDict = rigsettings.OUTPUTS
-        self.nOutputs = len(rigsettings.OUTPUTS)
+        self.nOutputs = len(self.outputsDict)
 
         #self.readyForNextTrialStateName = readystate[0]
         #self.readyForNextTrialStateInd = readystate[1]
@@ -83,10 +102,10 @@ class StateMatrix(object):
         '''Append states definitions to open HDF5 file
         It ignores currentTrial'''
         statematGroup = h5file.create_group('/stateMatrix')
-        extrafuncs.append_dict_to_HDF5(statematGroup,'eventsNames',self.eventsDict)
-        extrafuncs.append_dict_to_HDF5(statematGroup,'outputsNames',self.outputsDict)
-        extrafuncs.append_dict_to_HDF5(statematGroup,'statesNames',self.statesNameToIndex)
-        extrafuncs.append_dict_to_HDF5(statematGroup,'extraTimersNames',self.extraTimersNameToIndex)
+        utils.append_dict_to_HDF5(statematGroup,'eventsNames',self.eventsDict)
+        utils.append_dict_to_HDF5(statematGroup,'outputsNames',self.outputsDict)
+        utils.append_dict_to_HDF5(statematGroup,'statesNames',self.statesNameToIndex)
+        utils.append_dict_to_HDF5(statematGroup,'extraTimersNames',self.extraTimersNameToIndex)
 
     def _make_default_row(self,stateInd):
         '''Create a transition row for a state.'''
@@ -138,8 +157,14 @@ class StateMatrix(object):
         
 
     def add_state(self, name='', statetimer=VERYLONGTIME, transitions={},
-                  outputsOn=[], outputsOff=[], trigger=[]):
-        '''Add state to transition matrix.'''
+                  outputsOn=[], outputsOff=[], trigger=[], serialOut=0):
+        '''Add state to transition matrix.
+        outputsOn:
+        outputsOff
+        trigger: extra-timers trigger when entering this state
+        serialOut: integer (1-255) to send through serial port on entering
+                      state. A value of zero means no serial output.
+        '''
         
         nExtraTimers = len(self.extraTimersNameToIndex)
 
@@ -160,11 +185,11 @@ class StateMatrix(object):
 
         # -- Add row to state transition matrix --
         # FIXME: this way to do it seems very inefficient
-        KEEP = 7
         while len(self.stateMatrix)<(thisStateInd+1):
             self.stateMatrix.append([])
             self.stateTimers.append([])
-            self.stateOutputs.append(self.nOutputs*[KEEP])
+            self.stateOutputs.append(self.nOutputs*[SAMEOUTPUT])
+            self.serialOutputs.append(0)
         self.stateMatrix[thisStateInd] = newRow
         self.stateTimers[thisStateInd] = statetimer
         for oneOutput in outputsOn:
@@ -173,6 +198,7 @@ class StateMatrix(object):
         for oneOutput in outputsOff:
             outputInd = self.outputsDict[oneOutput]
             self.stateOutputs[thisStateInd][outputInd] = 0
+        self.serialOutputs[thisStateInd] = serialOut
 
         # -- Add this state to the list of triggers for extra timers --
         for oneExtraTimer in trigger:
@@ -246,8 +272,24 @@ class StateMatrix(object):
                 raise ValueError('State "{0}" was not defined.'.format(stateName))
         return self.stateMatrix
 
+    def reset_transitions(self):
+        defaultTransitions = self.nInputEvents*[0] # Default row of the matrix
+        defaultTransitions = self.nInputEvents*[0] # Default row of the matrix
+        for stateind in self.statesIndexToName.keys():
+            self.stateMatrix[stateind] = defaultTransitions
+            self.stateTimers[stateind] = VERYLONGTIME
+            self.stateOutputs[stateind] = self.nOutputs*[SAMEOUTPUT]
+
     def get_outputs(self):
         return self.stateOutputs
+
+    def get_serial_outputs(self):
+        return self.serialOutputs
+
+    def get_ready_states(self):
+        '''Return names of state that indicate the machine is
+        ready to start a new trial '''
+        return [self.readyForNextTrialStateName]
 
     def get_state_timers(self):
         return self.stateTimers
@@ -279,7 +321,7 @@ class StateMatrix(object):
             revEventsDict[self.eventsDict[key]] = key
         matstr += '\t\t\t'
         matstr += '\t'.join([revEventsDict[k][0:4] for k in sorted(revEventsDict.keys())])
-        matstr += '\t\tTimers\tOutputs'
+        matstr += '\t\tTimers\tOutputs\tSerialOut'
         matstr += '\n'
         for (index,onerow) in enumerate(self.stateMatrix):
             if len(onerow):
@@ -287,6 +329,7 @@ class StateMatrix(object):
                 matstr += '\t'.join(str(e) for e in onerow)
                 matstr += '\t|\t%0.2f'%self.stateTimers[index]
                 matstr += '\t%s'%self._output_as_str(self.stateOutputs[index])
+                matstr += '\t%d'%self.serialOutputs[index]
             else:
                 matstr += 'EMPTY ROW'
             matstr += '\n'
@@ -304,7 +347,7 @@ class StateMatrix(object):
         return outputStr
 
 if __name__ == "__main__":
-    CASE = 4
+    CASE = 5
     if CASE==1:
         sm = StateMatrix()
         #elif CASE==100:
@@ -341,8 +384,26 @@ if __name__ == "__main__":
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
                     outputsOn=['CenterLED'])
+        sm.add_state(name='wait_for_apoke', statetimer=0.5,
+                    transitions={'Tup':'wait_for_cpoke'},
+                    outputsOff=['CenterLED'])
         print sm
         sm.get_matrix()
+        sm.reset_transitions()
+        sm.add_state(name='wait_for_cpoke', statetimer=12,
+                    transitions={'Cin':'play_target','Tup':'play_target'},
+                    outputsOff=['CenterLED'])
+        print sm
+        sm.get_matrix()
+    if CASE==5:
+        sm = StateMatrix()
+        sm.add_state(name='wait_for_cpoke', statetimer=12,
+                    transitions={'Cin':'play_target'},
+                    outputsOff=['CenterLED'])
+        sm.add_state(name='play_target', statetimer=0.5,
+                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
+                    outputsOn=['CenterLED'], serialOut=1)
+        print sm
        
     '''
     sm.add_state(name='wait_for_apoke', statetimer=0.5,

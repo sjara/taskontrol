@@ -15,11 +15,13 @@ TODO:
 
 
 __version__ = '0.1.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2012-08-27'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+
 
 from PySide import QtCore 
 from PySide import QtGui 
+import imp
+import numpy as np # To be able to save strings with np.string_()
 
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
@@ -80,12 +82,36 @@ class Container(dict):
             except KeyError: # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [self[key].get_value()]
 
+    def set_values(self,valuesdict):
+        '''Set the value of many parameters at once.
+        valuesDict is a dictionary of parameters and their values.
+        for example: {param1:val1, param2:val2}
+        '''
+        for key,val in valuesdict.iteritems():
+            if key in self:
+                self[key].set_value(val)
+
+    def from_file(self,filename,dictname='default'):
+        '''
+        Set values from a dictionary stored in a file.
+        filename: (string) file with parameters (full path)
+        dictname: (string) name of dictionary in filename containing parameters
+                  If none is given, it will attempt to load 'default'
+        '''
+        if filename is not None:
+            paramsmodule = imp.load_source('module.name', filename)
+            try:
+                self.set_values(getattr(paramsmodule,dictname))
+            except AttributeError:
+                print "There is no '{0}' in {1}".format(dictname, filename)
+                raise
+
     def append_to_file(self, h5file,currentTrial):
         '''Append parameters' history to an HDF5 file.
         It truncates data to the trial before currentTrial '''
         dataParent = 'resultsData'      # Parameters from each trial
-        itemsParent = 'resultsLabels'     # Items in menu parameters
-        sessionParent = 'sessionData' # Parameters for the whole session
+        itemsParent = 'resultsLabels'   # Items in menu parameters
+        sessionParent = 'sessionData'   # Parameters for the whole session
         descriptionAttr = 'Description'
         # FIXME: the contents of description should not be the label, but the
         #        description of the parameter (including its units)
@@ -98,7 +124,7 @@ class Container(dict):
                 #h5file.createDataset(trialDataGroup, key, self.history[key], paramLabel)
                 if key not in self.history:
                     raise ValueError('No history was recorded for "{0}". '.format(key) +\
-                           'Did you use paramgui.Container.updateHistory() correctly?')
+                           'Did you use paramgui.Container.update_history() correctly?')
                 dset = trialDataGroup.create_dataset(key, data=self.history[key][:currentTrial])
                 dset.attrs['Description'] = item.get_label()
                 # FIXME: not very ObjectOriented to use getType
@@ -110,11 +136,9 @@ class Container(dict):
                     dset.attrs['Description'] = '%s menu items'%item.get_label()
             else: # -- Store parameters without history (Session parameters) --
                 if item.get_type()=='string':
-                    print('WARNING! saving string parameters is not implemented yet.')
-                    #str_type = h5py.new_vlen(str) ### FIXME: requires h5py
-                    #dset = sessionDataGroup.create_dataset(sessionDataGroup, key, dtype=str_type)
+                    dset = sessionDataGroup.create_dataset(key, data=np.string_(item.get_value()))
                 else:
-                    dset = sessionDataGroup.create_dataset(sessionDataGroup, key, data=item.get_value())
+                    dset = trialDataGroup.create_dataset(key, data=item.get_value())
                 dset.attrs['Description'] = item.get_label()
 
 class ParamGroupLayout(QtGui.QGridLayout):
@@ -157,12 +181,12 @@ class GenericParam(QtGui.QWidget):
 
 class StringParam(GenericParam):
     def __init__(self, labelText='', value='', group=None,
-                 history=False, labelWidth=80, parent=None):
+                 labelWidth=80, parent=None):
         super(StringParam, self).__init__(labelText, value, group,
-                                           history, labelWidth,  parent)
+                                           history=False, labelWidth=labelWidth,  parent=parent)
         self._type = 'string'
         if self._historyEnabled:
-            raise ValueError('String parameters are not allowed to keep a history.\n'
+            raise ValueError('Keeping a history for string parameters is not supported.\n'
                              +'When creating the instance use: history=False')
 
         # -- Define graphical interface --
@@ -257,12 +281,29 @@ if __name__ == "__main__":
     params['value2'] = NumericParam('AnotherParam',value=3,group='First group')
     params['value3'] = NumericParam('ParamThree',value=2,group='Second group')
     params['value4'] = NumericParam('ParamFour',value=3,group='Second group')
+    params['nohist'] = NumericParam('somevalue',value=5.4,group='First group',history=False)
+    params['experimenter'] = StringParam('Experimenter',value='santiago',group='First group')
     firstGroup = params.layout_group('First group')
     secondGroup = params.layout_group('Second group')
     layoutMain = QtGui.QHBoxLayout()
     layoutMain.addWidget(firstGroup)
     layoutMain.addWidget(secondGroup)
+    #params.set_values({'value1':99, 'value2':88})
+    params.from_file('../examples/params_example.py','test002')
     form.setLayout(layoutMain)
+
+    SAVE_DATA=1
+    if SAVE_DATA:
+        import h5py
+        try:
+            params.update_history()
+            h5file = h5py.File('/tmp/testparamsave.h5','w')
+            params.append_to_file(h5file,currentTrial=1)
+        except:
+            h5file.close()
+            raise
+        h5file.close()
+            
     form.show()
     app.exec_()
 

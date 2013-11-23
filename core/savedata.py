@@ -1,43 +1,41 @@
 #!/usr/bin/env python
 
 '''
-Plugin (widget) to save data.
-It may become a more general module/plugin (probably called sessiondata).
-
-
-NOTE: as of Dec2009 there was a bug that shows a warning about
-      KPluginLoader::load when opening the dialog. It seems to be
-      harmless.  https://bugs.kde.org/show_bug.cgi?id=210904
-
+Widget to save data.
 '''
 
-
-__version__ = '0.0.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2009-12-27'
+__version__ = '0.2'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 import os
 import time
 import h5py
 from PySide import QtCore 
 from PySide import QtGui 
-from taskontrol.settings import rigsettings
-import numpy as np
+import subprocess
+#from taskontrol.settings import rigsettings
 
-
-#class SaveData(QtGui.QWidget):
 class SaveData(QtGui.QGroupBox):
     '''
-    Save data
+    A widget to save data, transfer it to a remote repository, and update the database.
     '''
     logMessage = QtCore.Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, datadir, remotedir=None, updatedb=True, parent=None):
+        '''
+        Args:
+            datadir (str): data root directory.
+            remotedir (str): remote directory of data repository.
+                If none given it will not send data to repository.
+            updatedb (bool): [not implemented].
+
+        '''
         super(SaveData, self).__init__(parent)
 
-        # -- Parameters --
-        ###self.defaultFileName = '/tmp/defaultdata.hd5'
-
+        self.filename = None
+        self.datadir = datadir
+        self.remotedir = remotedir
+        
         # -- Create graphical objects --
         self.buttonSaveData = QtGui.QPushButton("Save data")
         self.buttonSaveData.setMinimumHeight(50)
@@ -53,23 +51,28 @@ class SaveData(QtGui.QGroupBox):
         layout.addWidget(self.checkInteractive, 1,0)
         self.setLayout(layout)
         self.setTitle('Manage Data')
-        #self.buttonSaveData.clicked.connect(self.fileSave)
 
 
-    def to_file(self,listOfContainers,currentTrial=None,experimenter='experimenter',
-                subject='subject',paradigm='paradigm',date=None,suffix='1',filename=None):
+    def to_file(self,containers,currentTrial=None,experimenter='experimenter',
+                subject='subject',paradigm='paradigm',date=None,suffix='a',filename=None):
         '''
-        Save history of parameters, events and results to a file.
-        listOfContainers must be a list of objects that have a method 'append_to_file'.
-                         examples of these are: paramgui.Container,
-                         dispatcher.Dispatcher, statematrix.StateMatrix
-        currentTrial is used to limit how many elements are stored for some arrays
+        Saves the history of parameters, events and results to an HDF5 file.
 
-        You can specify the 'filename', or instead define the 'experimenter',
-        'subject', 'date' and 'suffix'.
-        If date is not specified, today's date will be used.
-        The file will be saved to DATADIR/experimenter/subject/subject
-        The default format 
+        Args:
+            containers: a list of objects that have a method 'append_to_file'.
+                Examples of these are: paramgui.Container,
+                dispatcher.Dispatcher, statematrix.StateMatrix
+            currentTrial: limits how many elements are stored (up to currentTrial-1)
+            experimenter: string
+            subject: string
+            paradigm: string
+            date: (optional) string. If none given, today's date will be used.
+            suffix: (optional) string. If none give, it will use a lowercase letter.
+            filename: (optional) string with full path. If a filename is given,
+                all other string parameters will be ignored.
+
+        The data is saved to:
+        ``datadir/experimenter/subject/subject_paradigm_YYMMDDa.h5``
         '''
 
         if filename is not None:
@@ -77,32 +80,31 @@ class SaveData(QtGui.QGroupBox):
         else:
             if date is None:
                 date = time.strftime('%Y%m%d',time.localtime())
-            dataRootDir = rigsettings.DATA_DIR
+            dataRootDir = self.datadir
             fileExt = 'h5'
             dataDir = os.path.join(dataRootDir,experimenter,subject)
             if not os.path.exists(dataDir):
                 os.makedirs(dataDir)
-            fileNameOnly = '%s_%s_%s-%s.%s'%(subject,paradigm,date,suffix,fileExt)
+            fileNameOnly = '{0}_{1}_{2}{3}.{4}'.format(subject,paradigm,date,suffix,fileExt)
             defaultFileName = os.path.join(dataDir,fileNameOnly)
 
         self.logMessage.emit('Saving data...')
 
         if self.checkInteractive.checkState():
-            #fname = unicode(QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*'))
             fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
         else:
             fname = defaultFileName
-
+        
         # -- Create data file --
-        # FIXME: check that file opened correctly
+        # FIXME: check that the file opened correctly
         if os.path.exists(fname):
             self.logMessage.emit('File exists. I will rewrite {0}'.format(fname))
         h5file = h5py.File(fname,'w')
 
-        for container in listOfContainers:
+        for container in containers:
             try:
                 container.append_to_file(h5file,currentTrial)
             except UserWarning as uwarn:
@@ -112,31 +114,55 @@ class SaveData(QtGui.QGroupBox):
                 h5file.close()
                 raise
         h5file.close()
+ 
+        self.filename = fname
+        self.logMessage.emit('Saved data to {0}'.format(fname))
 
-        self.logMessage.emit('Saved data to %s'%fname)
-        #messenger.Messenger.send('Saved data to %s'%fname)
-        #messenger.Messenger.send('Saved data to %s'%fname,sender=__name__)
+        if self.remotedir:
+            self.send_to_repository()
+
+    def send_to_repository(self):
+        '''
+        Send saved data to repository.
+        FIXME: The remote directory must exist, otherwise it will fail.
+        '''
+        remoteLocation = self.remotedir + os.path.sep
+        #'sjara@localhost://tmp/remote/'
+        self.logMessage.emit('Sent data to {0}'.format(remoteLocation))
+        cmd = 'rsync'
+        flags = '-av'
+        args1 = '-e'
+        args2 = 'ssh -o "NumberOfPasswordPrompts 0"'
+        localfile = self.filename
+        cmdlist = [cmd,flags,args1,args2,localfile,remoteLocation]
+        p = subprocess.Popen(cmdlist,shell=False,stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        if stderr:
+            raise IOError(stderr)
+        pass
+        self.logMessage.emit('Done sending data.')
 
 if __name__ == "__main__":
     import signal
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
     import sys
+    from taskontrol.settings import rigsettings
     # -- A workaround to enable re-running the app in ipython after closing --
     app=QtGui.QApplication.instance() # checks if QApplication already exists 
     if not app: # create QApplication if it doesnt exist 
         app = QtGui.QApplication(sys.argv)
     form = QtGui.QDialog()
-    saveData = SaveData()
+    saveData = SaveData(rigsettings.DATA_DIR)
     layoutMain = QtGui.QHBoxLayout()
     layoutMain.addWidget(saveData)
     form.setLayout(layoutMain)
-    class Dispatcher(object):
-        eventsMatrix = [[0,0,0]]
-    dispatcherModel = Dispatcher()
     def onbutton():
-        import paramgui
-        params = paramgui.Container()
-        saveData.to_file(params,dispatcherModel)
+        import arraycontainer
+        results = arraycontainer.Container()
+        results['onevar'] = [1,2,3,4]
+        saveData.to_file([results],currentTrial=3)
+        print('Saved data to {0}'.format(saveData.filename))
     saveData.buttonSaveData.clicked.connect(onbutton)
     form.show()
     app.exec_()
@@ -144,6 +170,12 @@ if __name__ == "__main__":
 
 
 '''
+        import paramgui
+        params = paramgui.Container()
+    class Dispatcher(object):
+        eventsMatrix = [[0,0,0]]
+    dispatcherModel = Dispatcher()
+
         try:
             ###print dispatcherModel.eventsMat ### DEBUG
             success = dispatcherModel.append_to_file(h5file)

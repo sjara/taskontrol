@@ -13,8 +13,7 @@ TO DO:
 '''
 
 __version__ = '0.2'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2012-10-09'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import serial
@@ -157,6 +156,9 @@ class StateMachineClient(object):
     def force_output(self,outputIndex,outputValue):
         self.ser.write(opcode['FORCE_OUTPUT']+chr(outputIndex)+chr(outputValue))
     def set_state_matrix(self,stateMatrix):
+        '''
+        stateMatrix: [nStates][nActions]  (where nActions is 2*nInputs+1+nExtraTimers)
+        '''
         for onerow in stateMatrix:
             if len(onerow)!=self.nActions:
                 raise ValueError('The states transition matrix does not have the '+\
@@ -256,7 +258,7 @@ class StateMachineClient(object):
         return eventsList
     def get_events(self):
         # FIXME: translation of the events strings to a matrix may be slow
-        #        it need to be tested carefully.
+        #        it needs to be tested carefully.
         eventsList = self.get_events_raw_strings()
         eventsMat = []
         for oneEvent in eventsList:
