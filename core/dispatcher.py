@@ -110,10 +110,23 @@ class Dispatcher(QtCore.QObject):
         self.statemachine.set_sizes(self.nInputs,self.nOutputs,0)
         self.isConnected = True
 
-    def set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,schedwavesmatrix=None):
+    def set_state_matrix(self,stateMatrix):
         '''
         Send state transition matrix to server.
-        If available, also send matrix of schedule waves.     FIXME (sched waves?)
+        Args:
+            stateMatrix (statematrix.StateMatrix): object that contains all information
+                        about the state matrix, outputs and timers.
+        '''
+        self._set_prepare_next_trial_states(stateMatrix.get_ready_states(),
+                                            stateMatrix.get_states_dict())
+        self._set_state_matrix(stateMatrix.get_matrix(),
+                               stateMatrix.get_outputs(),
+                               stateMatrix.get_serial_outputs(),
+                               stateMatrix.get_state_timers())
+
+    def _set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,extraTimers=None):
+        '''
+        Send state transition matrix, outputs and timers to server, given python lists.
 
         Data must be python lists (2D), not numpy arrays.
         stateMatrix: [nStates][nActions]  (where nActions is 2*nInputs+1+nExtraTimers)
@@ -122,21 +135,25 @@ class Dispatcher(QtCore.QObject):
         serialOutputs: [nStates] (where each value is one byte corresponding to 8 outputs)
         stateTimers: [nStates] (in sec)
         '''
+        # -- Set prepare next trial states --
+        #set_prepare_next_trial_states(self.sm.get_ready_states(),
+        #                             self.sm.get_states_dict())
         if self.isConnected:
             #if not isinstance(statesmatrix,np.ndarray):
             #    statesmatrix = np.array(statesmatrix)
-            if schedwavesmatrix:
+            if extraTimers:
                 #self.statemachine.setScheduledWavesDIO(schedwavesmatrix)        
-                print 'Sending sched waves; Not implemented yet.'
+                raise 'Sending extra-timers is not implemented yet.'
             self.statemachine.set_state_matrix(stateMatrix)
             self.statemachine.set_state_outputs(stateOutputs)
-            self.statemachine.set_serial_outputs(serialOutputs)
+            if serialOutputs:
+                self.statemachine.set_serial_outputs(serialOutputs)
             self.statemachine.set_state_timers(stateTimers)
             self._stateMatrixStatus = True
         else:
             print 'Call to setStateMatrix, but the client is not connected.\n'
 
-    def set_prepare_next_trial_states(self,prepareNextTrialStatesAsStrings,statesDict):
+    def _set_prepare_next_trial_states(self,prepareNextTrialStatesAsStrings,statesDict):
         '''Defines the list of states from which the state machine returns control
         to the client to prepare the next trial.'''
         if not isinstance(prepareNextTrialStatesAsStrings,list):
