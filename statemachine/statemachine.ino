@@ -12,7 +12,7 @@ FIXME:
 
 */
 
-#define HARDWARE_TEST
+//#define HARDWARE_TEST
 
 #define OK                    0xaa
 #define RESET                 0x01  // OBSOLETE

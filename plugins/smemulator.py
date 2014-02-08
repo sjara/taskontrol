@@ -234,13 +234,12 @@ class StateMachineClient(QtCore.QObject):
             self.enter_state(self.currentState)
             pass
 
-        
-
     def enter_state(self,currentState):
         self.stateTimerValue = self.get_time()
         # TODO: Finish extra timers
         #for indt in range(self.nExtraTimers)
         self.outputs = self.stateOutputs[currentState,:]
+        self.emuGUI.set_outputs(self.outputs)
         self.serialout = self.serialOutputs[currentState]
 
     def update_state_machine(self):
