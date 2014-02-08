@@ -237,16 +237,20 @@ class Dispatcher(QtCore.QObject):
                 ### print self.eventsMat ### DEBUG
 
     def update_trial_borders(self):
-        '''Find last index of last trial '''
+        '''Find last index of last trial.
+        It looks for state zero, which corresponds to the last state no each trial.
+        The first event of all is also state zero, but this one is ignored.'''
         # FIXME: slow way to find end of trial
-        if self.eventCount>0:
-            for inde in xrange(self.eventCount-1,0,-1):
-                # NOTE: initialState=0 is hardcoded here
-                if self.eventsMat[inde][2]==0:
+        if self.currentTrial>=0: # & self.eventCount>0:
+            for inde in xrange(self.eventCount-1,-1,-1): # This will count from n to 0
+                #if self.eventsMat[inde][2] in self.prepareNextTrialStates:
+                if self.eventsMat[inde][2]==DEFAULT_PREPARE_NEXT:
+                    self.indexLastEventEachTrial.append(inde)
                     break
-            self.indexLastEventEachTrial.append(inde)
         # WARNING: make sure this method is not called before the events
         #          at the end of the trials are sent to the client/dispatcher
+        # FIXME: this function has not been tested with more than one state
+        #        in prepareNextTrialStates.
 
     def events_one_trial(self,trialID):
         '''Return events for one trial as a numpy array'''
