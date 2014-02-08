@@ -29,18 +29,90 @@ class EmulatorGUI(QtGui.QWidget):
     def __init__(self, parent=None):
         super(EmulatorGUI, self).__init__(parent)
         '''
-        window = QtGui.QMainWindow(self)
-        window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.window = QtGui.QMainWindow()
+        #self.window = QtGui.QWidget()
+        self.window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        window.statusBar()
-        menubar = window.menuBar()
-        switchtoSchMenu = menubar.addMenu('switchtoSCHEMATIC')
-        window.setGeometry(100, 600, 500, 300)
-        window.setWindowTitle('Layout View')
-        window.show()
+        self.window.setGeometry(100, 600, 500, 300)
+        self.window.setWindowTitle('State Machine Emulator')
+        self.window.show()
+        self.window.activateWindow()
         '''
-        pass
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setGeometry(600, 600, 300, 200)
+        self.setWindowTitle('State Machine Emulator')
 
+        nButtons = 3
+        self.button = nButtons*[0]
+        self.light = nButtons*[0]
+        self.water = nButtons*[0]
+        buttonsStrings = ['C','L','R']
+        buttonsPos = [1,0,2]
+        layoutMain = QtGui.QGridLayout()
+        for indbut in range(nButtons):
+            self.button[indbut] = QtGui.QPushButton(buttonsStrings[indbut])
+            self.button[indbut].setMinimumSize(100,100)
+            layoutMain.addWidget(self.button[indbut],2,buttonsPos[indbut])
+            self.light[indbut] = QtGui.QPushButton()
+            self.light[indbut].setMinimumSize(100,25)
+            self.light[indbut].setEnabled(False)
+            self.changeLight(indbut,0)
+            layoutMain.addWidget(self.light[indbut],1,buttonsPos[indbut])
+            self.water[indbut] = QtGui.QPushButton()
+            self.water[indbut].setMinimumSize(100,25)
+            self.water[indbut].setEnabled(False)
+            layoutMain.addWidget(self.water[indbut],0,buttonsPos[indbut])
+        self.setLayout(layoutMain)
+
+        self.inputStatus = np.zeros(nButtons,dtype=int)
+
+        for indbut in range(nButtons):
+            self.button[indbut].pressed.connect(lambda ind=indbut: self.inputOn(ind))
+            self.button[indbut].released.connect(lambda ind=indbut: self.inputOff(ind))
+
+        self.show()
+        self.activateWindow()
+        
+
+
+    def inputOn(self,inputID):
+        #print 'ON: {0}'.format(inputID)
+        self.inputStatus[inputID] = 1
+    def inputOff(self,inputID):
+        #print 'OFF: {0}'.format(inputID)
+        self.inputStatus[inputID] = False
+    def changeLight(self,lightID,value):
+        if value:
+            stylestrLight = 'QWidget { background-color: yellow }'
+        else:
+            stylestrLight = ''
+        self.light[lightID].setStyleSheet(stylestrLight)
+    def changeWater(self,waterID,value):
+        if value:
+            stylestrWater = 'QWidget { background-color: blue }'
+        else:
+            stylestrWater = ''
+        self.water[waterID].setStyleSheet(stylestrWater)
+    def set_one_output(self,outputID,value):
+        # FIXME: this should be written more clearly (with less hardcoded assumptions)
+        if outputID=='':
+            pass
+        elif outputID==1:
+            self.changeLight(0,value)
+        elif outputID==3:
+            self.changeLight(1,value)
+        elif outputID==5:
+            self.changeLight(2,value)
+        elif outputID==0:
+            self.changeWater(0,value)
+        elif outputID==2:
+            self.changeWater(1,value)
+        elif outputID==4:
+            self.changeWater(2,value)
+    def set_outputs(self,outputValues):
+        for ind,val in enumerate(outputValues):
+            if val in [0,1]:
+                self.set_one_output(ind,val)
 
 class StateMachineClient(QtCore.QObject):
 

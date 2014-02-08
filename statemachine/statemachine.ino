@@ -125,8 +125,11 @@ void establishConnection() {
 void initialize() {
   // -- Initialize pins --
   for (indi=0; indi < MAXNINPUTS; indi++) {
+#ifdef HARDWARE_TEST
+    pinMode(inputPins[indi],INPUT_PULLUP); // Is the pull-up necessary? is it right?
+#else
     pinMode(inputPins[indi],INPUT);
-    //pinMode(inputPins[indi],INPUT_PULLUP); // Is the pull-up necessary? is it right?
+#endif
   }
   for (indo=0; indo < MAXNOUTPUTS; indo++) {
     pinMode(outputPins[indo],OUTPUT);
@@ -180,7 +183,7 @@ void execute_cycle() {
       // For input0: 0=up, 1=down, for input1: 2=up, 3=down
       add_event(2*indi + previousValue);
     }
-}
+  }
   
   // -- Test if the state timer finished --
   currentTime = millis();
