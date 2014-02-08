@@ -1,19 +1,24 @@
-.. taskontrol documentation master file, created by
-   sphinx-quickstart on Sun Sep  1 20:20:42 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Welcome to taskontrol's documentation!
-======================================
-
-Contents:
-
-.. toctree::
-   :maxdepth: 2
+TASKontrol
+==========
 
 TASKontrol is a framework for developing behavioral experiments.
 
-It consists of modules written in Python and PySide (Qt4 for Python) designed to ease the process of writing behavioral paradigms and providing a user interface to control the experiments.
+It consists of modules written in Python and PySide (Qt for Python) that help design behavioral paradigms and provide a graphical user interface to control the experiments.
+
+
+Contents:
+^^^^^^^^^
+.. toctree::
+   :maxdepth: 2
+
+   getting_started
+   statematrix
+   reference
+
+..   settings
+..   core
+.. plugins
 
 
 Indices and tables
@@ -23,3 +28,8 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+
+.. taskontrol documentation master file, created by
+   sphinx-quickstart on Sun Sep  1 20:20:42 2013.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
