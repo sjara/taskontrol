@@ -3,7 +3,7 @@
 Getting started with TASKontrol
 ===============================
 
-This document explain how to run an simple paradigm.
+This document explains how to run an simple paradigm.
 
 * First, you need to install TASKontrol. See ???. Make sure the taskontrol directory in in the python path. TODO: How to verify?
 
@@ -29,6 +29,6 @@ This document explain how to run an simple paradigm.
   python testparadigm.py
 
 
-* State #0 named 'ready_next_trial' by default, will be the last state of each trial. When reached, the state machine will yield control to the program running the user interface to prepare the next trial. Once done, the method dispatcher.ready_to_start_trial() will trigger a jump to State #1 to get the trial started (and give control back to the state machine).
+* State #0 (named 'ready_next_trial' by default) will be the last state of each trial. When reached, the state machine will yield control to the program running the user interface to prepare the next trial. Once done, the method dispatcher.ready_to_start_trial() will trigger a jump to State #1 to get the trial started (and give control back to the state machine).
 
 
