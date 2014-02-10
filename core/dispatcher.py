@@ -36,6 +36,7 @@ import numpy as np
 
 #reload(smclient)
 
+DEFAULT_PREPARE_NEXT = 0 # State to prepare next trial
 
 class Dispatcher(QtCore.QObject):
     '''
@@ -163,7 +164,7 @@ class Dispatcher(QtCore.QObject):
 
     def ready_to_start_trial(self):
         '''
-        Tell the state machine that it can jump to state 0 and start new trial.
+        Tell the state machine that it can jump to state 1 and start new trial.
         '''
         self.currentTrial += 1
         self.statemachine.force_state(1)
@@ -206,6 +207,8 @@ class Dispatcher(QtCore.QObject):
             if self._stateMatrixStatus:
                 self.statemachine.run()
                 self.logMessage.emit('Started')
+                ### FIXME: Next line already emitted by timeout?
+                ### self.prepareNextTrial.emit(self.currentTrial+1)
             else:
                 raise Exception('A state matrix has not been set')
         else:
@@ -213,11 +216,13 @@ class Dispatcher(QtCore.QObject):
 
     #@QtCore.Slot()
     def pause(self):
-        # --- Start timer ---
+        # --- Stop timer ---
         self.timer.stop()
         # -- Start state machine --
         if self.isConnected:
             self.statemachine.stop()
+            self.statemachine.force_state(0)
+            # FIXME: self.statemachine.force_output(????)
             self.logMessage.emit('Stopped')
         else:
             print 'The dispatcher is not connected to the state machine server.'
