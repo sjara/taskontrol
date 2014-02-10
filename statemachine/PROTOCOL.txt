@@ -1,5 +1,11 @@
+-----------------------------------------------------------
+ COMMUNICATION PROTOCOL (client=Ubuntu, server=ArduinoDue)
+-----------------------------------------------------------
 
- COMMUNICATION PROTOCOL (client=Ubuntu, server=ArduinoDue):
+Version 0.2
+
+Here 'opcode' refers to one byte that specifies a particular
+command. See definitions at top of statemachine.ino and smclient.py
 
 * CONNECT (establish connection):
 - Client sends CONNECT opcode.
@@ -9,9 +15,20 @@
 - Client checks for OK opcode.
 - Client continues.
 
+* TEST_CONNECTION:
+- Client sends opcode.
+- Server sends OK opcode.
+
 * GET_SERVER_VERSION:
 - Client sends opcode.
 - Server sends a single line of text (a string with line-break).
+
+* SET_SIZES:
+- Client sends opcode.
+- Client sends one byte with the number of inputs.
+- Client sends one byte with the number of outputs.
+- Client sends one byte with the number of extra timers.
+- Server does not return anything.
 
 * GET_TIME:
 - Client sends opcode.
@@ -19,22 +36,33 @@
 
 * GET_INPUTS:
 - Client sends opcode.
-- Server sends a byte with the number of inputs.
+- Server sends one byte with the number of inputs.
 - Server sends one byte for each input with the corresponding value.
 
 * FORCE_OUTPUT:
 - Client sends opcode.
 - Client sends outputIndex as one byte.
 - Client sends outputValue as one byte.
-- Server set the output. It does not return anything.
+- Server sets the output. It does not return anything.
 
 * SET_STATE_MATRIX:
 - Client sends opcode.
 - Client sends each element of the matrix as one byte, one row at a time:
   (state0,action0) then (state0,action1) and so on.
 - Server does not return anything.
+- NOTE: currently, matrix is limited to 256x256
 
 * REPORT_STATE_MATRIX:
+- Client sends opcode.
+- Server sends one strings (line) per row of the matrix
+
+* RUN:
+- Client sends opcode.
+- Servers starts running the state machine. It does not return anything.
+
+* STOP:
+- Client sends opcode.
+- Servers stops running the state machine. It does not return anything.
 
 * SET_STATE_TIMERS:
 - Client sends opcode.
@@ -43,18 +71,38 @@
 - Server does not return anything.
 
 * REPORT_STATE_TIMERS:
+- Client sends opcode.
+- Server sends one line per timer (with the timer value).
+
+* SET_EXTRA_TIMERS:
+- Client sends opcode.
+- Client sends each timer value (in milliseconds) as unsigned long (32bit int)
+  with little-endian byte order (i.e., least significant byte first).
+- Server does not return anything.
+
+* SET_EXTRA_TRIGGERS:
+- Client sends opcode.
+- Client sends one byte specifying the state that triggers each extra timer.
+
+* REPORT_EXTRA_TIMERS:
+- Client sends opcode.
+- Server sends one line per extra timer (with the trigger state and timer value).
 
 * SET_STATE_OUTPUTS:
 - Client sends opcode.
-- Client sends the value for each output on each state as a char (8-bit unsigned int).
+- Client sends, for each output on each state, one byte specifying the value:
   0:low, 1:high, else:keep previous value.
-  Transmission is done one row at a time:
+  All outputs for one state are sent first, then for another state, and so on:
   (state0,output0) then (state0,output1) and so on.
 
-* FORCE_STATE:
+* SET_SERIAL_OUTPUTS:
 - Client sends opcode.
-- Client sends stateID as one byte.
-- The server updates the events table with the code -1 for a forced transition.
+- Client sends one byte for each state.
+- Server does not return anything.
+
+* REPORT_SERIAL_OUTPUTS:
+- Client sends opcode.
+- Server sends one line with the values of the serial outputs.
 
 * GET_EVENTS
 - Client sends opcode.
@@ -63,6 +111,20 @@
   . eventTime is sent in milliseconds
   . eventCode will be -1, if the transition was done through FORCE_STATE.
 - The client has to read each line, split the values and convert to numbers.
+
+* GET_CURRENT_STATE:
+- Client sends opcode.
+- Server sends one byte specifying the current state.
+
+* FORCE_STATE:
+- Client sends opcode.
+- Client sends stateID as one byte.
+- The server updates the events table with the code -1 for a forced transition.
+
+* ERROR:
+- The server sends an ERROR opcode if the command was not recognized.
+
+
 
 === Events matrix ===
 - Events' IDs are integers as follows:
@@ -93,30 +155,9 @@ There are two types of timers:
    
 
 === TO DO ===
-- Make a mask for the outputs
-- OLD: get_events() disturbs timing?
-- Change STOP to PAUSE
-- Extra timers (scheduled waves)
-- Send previous state in addition to current state?
-- When to use numpy arrays and when python lists?
-
 - Check how much memory is being used:
   http://playground.arduino.cc/Code/AvailableMemory
 - Test that nStates (in stateMatrix) is within limits (<256)
-
-=== DONE ===
-- Run continuously polling inputs
-- Keep timing
-- Send back time when requested
-- Send state matrix
-- Log changes in inputs (on every polling event)
-- Send them back through serial
-- FORCE_STATE: to send back to 0
-- Timers for each state
-- Send N events before events matrix to avoid using timeout
-- Trigger timer with button. Make it calculate best scaler/reload. (use a struct)
-- Apply timers
-- Set output for each state entry
 
 
 === QUESTIONS ABOUT DESIGN ===
@@ -139,6 +180,12 @@ There are two types of timers:
   in intermediate states will not be set.
 - Stopping the state machine does not turn off outputs. This may be a
   problem when using lasers and other pulsed outputs.
+- When returning events, the server only sends the next state, not the
+  previous state. Having next state and the previous event should be =
+  enough for keeping track of transitions, unless events are skipped.
+
+
+
 
 - Arrays for events and stateMatrix are created as globals with a
   predefined max size.
