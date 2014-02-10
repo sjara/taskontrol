@@ -49,11 +49,12 @@ class StateMatrix(object):
 
     The default state transition matrix without extra timers has the
     following columns:
+
     [ Cin  Cout  Lin  Lout  Rin  Rout  Tup]
 
     Where the first six are for center, left and right ports, and the
     next column for the state timer.
-
+    
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
     def __init__(self,inputs={},outputs={},readystate='ready_next_trial'):
