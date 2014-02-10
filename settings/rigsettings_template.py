@@ -38,3 +38,18 @@ OUTPUTS = {
     'Stim1'      :6,
     'Stim2'      :7,
 }
+
+'''
+OUTPUTS = {
+    'CenterWater':0,
+    'CenterLED'  :1,
+    'LeftWater'  :2,
+    'LeftLED'    :3,
+    'RightWater' :4,
+    'RightLED'   :5,
+#    'Stim1'      :6,
+#    'Stim2'      :7,
+    'Stim3'      :8,
+}
+'''
+
