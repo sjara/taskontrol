@@ -4,6 +4,9 @@
 State machine client emulator.
 
 TO DO:
+- Separate GUI from Model by using signals and slots.
+
+
 '''
 
 
@@ -145,6 +148,7 @@ class StateMachineClient(QtCore.QObject):
 
         self.sizesSetFlag = False;
         # -- The following sizes will be overwritten by this class' methods --
+        self.previousInputValues = np.zeros(MAXNINPUTS)
         self.inputValues = np.zeros(MAXNINPUTS)
         self.serialOutputs = np.zeros(MAXNSTATES)
         self.stateMatrix = np.zeros((MAXNSTATES,MAXNACTIONS))
@@ -167,18 +171,8 @@ class StateMachineClient(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.execute_cycle)
 
-        self.showgui()
+        self.emuGUI = EmulatorGUI()
         
-    def showgui(self):
-        self.window = QtGui.QMainWindow()
-        #self.window = QtGui.QWidget()
-        self.window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
-        self.window.setGeometry(100, 600, 500, 300)
-        self.window.setWindowTitle('State Machine Emulator')
-        self.window.show()
-        self.window.activateWindow()
-
     def send_reset(self):
         pass
     def connect(self):
@@ -202,6 +196,9 @@ class StateMachineClient(QtCore.QObject):
         pass
     def force_output(self,output,value):
         self.outputs[output] = value
+        # FIXME: do the following with signals and slots
+        if value in [0,1]:
+            self.emuGUI.set_one_output(output,value)
         print 'EMULATOR: Force output {0} to {1}'.format(output,value)
         pass
     def set_state_matrix(self,stateMatrix):
@@ -240,6 +237,7 @@ class StateMachineClient(QtCore.QObject):
     def set_state_outputs(self,stateOutputs):
         self.stateOutputs = np.array(stateOutputs)
         print 'EMULATOR: Set state outputs.'
+        #print self.stateOutputs
         pass
     def set_serial_outputs(self,serialOutputs):
         self.serialOutputs = np.array(serialOutputs)
@@ -280,18 +278,24 @@ class StateMachineClient(QtCore.QObject):
         self.eventsCode[self.nEvents] = thisEventCode
         self.nEvents += 1
         self.eventsToProcess += 1
+        print 'Added event {0}'.format(thisEventCode)
 
     def execute_cycle(self):
-        ###### FINISH ########
+        '''
+        Add events to the queue if any inputs changed or timers finished.
+        This implementation is not intended to be the most efficient,
+        instead we're trying to be as close to the Arduino code as possible.
+        '''
         # -- Check if any input has changed, if so, add event --
         for indi in range(self.nInputs):
-            # if changed
-            #add_event(2*indi + previousValue);
-            pass 
+            previousValue = self.inputValues[indi]
+            self.inputValues[indi] = self.emuGUI.inputStatus[indi]
+            if self.inputValues[indi]!=previousValue:
+                self.add_event(2*indi + previousValue)
         currentTime = self.get_time()
         if (currentTime-self.stateTimerValue) >= self.stateTimers[self.currentState]:
             self.add_event(2*self.nInputs)
-            stateTimerValue = currentTime # Restart timer
+            self.stateTimerValue = currentTime # Restart timer
             pass
 
         # TODO: extratimers
@@ -302,6 +306,7 @@ class StateMachineClient(QtCore.QObject):
         #        update_state_machine sneakily changes a value (currentState)
         previousState = self.currentState
         self.update_state_machine()
+        # -- The following code created problems (see docs), IT IS BEING TESTED --
         if self.currentState != previousState:
             self.enter_state(self.currentState)
             pass
