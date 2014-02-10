@@ -1,8 +1,21 @@
 #!/usr/bin/env python
 
 '''
-Assemble a state transition matrix as well as timers and outputs.
+Classes for assembling a state transition matrix, timers and outputs.
 
+NOTES:
+
+* The state matrix is represented by a python list (of lists), in which
+  each element (row) corresponds to the transitions from one state.
+* The state timers are represented as a list of floats.
+  One element per state.
+* The outputs are represented as a list (of lists). Each element contains
+  the outputs for each state as a list of 0 (off), 1 (on) or another integer
+  which indicates the output should not be changed from its previous value.
+
+'''
+
+'''
 Input format:
 sma.add_state(name='STATENAME', statetimer=3,
              transitions={'EVENT':NEXTSTATE},
@@ -20,14 +33,6 @@ sm.statesNameToIndex
 self.eventsDict
 ...
 
-NOTES:
-- The state matrix is represented by a python list (of lists), in which
-  each element (row) corresponds to the transitions from one state.
-- The state timers are represented as a list of floats.
-  One element per state.
-- The outputs are represented as a list (of lists). Each element contains
-  the outputs for each state as a list of 0 (off), 1 (on) or another integer
-  which indicates the output should not be changed from its previous value.
 '''
 
 
@@ -64,6 +69,10 @@ class StateMatrix(object):
             outputs (dict): Labels for outputs. Elements should be of type str:int.
             readystate (str): name of ready-for-next-trial state.
         
+        A common use is:
+        self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
+                                          outputs=rigsettings.OUTPUTS,
+                                          readystate='ready_next_trial')
         '''
         self.inputsDict = inputs
         self.outputsDict = outputs
