@@ -2,30 +2,103 @@
 #+STARTUP: odd
 #+STARTUP: showall
 
+* Docs:
+*** DONE Clean up taskontrol.core
+*** TODO Document taskontrol.core
+*** TODO Clean up taskontrol.plugins
+
+* Solving the START/STOP dispatcher issue to advance one trial
+*** DONE Find how dispatcher knows that a new trial has happened
+    It polls past events and checks if machine has reached state 0
+    method timeout() checks if self.currentState in self.prepareNextTrialStates
+    it then emits prepareNextTrial
+*** 
+
 * To do soon:
-*** DONE Save results and parameters on the same location 'root/trialData'
+
+*** DONE BUG!!! if a timer is up and Tup transition does not exist (i.e. it stays in state)
+    the system starts generating Tup events after time 0 without stopping
+    (At least in the emulator, not sure about the real thing)
+    Is it because it does not enter the state again? Check line 207 statemachine.ino
+    OPTIONS:
+***** Re-enter state (execute enter_state) when timer is up
+      (the user needs to be aware of this to avoid overflowing the events matrix)
+      it has the consequence that it re-starts extratimers (???)
+      The problem is that any other event that does not produce a transition
+      will also re-start timers!
+***** Do not execute enter_state when timer is up but no transition
+      but reset timer.
+      Does this solve the problem of the timer event being trigger ad-infinitum?
+***** SOLUTION: the emulator was missing a 'self.' in front of stateTimerValue
+      Everything should work fine (emulator and sm) without running enter_state
+
+*** DONE remove the old soundclient.py
+*** TODO When stopping dispatcher, the system should label that trial as invalid
+    and prepare a new one when pressing start again. Be careful that it does not
+    add a new trial at the end of a session when stop is pressed.
+    Think if it's good to prepare a trial when pressing START. (first time and after)
+*** TODO Object to set layout
+*** TODO sidesplot.py: allow giving dict of outcomes/colors as parameter.
+*** TODO sidesplot.py: make dialog with color-code
+*** TODO sidesplot.py: allow more than just filled circles.
+*** TODO FEATURE: have a method to add elements to params. For example:
+    self.params.add(type='Numeric',name='leftProb',label='Prob left',value=0.5,group='Choice')
+*** TODO Find which serial port has the state machine.
+*** TODO Make emulator show all other outputs
+*** DONE dispatcher: make _set_state_matrix() which takes lists
+    and change set_state_matrix() to take sm as input (and define get_ready_states)
+*** DONE enable saving strings
+*** TODO savedata.py Send to remote repository
+***** TODO Make remote dir recursively.
+***** TODO Make a backup of the file if already exists
+*** TODO savedata.py Update database
+*** TODO dispatcher.set_state_matrix() needs parameters by name
+*** TODO SoundClient needs a way to die gracefully.
+*** TODO smclient should have a way to define the serial port, and
+    dispatcher should read the one from rigsettings
+*** TODO What happens if rigsettings defines outputs #1 and #3, but not #2?
+*** TODO Inputs in arduino may need to be pull-down by hardware
+*** TODO Check versions of SM server and client are the same When connecting.
+*** DONE plugins/loadparameters (Find an easy way to set parameters )
+*** DONE When failing, it should disconnect the state machine
+    Just create dispatcher the latest you can
+*** TODO Check that outputs work by using the LED on the arduino.
+*** TODO save a checksum of the Paradigm code to verify that version is the same
+*** DONE ManualControl (see plugins)
+*** TODO StyleSheets (see stylesheets and manualcontrol)
+*** DONE Finish fixing savedata given subject/experimenter/date/suffix.
+*** TODO Save paradigm name somewhere in the data (see sessionData in the HDF5 file)
+*** DONE Example008: estimate times
 *** TODO Disassemble events and extract choice, times, etc.
+*** TODO Make a protocol that uses extra timers with statematrix.py
+*** TODO Check doc string on each method of core (start with dispatcher)
+*** DONE Save results and parameters on the same location 'root/trialData'
+*** TODO SaveData:
+***** TODO Add paradigm name to file name
+***** TODO Be smart if data file exists
 *** TODO StateMatrix:
-***** TODO The objects should be created only once per paradigm
-***** TODO On each trial, it once should 'reset-trasitions', and redefine them
+***** TODO Check validity of state matrix sm.get_matrix(verify=True)
+      Useful after reset and redefined.
+***** TODO statematrix.py : Check if there are orphan states.
+***** DONE The objects should be created only once per paradigm
+***** DONE On each trial, it once should 'reset-trasitions', and redefine them
       This way the list of states is unique (valid for all trials)
-***** TODO Is a state exists, use it and update its transitions
+***** DONE Is a state exists, use it and update its transitions
 *** DONE Add extra timers to statematrix.py
 *** DONE Connect run/stop signals to messenger (example007)
 *** DONE Load data saved by SaveData. See examples/test002_readdata.py
-*** TODO Make a protocol that uses extra timers with statematrix.py
-*** TODO Check doc string on each method of core (start with dispatcher)
-*** TODO statematrix.py : Check if there are orphan states.
-*** TODO SaveData:
+*** DONE SaveData:
 ***** DONE Avoid error when saving before RUN
 ***** DONE Fix interactive saving
 ***** DONE Close file if there is an error while saving to it
-***** TODO Save rawEvents as one array of times and one of integer transitions
-*** TODO savedata.SaveData.to_file() should not have a parameter of type paramgui.Container
+***** DONE Save rawEvents as one array of times and one of integer transitions
+*** DONE savedata.SaveData.to_file() should not have a parameter of type paramgui.Container
     because it is defined in another module and I should avoid dependencies.
+    SOLUTION: this method takes as input a list of objects with method append_to_file()
+              it doesn't matter what object type as long as it has that method.
 
 * MINIPROJECT:
-*** TODO Separate rawEvents into times and transitions.
+*** DONE Separate rawEvents into times and transitions.
 *** Data comes to dispatcher as [prevstate time nextstate]
 *** Should save as [time] and [prevstate, nextstate]
 *** protocol.save_to_file() calls
@@ -49,8 +122,25 @@
 
 
 * Bugs and fixes:
+*** TODO Some of the core classes/methods depend on settings.rigsettings.
+    This simplifies the way these methods are called, but it may change in the
+    future to eliminate cross-dependencies.
+*** TODO paramgui.Container.update_history() may create trouble. The history
+    for each parameter is stored as a list (and append() is used to update it).
+    This may get out of sync with trial-number if user calls update_history()
+    more than once within a trial.
+*** TODO The way data is saved makes it difficult to replace the format.
+    Currently, savedata calls the append_to_file method of each module. That means
+    all modules have to agree on the type of file. There should be a file-type
+    independent interface.
+*** TODO Unplugged inputs are floating (not pull-up or pull-down).
+    How to make sure these don't cause problems?
+    The software should only look at defined/connected inputs.
+*** TODO Is FORCE_OUTPUT compatible with the way we deal with outputs,
+    and the fact that a state may not change some outputs?
 *** TODO What happens if Dispatcher.timeout() gets called too often?
     Should I stop the calls to timeout while processing things inside it?
+*** TODO Test if get_events() disturbs the timing of the state machine.
 *** TODO When importing core modules from core modules, should I do it absolute or
     relative (from taskontrol.core import xxx, or just import xxx)
 *** TODO Check the way paramgui.MenuItems are saved. Maybe use append_dict_to_HDF5
@@ -143,6 +233,8 @@
     
 
 * Python tips and code improvements:
+*** Write docstrings according to PEP257:
+    http://www.python.org/dev/peps/pep-0257/
 *** DONE Use isinstance(obj, int) instead of comparing types
 *** TODO Do not compare with == (singleton), use 'is'
 *** TODO Don't compare boolean values to True or False using ==
@@ -239,7 +331,24 @@
 *** BControl and RTLinux FSM:
     http://brodylab.princeton.edu/bcontrol/index.php/Main_Page
     http://code.google.com/p/rt-fsm/
-    
+*** Sphinx (Ubuntu 12.04):
+***** Install python-sphinx
+***** Run: sphinx-quickstart (say 'yes' to autodoc)
+***** Go to .../doc/ and run: make html
+***** Open in browser: .../doc/_build/html/index.html
+*** Documenting (docstrings, Sphinx, etc):
+***** I decided to make docstrings the google style as opposed to sphinx style
+      to keep them readable from ipython's help.
+******* Google style:
+	http://google-styleguide.googlecode.com/svn/trunk/pyguide.html?showone=Comments#Comments	
+******* Comparison and discussion:
+	http://pythonhosted.org/an_example_pypi_project/sphinx.html#function-definitions
+******* To render it nicely in Sphinx you need:
+	https://pypi.python.org/pypi/sphinxcontrib-napoleon/
+	(I installed it with pip)
+***** Example from numpy:
+      https://github.com/numpy/numpy/blob/master/doc/example.py
+***** Check how matplotlib does it (I think with ReST tables)
 
 * Misc:
 *** FIXED (2010-05-12) see ./compiling_FSMemulator.txt
