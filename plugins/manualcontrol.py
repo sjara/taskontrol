@@ -66,11 +66,31 @@ class OutputButton(QtGui.QPushButton):
 
     def start(self):
         '''Start action.'''
-        stylestr = 'QWidget {color: %s}'%BUTTON_COLORS['on']
+        stylestr = 'QPushButton {{color: {0}; font: bold}}'.format(BUTTON_COLORS['on'])
         self.setStyleSheet(stylestr)
-        self._dispatcher.statemachine.bypassDout(self._outputValue)
+        self.statemachine.force_output(self.outputIndex,1)
 
     def stop(self):
-        stylestr = 'QWidget {color: %s}'%BUTTON_COLORS['off']
+        '''Stop action.'''
+        stylestr = ''
         self.setStyleSheet(stylestr)
-        self._dispatcher.statemachine.bypassDout(-self._outputValue)
+        self.statemachine.force_output(self.outputIndex,0)
+
+
+if __name__ == "__main__":
+    import signal
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    import sys
+    try:
+      app = QtGui.QApplication(sys.argv)
+    except RuntimeError:
+      app = QtCore.QCoreApplication.instance()
+    form = QtGui.QDialog()
+    from taskontrol.plugins import smdummy
+    statemachine = smdummy.StateMachineClient()
+    mc = ManualControl(statemachine)
+    layoutMain = QtGui.QHBoxLayout()
+    layoutMain.addWidget(mc)
+    form.setLayout(layoutMain)
+    form.show()
+    app.exec_()
