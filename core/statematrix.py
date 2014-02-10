@@ -62,7 +62,7 @@ class StateMatrix(object):
     
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
-    def __init__(self,inputs={},outputs={},readystate='ready_next_trial'):
+    def __init__(self,inputs={},outputs={},readystate='readyForNextTrial'):
         '''
         Args:
             inputs (dict): Labels for inputs. Elements should be of type str:int.
@@ -72,7 +72,7 @@ class StateMatrix(object):
         A common use is:
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='ready_next_trial')
+                                          readystate='readyForNextTrial')
         '''
         self.inputsDict = inputs
         self.outputsDict = outputs

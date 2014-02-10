@@ -281,6 +281,10 @@ if __name__ == "__main__":
     params['value2'] = NumericParam('AnotherParam',value=3,group='First group')
     params['value3'] = NumericParam('ParamThree',value=2,group='Second group')
     params['value4'] = NumericParam('ParamFour',value=3,group='Second group')
+    params['outcomeMode'] = MenuParam('Outcome mode',
+                                               ['sides direct','direct','on next correct',
+                                                'only if correct'],
+                                               value=3,group='Second group')
     params['nohist'] = NumericParam('somevalue',value=5.4,group='First group',history=False)
     params['experimenter'] = StringParam('Experimenter',value='santiago',group='First group')
     firstGroup = params.layout_group('First group')

@@ -15,23 +15,8 @@
 *** 
 
 * To do soon:
-
-*** DONE BUG!!! if a timer is up and Tup transition does not exist (i.e. it stays in state)
-    the system starts generating Tup events after time 0 without stopping
-    (At least in the emulator, not sure about the real thing)
-    Is it because it does not enter the state again? Check line 207 statemachine.ino
-    OPTIONS:
-***** Re-enter state (execute enter_state) when timer is up
-      (the user needs to be aware of this to avoid overflowing the events matrix)
-      it has the consequence that it re-starts extratimers (???)
-      The problem is that any other event that does not produce a transition
-      will also re-start timers!
-***** Do not execute enter_state when timer is up but no transition
-      but reset timer.
-      Does this solve the problem of the timer event being trigger ad-infinitum?
-***** SOLUTION: the emulator was missing a 'self.' in front of stateTimerValue
-      Everything should work fine (emulator and sm) without running enter_state
-
+*** TODO Menu params are saved different than Labels of variables:
+    menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
 *** DONE remove the old soundclient.py
 *** TODO When stopping dispatcher, the system should label that trial as invalid
     and prepare a new one when pressing start again. Be careful that it does not
@@ -207,6 +192,21 @@
 *** DONE Show current trial in dispatcher
 *** DONE If prepareNextTrialStates has more than two states,
     they may both emit signals. That is not correct.
+*** DONE BUG!!! if a timer is up and Tup transition does not exist (i.e. it stays in state)
+    the system starts generating Tup events after time 0 without stopping
+    (At least in the emulator, not sure about the real thing)
+    Is it because it does not enter the state again? Check line 207 statemachine.ino
+    OPTIONS:
+***** Re-enter state (execute enter_state) when timer is up
+      (the user needs to be aware of this to avoid overflowing the events matrix)
+      it has the consequence that it re-starts extratimers (???)
+      The problem is that any other event that does not produce a transition
+      will also re-start timers!
+***** Do not execute enter_state when timer is up but no transition
+      but reset timer.
+      Does this solve the problem of the timer event being trigger ad-infinitum?
+***** SOLUTION: the emulator was missing a 'self.' in front of stateTimerValue
+      Everything should work fine (emulator and sm) without running enter_state
 
 
 * Questions:

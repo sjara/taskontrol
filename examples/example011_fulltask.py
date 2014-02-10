@@ -1,5 +1,13 @@
 '''
 Create a frequency discrimination 2AFC paradigm.
+
+
+* TO DO:
+- Check that all parameters are saved
+- Check that all times are saved
+- Note that outcomeMode (menu) is saved different from labels (e.g., outcome)
+- Verify that the choice of last trial is saved properly
+
 '''
 
 import numpy as np
@@ -9,6 +17,8 @@ from taskontrol.core import arraycontainer
 
 from taskontrol.plugins import templates
 reload(templates)
+
+LONGTIME = 100
 
 class Paradigm(templates.Paradigm2AFC):
     def __init__(self,parent=None):
@@ -26,10 +36,14 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['outcomeMode'] = paramgui.MenuParam('Outcome mode',
                                                         ['sides direct','direct','on next correct',
                                                          'only if correct'],
-                                                        value=1,group='Choice parameters')
+                                                        value=3,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
+        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.1,
+                                                        group='Timing Parameters')
         self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.5,
+                                                        group='Timing Parameters')
+        self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
                                                         group='Timing Parameters')
         timingParams = self.params.layout_group('Timing Parameters')
 
@@ -109,25 +123,28 @@ class Paradigm(templates.Paradigm2AFC):
             fromChoiceL = 'reward'
             fromChoiceR = 'punish'
             rewardOutput = 'LeftWater'
-            sideIn = 'Lin'
+            correctSidePort = 'Lin'
         elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
             rewardDuration = self.params['timeWaterValveR'].get_value()
             stimOutput = 'RightLED'
             fromChoiceL = 'punish'
             fromChoiceR = 'reward'
             rewardOutput = 'RightWater'
-            sideIn = 'Rin'
+            correctSidePort = 'Rin'
         else:
             raise ValueError('Value of nextCorrectChoice is not appropriate')
+
+        delayToTarget = self.params['delayToTarget'].get_value()
+        rewardAvailability = self.params['rewardAvailability'].get_value()
 
         # -- Set state matrix --
         outcomeMode = self.params['outcomeMode'].get_string()
         if outcomeMode=='sides direct':
-            self.sm.add_state(name='start_trial', statetimer=0,
-                              transitions={'Tup':'wait_for_cpoke'})
-            self.sm.add_state(name='wait_for_cpoke', statetimer=10,
-                              transitions={'Cin':'play_stimulus',sideIn:'play_stimulus'})
-            self.sm.add_state(name='play_stimulus', statetimer=targetDuration,
+            self.sm.add_state(name='startTrial', statetimer=0,
+                              transitions={'Tup':'waitForCenterPoke'})
+            self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
+                              transitions={'Cin':'playStimulus',correctSidePort:'playStimulus'})
+            self.sm.add_state(name='playStimulus', statetimer=targetDuration,
                               transitions={'Tup':'reward'},
                               outputsOn=[stimOutput])
             self.sm.add_state(name='reward', statetimer=rewardDuration,
@@ -135,14 +152,14 @@ class Paradigm(templates.Paradigm2AFC):
                               outputsOn=[rewardOutput],
                               outputsOff=[stimOutput])
             self.sm.add_state(name='stopReward', statetimer=0,
-                              transitions={'Tup':'ready_next_trial'},
+                              transitions={'Tup':'readyForNextTrial'},
                               outputsOff=[rewardOutput])
         elif outcomeMode=='direct':
-            self.sm.add_state(name='start_trial', statetimer=0,
-                              transitions={'Tup':'wait_for_cpoke'})
-            self.sm.add_state(name='wait_for_cpoke', statetimer=2,
-                              transitions={'Cin':'play_stimulus'})
-            self.sm.add_state(name='play_stimulus', statetimer=targetDuration,
+            self.sm.add_state(name='startTrial', statetimer=0,
+                              transitions={'Tup':'waitForCenterPoke'})
+            self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
+                              transitions={'Cin':'playStimulus'})
+            self.sm.add_state(name='playStimulus', statetimer=targetDuration,
                               transitions={'Tup':'reward'},
                               outputsOn=[stimOutput])
             self.sm.add_state(name='reward', statetimer=rewardDuration,
@@ -150,19 +167,48 @@ class Paradigm(templates.Paradigm2AFC):
                               outputsOn=[rewardOutput],
                               outputsOff=[stimOutput])
             self.sm.add_state(name='stopReward', statetimer=0,
-                              transitions={'Tup':'ready_next_trial'},
+                              transitions={'Tup':'readyForNextTrial'},
                               outputsOff=[rewardOutput])
         elif outcomeMode=='on next correct':
-            self.sm.add_state(name='start_trial', statetimer=1,
-                              transitions={'Tup':'ready_next_trial'})
-
-
-            ########### CONTINUE HERE ############
-
+            self.sm.add_state(name='startTrial', statetimer=1,
+                              transitions={'Tup':'readyForNextTrial'})
 
         elif outcomeMode=='only if correct':
-            self.sm.add_state(name='start_trial', statetimer=1,
-                              transitions={'Tup':'ready_next_trial'})
+            self.sm.add_state(name='startTrial', statetimer=0,
+                              transitions={'Tup':'waitForCenterPoke'})
+            self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
+                              transitions={'Cin':'delayPeriod'})
+            self.sm.add_state(name='delayPeriod', statetimer=delayToTarget,
+                              transitions={'Tup':'playStimulus'})
+            self.sm.add_state(name='playStimulus', statetimer=targetDuration,
+                              transitions={'Tup':'waitForSidePoke'},
+                              outputsOn=[stimOutput])
+            ####### CHANGE WHERE THIS GOES on Tup #####
+            self.sm.add_state(name='waitForSidePoke', statetimer=rewardAvailability,
+                              transitions={'Lin':'choiceLeft','Rin':'choiceRight',
+                                           'Tup':'stopReward'},
+                              outputsOff=[stimOutput])
+            if correctSidePort=='Lin':
+                self.sm.add_state(name='choiceLeft', statetimer=0,
+                                  transitions={'Tup':'reward'})
+                self.sm.add_state(name='choiceRight', statetimer=0,
+                                  transitions={'Tup':'punish'})
+            elif correctSidePort=='Rin':
+                self.sm.add_state(name='choiceLeft', statetimer=0,
+                                  transitions={'Tup':'punish'})
+                self.sm.add_state(name='choiceRight', statetimer=0,
+                                  transitions={'Tup':'reward'})
+            else:
+                pass
+            self.sm.add_state(name='reward', statetimer=rewardDuration,
+                              transitions={'Tup':'stopReward'},
+                              outputsOn=[rewardOutput])
+            self.sm.add_state(name='stopReward', statetimer=0,
+                              transitions={'Tup':'readyForNextTrial'},
+                              outputsOff=[rewardOutput])
+            self.sm.add_state(name='punish', statetimer=0,
+                              transitions={'Tup':'readyForNextTrial'})
+
         else:
             raise TypeError('outcomeMode={0} has not been implemented'.format(outcomeMode))
         print self.sm ### DEBUG
@@ -174,11 +220,12 @@ class Paradigm(templates.Paradigm2AFC):
         print '===== Trial {0} ====='.format(trialIndex)
         print eventsThisTrial
 
-        '''
         # -- Find beginning of trial --
-        startTrialStateID = self.sm.statesNameToIndex['start_trial']
+        startTrialStateID = self.sm.statesNameToIndex['startTrial']
+        # FIXME: Next line seems inefficient. Is there a better way?
         startTrialInd = np.flatnonzero(eventsThisTrial[:,2]==startTrialStateID)[0]
         self.results['timeTrialStart'][trialIndex] = eventsThisTrial[startTrialInd,0]
+        '''
         '''
 
         # -- Store choice and outcome --
@@ -196,9 +243,9 @@ class Paradigm(templates.Paradigm2AFC):
             if outcomeMode=='sides direct' or outcomeMode=='direct':
                 self.results['outcome'][trialIndex] = self.results.labels['outcome']['free']
             else:
-                if self.sm.statesNameToIndex['choiceL'] in eventsThisTrial[:,2]:
+                if self.sm.statesNameToIndex['choiceLeft'] in eventsThisTrial[:,2]:
                     self.results['choice'][trialIndex] = self.results.labels['choice']['left']
-                elif self.sm.statesNameToIndex['choiceR'] in eventsThisTrial[:,2]:
+                elif self.sm.statesNameToIndex['choiceRight'] in eventsThisTrial[:,2]:
                     self.results['choice'][trialIndex] = self.results.labels['choice']['right']
                 else:
                     self.results['choice'][trialIndex] = self.results.labels['choice']['none']

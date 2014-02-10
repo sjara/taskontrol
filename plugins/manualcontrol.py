@@ -4,7 +4,9 @@
 Plugin for controlling outputs manually.
 
 
-THIS MODULE NEEDS TO BE CHANGED TO WORK WITH ANY DISPATCHER/CLIENT
+TO DO:
+- The sorting of the buttons is currently alphabetical. Bad idea.
+  I will need to sort by the value of OUTPUTS.
 
 
 '''
@@ -24,7 +26,7 @@ class ManualControl(QtGui.QGroupBox):
     Manual control of outputs
     '''
 
-    def __init__(self, dispatcher, parent=None):
+    def __init__(self, statemachine, parent=None):
         super(ManualControl, self).__init__(parent)
 
         # -- Create graphical objects --
@@ -32,9 +34,9 @@ class ManualControl(QtGui.QGroupBox):
         self.outputButtons = {}
         nButtons = 0
         nCols = 2
-        dictIterator = iter(sorted(rigsettings.DOUT.iteritems()))
+        dictIterator = iter(sorted(rigsettings.OUTPUTS.iteritems()))
         for key,value in dictIterator:
-            self.outputButtons[key] = OutputButton(dispatcher, key,value)
+            self.outputButtons[key] = OutputButton(statemachine, key,value)
             self.outputButtons[key].setObjectName('ManualControlButton')
             row = nButtons//nCols # Integer division
             col = nButtons%nCols  # Modulo
@@ -48,15 +50,17 @@ class ManualControl(QtGui.QGroupBox):
  
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
-    def __init__(self, dispatcher, buttonText, outputValue, parent=None):
+    def __init__(self, statemachine, buttonText, outputIndex, parent=None):
         super(OutputButton, self).__init__(buttonText, parent)
 
         #self.setMinimumHeight(50)
-        self._dispatcher = dispatcher
-        self._outputValue = outputValue
+        self.statemachine = statemachine
+        self.outputIndex = outputIndex
         self.setCheckable(True)
         self.connect(self,QtCore.SIGNAL('clicked()'),self.toggleOutput)
 
+        #stylestr = 'QPushButton {font: 10pt}'
+        #self.setStyleSheet(stylestr)
 
     def toggleOutput(self):
         if self.isChecked():
