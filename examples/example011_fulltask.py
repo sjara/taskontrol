@@ -21,30 +21,32 @@ reload(templates)
 LONGTIME = 100
 
 class Paradigm(templates.Paradigm2AFC):
-    def __init__(self,parent=None):
+    def __init__(self,parent=None, paramfile=None, paramdictname=None):
         super(Paradigm, self).__init__(parent,dummy=0)
 
          # -- Add parameters --
         self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.02,
-                                                               group='Water delivery')
+                                                               units='s',group='Water delivery')
         self.params['timeWaterValveC'] = paramgui.NumericParam('Time valve center',value=0.02,
-                                                               group='Water delivery')
+                                                               units='s',group='Water delivery')
         self.params['timeWaterValveR'] = paramgui.NumericParam('Time valve right',value=0.02,
-                                                               group='Water delivery')
+                                                               units='s',group='Water delivery')
         waterDelivery = self.params.layout_group('Water delivery')
         
+        ###['sides direct','direct','on next correct','only if correct'],
+        ###['sidesDirect','direct','onNextCorrect','onlyIforrect'],
         self.params['outcomeMode'] = paramgui.MenuParam('Outcome mode',
-                                                        ['sides direct','direct','on next correct',
-                                                         'only if correct'],
+                                                        ['sides_direct','direct',
+                                                         'on_next_correct','only_if_correct'],
                                                         value=3,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
         self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.1,
-                                                        group='Timing Parameters')
+                                                        units='s',group='Timing Parameters')
         self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.5,
-                                                        group='Timing Parameters')
+                                                        units='s',group='Timing Parameters')
         self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
-                                                        group='Timing Parameters')
+                                                        units='s',group='Timing Parameters')
         timingParams = self.params.layout_group('Timing Parameters')
 
         # -- Add graphical widgets to main window --
@@ -93,7 +95,10 @@ class Paradigm(templates.Paradigm2AFC):
         self.results['timeCenterOut'] = np.empty(maxNtrials,dtype=float)
         self.results['timeSideIn'] = np.empty(maxNtrials,dtype=float)
 
-         # -- Prepare first trial --
+        # -- Load parameters from a file --
+        self.params.from_file(paramfile,paramdictname)
+
+        # -- Prepare first trial --
         self.prepare_next_trial(0)
        
 
@@ -119,17 +124,17 @@ class Paradigm(templates.Paradigm2AFC):
         targetDuration = self.params['targetDuration'].get_value()
         if nextCorrectChoice==self.results.labels['rewardSide']['left']:
             rewardDuration = self.params['timeWaterValveL'].get_value()
-            stimOutput = 'LeftLED'
+            stimOutput = 'leftLED'
             fromChoiceL = 'reward'
             fromChoiceR = 'punish'
-            rewardOutput = 'LeftWater'
+            rewardOutput = 'leftWater'
             correctSidePort = 'Lin'
         elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
             rewardDuration = self.params['timeWaterValveR'].get_value()
-            stimOutput = 'RightLED'
+            stimOutput = 'rightLED'
             fromChoiceL = 'punish'
             fromChoiceR = 'reward'
-            rewardOutput = 'RightWater'
+            rewardOutput = 'rightWater'
             correctSidePort = 'Rin'
         else:
             raise ValueError('Value of nextCorrectChoice is not appropriate')
@@ -139,7 +144,7 @@ class Paradigm(templates.Paradigm2AFC):
 
         # -- Set state matrix --
         outcomeMode = self.params['outcomeMode'].get_string()
-        if outcomeMode=='sides direct':
+        if outcomeMode=='sides_direct':
             self.sm.add_state(name='startTrial', statetimer=0,
                               transitions={'Tup':'waitForCenterPoke'})
             self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
@@ -173,7 +178,7 @@ class Paradigm(templates.Paradigm2AFC):
             self.sm.add_state(name='startTrial', statetimer=1,
                               transitions={'Tup':'readyForNextTrial'})
 
-        elif outcomeMode=='only if correct':
+        elif outcomeMode=='only_if_correct':
             self.sm.add_state(name='startTrial', statetimer=0,
                               transitions={'Tup':'waitForCenterPoke'})
             self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
@@ -258,6 +263,6 @@ class Paradigm(templates.Paradigm2AFC):
 
 
 if __name__ == "__main__":
-    (app,paradigm) = templates.create_app(Paradigm)
+    (app,paradigm) = paramgui.create_app(Paradigm)
 
 

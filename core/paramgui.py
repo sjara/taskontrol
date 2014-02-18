@@ -24,6 +24,8 @@ import imp
 import numpy as np # To be able to save strings with np.string_()
 import signal
 import sys
+from taskontrol.core import utils
+from taskontrol.settings import rigsettings
 
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
@@ -129,12 +131,17 @@ class Container(dict):
                            'Did you use paramgui.Container.update_history() correctly?')
                 dset = trialDataGroup.create_dataset(key, data=self.history[key][:currentTrial])
                 dset.attrs['Description'] = item.get_label()
+                if item.get_type()=='numeric':
+                    dset.attrs['Units'] = item.get_units()
                 # FIXME: not very ObjectOriented to use getType
                 #        the object should be able to save itself
                 if item.get_type()=='menu':
                     #h5file.createArray(menuItemsGroup, key, item.get_items(),
                     #                   '%s menu items'%paramLabel)
-                    menuItemsGroup.create_dataset(key, data=item.get_items())
+                    #menuItemsGroup.create_dataset(key, data=item.get_items())
+                    menuList = item.get_items()
+                    menuDict = dict(zip(menuList,range(len(menuList))))
+                    utils.append_dict_to_HDF5(menuItemsGroup,key,menuDict)
                     dset.attrs['Description'] = '%s menu items'%item.get_label()
             else: # -- Store parameters without history (Session parameters) --
                 if item.get_type()=='string':
@@ -207,7 +214,7 @@ class StringParam(GenericParam):
 
 
 class NumericParam(GenericParam):
-    def __init__(self, labelText='', value=0, group=None,
+    def __init__(self, labelText='', value=0, units='', group=None,
                  history=True, labelWidth=80, parent=None):
         super(NumericParam, self).__init__(labelText, value, group,
                                            history, labelWidth,  parent)
@@ -219,6 +226,7 @@ class NumericParam(GenericParam):
 
         # -- Define value --
         self.set_value(value)
+        self._units = units
 
     def set_value(self,value):
         self._value = value
@@ -227,6 +235,9 @@ class NumericParam(GenericParam):
     def get_value(self):
         return float(self.editWidget.text())
 
+    def get_units(self):
+        return self._units
+
 
 class MenuParam(GenericParam):
     def __init__(self, labelText='', menuItems=(), value=0, group=None,
@@ -234,6 +245,10 @@ class MenuParam(GenericParam):
         super(MenuParam, self).__init__(labelText, value, group,
                                         history, labelWidth, parent)
         self._type = 'menu'
+
+        # -- Check if spaces in items --
+        if ' ' in ''.join(menuItems):
+            raise ValueError('MenuParam items cannot contain spaces')
 
         # -- Define graphical interface --
         self.editWidget = QtGui.QComboBox()
@@ -282,14 +297,16 @@ def create_app(paradigmClass):
         #app = QtGui.QApplication(sysArgv)
 
     if len(sys.argv)==1:
+        paramfile = None
+        paramdictname = None
+    elif len(sys.argv)==2:
         paramfile = rigsettings.DEFAULT_PARAMSFILE
-        paramdictname = sys.argv[2]
-    if len(sys.argv)>1:
+        paramdictname = sys.argv[1]
+    elif len(sys.argv)==3:
         paramfile = sys.argv[1]
         paramdictname = sys.argv[2]
     else:
-        paramfile = None
-        paramdictname = None
+        raise ValueError('Number of arguments must less than 3')
 
     print '------------------------------------'
     print paramfile,paramdictname

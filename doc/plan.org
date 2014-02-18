@@ -15,8 +15,9 @@
 *** 
 
 * To do soon:
-*** TODO Menu params are saved different than Labels of variables:
+*** DONE Menu params are saved different than Labels of variables:
     menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
+*** TODO Save dicts as something else (currently each item is one variable)
 *** DONE remove the old soundclient.py
 *** TODO When stopping dispatcher, the system should label that trial as invalid
     and prepare a new one when pressing start again. Be careful that it does not
