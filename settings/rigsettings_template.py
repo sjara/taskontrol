@@ -51,6 +51,8 @@ REALTIME = False
 DATA_DIR = '/tmp/'
 REMOTE_DIR = 'localhost://tmp/remote'
 
+DEFAULT_PARAMSFILE = './params.py'
+
 #: Name for each input line.
 # -- The following must match the state machine settings --
 INPUTS = {
@@ -61,14 +63,14 @@ INPUTS = {
 
 #: Name for each output line.
 OUTPUTS = {
-    'CenterWater':0,
-    'CenterLED'  :1,
-    'LeftWater'  :2,
-    'LeftLED'    :3,
-    'RightWater' :4,
-    'RightLED'   :5,
-    'Stim1'      :6,
-    'Stim2'      :7,
+    'centerWater':0,
+    'centerLED'  :1,
+    'leftWater'  :2,
+    'leftLED'    :3,
+    'rightWater' :4,
+    'rightLED'   :5,
+    'stim1'      :6,
+    'stim2'      :7,
 }
 
 '''

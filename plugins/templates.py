@@ -170,33 +170,3 @@ class Paradigm2AFC(QtGui.QMainWindow):
         pass
 '''
 
-# -----------------------------------------------------------------------------
-def create_app(paradigmClass):
-    '''
-    The paradigm file needs to run something like:
-    (app,paradigm) = templates.create_app(Paradigm)
-    '''
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
-
-    paradigm = paradigmClass()
-    paradigm.show()
-
-    app.exec_()
-    return (app,paradigm)
-
-def create_app_only():
-    '''
-    When using this version, the paradigm file needs to run the following:
-        app = templates.create_app_only()
-        paradigm = Paradigm()
-        paradigm.show()
-        app.exec_()
-    '''
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
-    return app

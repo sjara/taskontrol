@@ -22,6 +22,8 @@ from PySide import QtCore
 from PySide import QtGui 
 import imp
 import numpy as np # To be able to save strings with np.string_()
+import signal
+import sys
 
 # FIXME: Add validation of numbers
 #NUMERIC_REGEXP = 
@@ -265,6 +267,54 @@ class MenuParam(GenericParam):
     #    h5file.createArray(dataParent, key, paramContainer.history[key], paramLabel)
     #    h5file.createArray(menuItemsGroup, key, paramContainer[key].get_items(),
     #                               '%s menu items'%paramLabel)
+
+
+# -----------------------------------------------------------------------------
+def create_app(paradigmClass):
+    '''
+    The paradigm file needs to run something like:
+    (app,paradigm) = templates.create_app(Paradigm)
+    '''
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
+    app=QtGui.QApplication.instance() # checks if QApplication already exists 
+    if not app: # create QApplication if it doesnt exist 
+        app = QtGui.QApplication(sys.argv)
+        #app = QtGui.QApplication(sysArgv)
+
+    if len(sys.argv)==1:
+        paramfile = rigsettings.DEFAULT_PARAMSFILE
+        paramdictname = sys.argv[2]
+    if len(sys.argv)>1:
+        paramfile = sys.argv[1]
+        paramdictname = sys.argv[2]
+    else:
+        paramfile = None
+        paramdictname = None
+
+    print '------------------------------------'
+    print paramfile,paramdictname
+
+    paradigm = paradigmClass(paramfile=paramfile,paramdictname=paramdictname)
+    paradigm.show()
+
+    app.exec_()
+    return (app,paradigm)
+
+def create_app_only():
+    '''
+    NOT FINISHED
+    When using this version, the paradigm file needs to run the following:
+        app = templates.create_app_only()
+        paradigm = Paradigm()
+        paradigm.show()
+        app.exec_()
+    '''
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
+    app=QtGui.QApplication.instance() # checks if QApplication already exists 
+    if not app: # create QApplication if it doesnt exist 
+        app = QtGui.QApplication(sys.argv)
+    return app
+
 
 
 if __name__ == "__main__":
