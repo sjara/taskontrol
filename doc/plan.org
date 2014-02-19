@@ -15,6 +15,8 @@
 *** 
 
 * To do soon:
+*** DONE Save hostname and date/time in sessionData group
+    See paramgui for creation of that group
 *** DONE Menu params are saved different than Labels of variables:
     menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
 *** TODO Save dicts as something else (currently each item is one variable)

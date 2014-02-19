@@ -24,6 +24,8 @@ import imp
 import numpy as np # To be able to save strings with np.string_()
 import signal
 import sys
+import socket
+import time
 from taskontrol.core import utils
 from taskontrol.settings import rigsettings
 
@@ -122,6 +124,13 @@ class Container(dict):
         trialDataGroup = h5file.require_group(dataParent)
         menuItemsGroup = h5file.require_group(itemsParent)
         sessionDataGroup = h5file.require_group(sessionParent)
+        
+        # -- Append date/time and hostname --
+        dset = sessionDataGroup.create_dataset('hostname', data=socket.gethostname())
+        dateAndTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+        dset = sessionDataGroup.create_dataset('date', data=dateAndTime)
+        
+        # -- Append all other parameters --
         for key,item in self.iteritems():
             # -- Store parameters with history --
             if item.history_enabled():

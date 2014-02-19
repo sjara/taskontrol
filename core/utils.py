@@ -60,4 +60,5 @@ def dict_from_HDF5(dictGroup):
     newDict={}
     for k,v in dictGroup.iteritems():
         newDict[k]=v[()]
+        newDict[v[()]]=k
     return newDict

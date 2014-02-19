@@ -101,6 +101,7 @@ class StateMatrix(object):
         self.eventsDict['Tup'] = len(self.eventsDict)
 
         self.nInputEvents = len(self.eventsDict)
+        self.eventsDict['Forced'] = -1
         self.nOutputs = len(self.outputsDict)
 
         #self.readyForNextTrialStateName = readystate[0]
@@ -328,7 +329,8 @@ class StateMatrix(object):
         matstr = ''
         revEventsDict = {}
         for key in self.eventsDict:
-            revEventsDict[self.eventsDict[key]] = key
+            if key!='Forced':
+                revEventsDict[self.eventsDict[key]] = key
         matstr += '\t\t\t'
         matstr += '\t'.join([revEventsDict[k][0:4] for k in sorted(revEventsDict.keys())])
         matstr += '\t\tTimers\tOutputs\tSerialOut'
