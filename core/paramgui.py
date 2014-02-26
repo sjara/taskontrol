@@ -196,6 +196,10 @@ class GenericParam(QtGui.QWidget):
     def history_enabled(self):
         return self._historyEnabled
 
+    def set_enabled(self,enabledStatus):
+        '''Enable/disable the widget'''
+        self.editWidget.setEnabled(enabledStatus)
+
 
 class StringParam(GenericParam):
     def __init__(self, labelText='', value='', group=None,
@@ -242,7 +246,10 @@ class NumericParam(GenericParam):
         self.editWidget.setText(str(value))
 
     def get_value(self):
-        return float(self.editWidget.text())
+        try:
+            return int(self.editWidget.text())
+        except ValueError:
+            return float(self.editWidget.text())
 
     def get_units(self):
         return self._units
@@ -341,7 +348,18 @@ def create_app_only():
         app = QtGui.QApplication(sys.argv)
     return app
 
+def center_in_screen(widget):
+    qr = widget.frameGeometry()
+    cp = QtGui.QDesktopWidget().availableGeometry().center()
+    qr.moveCenter(cp)
+    widget.move(qr.topLeft())
 
+'''
+# FIXME: I don't know yet how to connect signals to this function
+def show_message(window,msg):
+    window.statusBar().showMessage(str(msg))
+    print msg
+'''
 
 if __name__ == "__main__":
     import signal
