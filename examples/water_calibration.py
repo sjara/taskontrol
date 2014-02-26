@@ -46,28 +46,29 @@ class WaterCalibration(QtGui.QMainWindow):
         self.sessionInfo = self.params.layout_group('Session info')
         '''
 
-        self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.02,
+        self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.04,
                                                                units='s',group='Valves times')
-        self.params['timeWaterValveC'] = paramgui.NumericParam('Time valve center',value=0.02,
-                                                               units='s',group='Valves times')
-        self.params['timeWaterValveR'] = paramgui.NumericParam('Time valve right',value=0.02,
+        #self.params['timeWaterValveC'] = paramgui.NumericParam('Time valve center',value=0.04,
+        #                                                       units='s',group='Valves times')
+        self.params['timeWaterValveR'] = paramgui.NumericParam('Time valve right',value=0.04,
                                                                units='s',group='Valves times')
         valvesTimes = self.params.layout_group('Valves times')
 
         self.params['waterVolumeL'] = paramgui.NumericParam('Water volume left',value=0,
                                                                units='ml',group='Water volume')
-        self.params['waterVolumeC'] = paramgui.NumericParam('Water volume center',value=0,
-                                                               units='ml',group='Water volume')
+        #self.params['waterVolumeC'] = paramgui.NumericParam('Water volume center',value=0,
+        #                                                       units='ml',group='Water volume')
         self.params['waterVolumeR'] = paramgui.NumericParam('Water volume right',value=0,
                                                                units='ml',group='Water volume')
         waterVolume = self.params.layout_group('Water volume')
 
-        self.params['offTime'] = paramgui.NumericParam('Time between',value=0.4,
+        self.params['offTime'] = paramgui.NumericParam('Time between',value=0.5,
                                                        units='s',group='Schedule')
         self.params['nDeliveries'] = paramgui.NumericParam('N deliveries',value=2,
                                                        units='',group='Schedule')
         self.params['nDelivered'] = paramgui.NumericParam('N delivered',value=0,
                                                        units='',group='Schedule')
+        self.params['nDelivered'].set_enabled(False)
         schedule = self.params.layout_group('Schedule')
 
 
@@ -90,12 +91,12 @@ class WaterCalibration(QtGui.QMainWindow):
         layoutCol1.addWidget(self.dispatcherView)
 
         layoutCol2.addWidget(valvesTimes)
-        layoutCol2.addWidget(self.manualControl)
         layoutCol2.addStretch()
+        layoutCol2.addWidget(self.manualControl)
 
         layoutCol3.addWidget(waterVolume)
-        layoutCol3.addWidget(schedule)
         layoutCol3.addStretch()
+        layoutCol3.addWidget(schedule)
 
         layoutMain.addLayout(layoutCol1)
         layoutMain.addLayout(layoutCol2)
@@ -146,34 +147,24 @@ class WaterCalibration(QtGui.QMainWindow):
         valveTimeR = self.params['timeWaterValveR'].get_value()
         #valveTimeR = self.params['timeWaterValveR'].get_value()
 
-        '''
-        #self.sm.add_state(name='startTrial', statetimer=0,
-        #                  transitions={'Tup':'waitForCenterPoke'})
-        for indd in range(int(self.params['nDeliveries'].get_value())):
-            valveOn = 'valveOn_{0}'.format(indd)
-            valveOff = 'valveOff_{0}'.format(indd)
-            nextValveOn = 'valveOn_{0}'.format(indd+1)
-            self.sm.add_state(name=valveOn,
-                              statetimer=self.params['timeWaterValveR'].get_value(),
-                              transitions={'Tup':valveOff},
-                              outputsOn={'rightWater'})
-            self.sm.add_state(name=valveOff,
-                              statetimer=self.params['offTime'].get_value(),
-                              transitions={'Tup':nextValveOn},
-                              outputsOff={'rightWater'})
-        self.sm.add_state(name=nextValveOn,statetimer=0,
-                          transitions={'Tup':'readyForNextTrial'})
-        '''
         self.sm.add_state(name='startTrial', statetimer=0,
-                          transitions={'Tup':'valveOn'})
-        self.sm.add_state(name='valveOn',
+                          transitions={'Tup':'valveOnL'})
+        self.sm.add_state(name='valveOnL',
+                          statetimer=self.params['timeWaterValveL'].get_value(),
+                          transitions={'Tup':'valveOffL'},
+                          outputsOn={'leftLED','leftWater'})
+        self.sm.add_state(name='valveOffL',
+                          statetimer=self.params['offTime'].get_value(),
+                          transitions={'Tup':'valveOnR'},
+                          outputsOff={'leftLED','leftWater'})
+        self.sm.add_state(name='valveOnR',
                           statetimer=self.params['timeWaterValveR'].get_value(),
-                          transitions={'Tup':'valveOff'},
-                          outputsOn={'rightWater'})
-        self.sm.add_state(name='valveOff',
+                          transitions={'Tup':'valveOffR'},
+                          outputsOn={'rightLED','rightWater'})
+        self.sm.add_state(name='valveOffR',
                           statetimer=self.params['offTime'].get_value(),
                           transitions={'Tup':'readyForNextTrial'},
-                          outputsOff={'rightWater'})
+                          outputsOff={'rightLED','rightWater'})
         pass
         print self.sm ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm)

@@ -12,7 +12,19 @@
     It polls past events and checks if machine has reached state 0
     method timeout() checks if self.currentState in self.prepareNextTrialStates
     it then emits prepareNextTrial
-*** 
+
+
+* WaterCalibration:
+*** DONE Why does it start with the valve on?
+    Because the machine stops in state#1 to wait for RUN button press.
+    If state#1 is the ValveOn, then that output is on.
+    I included a 'startTrial' state.
+*** DONE How to stop from code:
+    dispatcherModel.pause() did not work
+    dispatcherView.stop() worked but I can't restarted
+    It stops at state0 and does not move after START button
+    because test condition nTrials<nDeliveries is false
+    I added a 'Ndelivered' variable.
 
 * To do soon:
 *** DONE Save hostname and date/time in sessionData group
