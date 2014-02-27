@@ -27,9 +27,9 @@ STATE_MACHINE_PORT = '/dev/ttyACM0'
 SOUND_SERVER = {'port':'/dev/ttyACM1',
                 'baudRate':115200,
                 'soundCard':'hw:0',
-                'samplingRate':96000, 
+                'samplingRate':192000, 
                 'nChannels':2,
-                'bufferSize':128,
+                'bufferSize':512,
                 'realtime':True}
 
 _ignore=0
