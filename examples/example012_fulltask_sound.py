@@ -42,9 +42,9 @@ class Paradigm(templates.Paradigm2AFC):
                                                         value=1,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
-        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.1,
+        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0,
                                                         units='s',group='Timing Parameters')
-        self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.1,
+        self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.05,
                                                         units='s',group='Timing Parameters')
         self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
                                                         units='s',group='Timing Parameters')
@@ -339,6 +339,7 @@ class Paradigm(templates.Paradigm2AFC):
         else:
             if outcomeMode=='sides_direct' or outcomeMode=='direct':
                 self.results['outcome'][trialIndex] = self.results.labels['outcome']['free']
+                self.params['nValid'].add(1)
                 self.params['nRewarded'].add(1)
             if outcomeMode=='on_next_correct' or outcomeMode=='only_if_correct':
                 if self.sm.statesNameToIndex['choiceLeft'] in eventsThisTrial[:,2]:
@@ -364,9 +365,9 @@ class Paradigm(templates.Paradigm2AFC):
                     elif self.sm.statesNameToIndex['punish'] in eventsThisTrial[:,2]:
                         self.results['outcome'][trialIndex] = \
                             self.results.labels['outcome']['error']
-            # -- Check if it was a valid trial --
-            if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
-                self.params['nValid'].add(1)
+            	# -- Check if it was a valid trial --
+            	if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
+                	self.params['nValid'].add(1)
 
 
 if __name__ == "__main__":
