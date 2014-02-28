@@ -169,12 +169,13 @@ class WaterCalibration(QtGui.QMainWindow):
         print self.sm ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm)
 
-        # if self.dispatcherModel.currentTrial < self.params['nDeliveries'].get_value():
+        #if self.dispatcherModel.currentTrial < 0:
+        #print '---- {0} ---'.format(self.dispatcherModel.currentTrial)
+        #pass
         if self.params['nDelivered'].get_value() < self.params['nDeliveries'].get_value():
             self.dispatcherModel.ready_to_start_trial()
             self.params['nDelivered'].set_value(int(self.params['nDelivered'].get_value())+1)
         else:
-            #self.dispatcherModel.pause()
             self.dispatcherView.stop()
             self.params['nDelivered'].set_value(0)
 
