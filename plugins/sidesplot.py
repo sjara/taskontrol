@@ -38,7 +38,7 @@ class SidesPlot(pg.PlotWidget):
         self.mainPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True)
         self.addItem(self.mainPlot)
 
-        self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3} 
+        self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,'nochoice':4,'aftererror':5,'aborted':6} 
         # FIXME: This should come from somewhere else (to be consisten with the rest)
 
         # -- Graphical adjustments --
@@ -96,11 +96,17 @@ class SidesPlot(pg.PlotWidget):
         xError = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['error'])+minTrial
         xInvalid = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['invalid'])+minTrial
         xFree = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['free'])+minTrial
-        xAll = np.concatenate((xSide,xCorrect,xError,xInvalid,xFree))
+        xNoChoice = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['nochoice'])+minTrial
+        xAfterError = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['aftererror'])+minTrial
+        xAborted = np.flatnonzero(outcome[xPastTrials]==self.outcomeIDs['aborted'])+minTrial
+        xAll = np.concatenate((xSide,xCorrect,xError,xInvalid,xFree,xNoChoice,xAfterError,xAborted))
         yAll = sides[xAll]
         green=(0,212,0)
+        gray = 0.75
+        pink = (255,192,192)
         self.make_pens([ [len(xSide),'b'], [len(xCorrect),green], [len(xError),'r'],
-                         [len(xInvalid),'y'], [len(xFree),'c']])
+                         [len(xInvalid),gray], [len(xFree),'c'], [len(xNoChoice),'w'],
+                         [len(xAfterError),pink],[len(xAborted),'k']])
         self.mainPlot.setData(x=xAll, y=yAll, pen=self.pens, brush=self.brushes)
         self.setXRange(minTrial, minTrial+self.nTrialsToPlot)
         #print minTrial, minTrial+self.nTrialsToPlot ### DEBUG

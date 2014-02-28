@@ -12,31 +12,34 @@
     It polls past events and checks if machine has reached state 0
     method timeout() checks if self.currentState in self.prepareNextTrialStates
     it then emits prepareNextTrial
+*** TODO When stopping dispatcher, the system should label that trial as invalid
+    and prepare a new one when pressing start again. Be careful that it does not
+    add a new trial at the end of a session when stop is pressed.
+    Think if it's good to prepare a trial when pressing START. (first time and after)
 
-
-* WaterCalibration:
-*** DONE Why does it start with the valve on?
-    Because the machine stops in state#1 to wait for RUN button press.
-    If state#1 is the ValveOn, then that output is on.
-    I included a 'startTrial' state.
-*** DONE How to stop from code:
-    dispatcherModel.pause() did not work
-    dispatcherView.stop() worked but I can't restarted
-    It stops at state0 and does not move after START button
-    because test condition nTrials<nDeliveries is false
-    I added a 'Ndelivered' variable.
 
 * To do soon:
+*** TODO How to estimate withdrawals before stim?
+    A histogram would be cut at sound-onset because of before that, the trials
+    are not restarted, the machine just goes to waitForCpoke.
+*** DONE on_next_correct is reported the same as only_if in sidesplot
+    Not anymore. There is an outcome called 'aftererror'
+*** DONE Have a state that indicates aborted? or some way anyway
+    and plot it in sidesplot.
+    It's not really a state. I am checking if transition is forced into state -1
+*** DONE sidesplot should show nochoice trials.
+*** TODO Show how many valid trials and how many rewarded
+*** TODO Incrementing a paramgui is cumbersome
+    self.params['nRewarded'].set_value(self.params['nRewarded'].set_value()+1)
+    Maybe we can add a method for incrementing
+
+*** TODO Redo sounds when parameters change
 *** DONE Save hostname and date/time in sessionData group
     See paramgui for creation of that group
 *** DONE Menu params are saved different than Labels of variables:
     menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
 *** TODO Save dicts as something else (currently each item is one variable)
 *** DONE remove the old soundclient.py
-*** TODO When stopping dispatcher, the system should label that trial as invalid
-    and prepare a new one when pressing start again. Be careful that it does not
-    add a new trial at the end of a session when stop is pressed.
-    Think if it's good to prepare a trial when pressing START. (first time and after)
 *** TODO Object to set layout
 *** TODO sidesplot.py: allow giving dict of outcomes/colors as parameter.
 *** TODO sidesplot.py: make dialog with color-code
@@ -119,6 +122,20 @@
 ***** DONE setStatesColor, use state names
 *** TODO Module for creating generic sounds (tones, noise, AM, FM, etc)
 *** TODO Graphical interface (detachable) for setting sound parameters.
+
+* WaterCalibration:
+*** TODO Before pressing start, N deliveries appears as 1
+    because the trial has been prepared (by prepare_next_trial)
+*** DONE Why does it start with the valve on?
+    Because the machine stops in state#1 to wait for RUN button press.
+    If state#1 is the ValveOn, then that output is on.
+    I included a 'startTrial' state.
+*** DONE How to stop from code:
+    dispatcherModel.pause() did not work
+    dispatcherView.stop() worked but I can't restarted
+    It stops at state0 and does not move after START button
+    because test condition nTrials<nDeliveries is false
+    I added a 'Ndelivered' variable.
 
 
 * Bugs and fixes:
