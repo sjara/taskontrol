@@ -228,7 +228,7 @@ class StringParam(GenericParam):
 
 class NumericParam(GenericParam):
     def __init__(self, labelText='', value=0, units='', group=None,
-                 history=True, labelWidth=80, parent=None):
+                 history=True, labelWidth=80, enabled=True, parent=None):
         super(NumericParam, self).__init__(labelText, value, group,
                                            history, labelWidth,  parent)
         self._type = 'numeric'
@@ -236,6 +236,7 @@ class NumericParam(GenericParam):
         # -- Define graphical interface --
         self.editWidget = QtGui.QLineEdit()
         self.editWidget.setObjectName('ParamEdit')
+        self.set_enabled(enabled)
 
         # -- Define value --
         self.set_value(value)
@@ -253,6 +254,9 @@ class NumericParam(GenericParam):
 
     def get_units(self):
         return self._units
+
+    def add(self,value):
+        self.set_value(self.get_value()+value)
 
 
 class MenuParam(GenericParam):
