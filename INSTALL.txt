@@ -21,7 +21,11 @@ The steps necessary to get started on any operating system are as follows :
   sudo apt-get update
 
 * Install dependencies:
-  sudo apt-get install git-core ipython python-pyside python-numpy python-matplotlib python-h5py
+  sudo apt-get install git ipython python-pyside python-numpy python-matplotlib python-h5py
+
+* Some widgets/plots depend on pyqtgraph (faster than matplotlib).
+  Download .deb from  http://luke.campagnola.me/debian/dev/
+  Install: sudo dpkg -i python-pyqtgraph_0.9.8-1_all.deb 
 
 * Create and go to the directory where you want the code:
   mkdir ~/src
