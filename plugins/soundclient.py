@@ -43,18 +43,21 @@ from taskontrol.settings import rigsettings
 
 #PYRO_PORT=rigsettings.SOUND_SERVER_PYRO_PORT
 
-SERIAL_PORT_PATH= rigsettings.SOUND_SERVER['port']
-SERIAL_BAUD_RATE = rigsettings.SOUND_SERVER['baudRate']
+# NOTE: all parameters for the sound server (sampling rate, etc)
+#       are defined in the script that runs jackd, not on this file.
+
+SERIAL_PORT_PATH= rigsettings.SOUND_TRIGGER_PORT
+SERIAL_BAUD_RATE = 115200  # Should be the same in statemachine.ino
 SERIAL_TIMEOUT = None
+'''
 SOUND_CARD = rigsettings.SOUND_SERVER['soundCard']
 SAMPLING_RATE = rigsettings.SOUND_SERVER['samplingRate']
 N_CHANNELS = rigsettings.SOUND_SERVER['nChannels']
 BUFFER_SIZE = rigsettings.SOUND_SERVER['bufferSize']
 REALTIME = rigsettings.SOUND_SERVER['realtime']
+'''
 
 MAX_NSOUNDS = 128 # According to the serial protocol.
-
-###SERIAL_PORT_PATH = '/dev/ttyACM1'
 
 
 class SoundPlayer(threading.Thread):
