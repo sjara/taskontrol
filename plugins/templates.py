@@ -24,7 +24,6 @@ from taskontrol.core import arraycontainer
 from taskontrol.plugins import manualcontrol
 from taskontrol.plugins import sidesplot
 
-import signal
 
 class ParadigmTest(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -32,16 +31,11 @@ class ParadigmTest(QtGui.QMainWindow):
         self.myvar=0
 
 class Paradigm2AFC(QtGui.QMainWindow):
-    def __init__(self, parent=None, paramfile=None, paramdictname=None, dummy=False):
+    def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm2AFC, self).__init__(parent)
 
         self.name = '2afc'
-
-        # -- Read settings --
-        if dummy:
-            smServerType = 'dummy'
-        else:
-            smServerType = rigsettings.STATE_MACHINE_TYPE
+        smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Sides plot --
         sidesplot.set_pg_colors(self)

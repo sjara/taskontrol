@@ -25,7 +25,7 @@ LONGTIME = 100
 
 class Paradigm(templates.Paradigm2AFC):
     def __init__(self,parent=None, paramfile=None, paramdictname=None):
-        super(Paradigm, self).__init__(parent,dummy=0)
+        super(Paradigm, self).__init__(parent)
 
          # -- Add parameters --
         self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.04,
@@ -68,7 +68,15 @@ class Paradigm(templates.Paradigm2AFC):
                                                         units='Hz',group='Sound Parameters')
         self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=5000,
                                                         units='Hz',group='Sound Parameters')
+        '''
+        self.params['highFreq'] = paramgui.NumericParam('High freq',value=500,
+                                                        units='Hz',group='Sound Parameters')
+        self.params['midFreq'] = paramgui.NumericParam('Middle freq',value=440,
+                                                        units='Hz',group='Sound Parameters')
+        self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=400,
+                                                        units='Hz',group='Sound Parameters')
         #4200, 9200, 20200
+        '''
         soundParams = self.params.layout_group('Sound Parameters')
 
 
@@ -146,9 +154,12 @@ class Paradigm(templates.Paradigm2AFC):
         stimDur = self.params['targetDuration'].get_value()
         s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':0.01}
         s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':0.01}
+        '''
+        s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':0.1}
+        s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':0.1}
+        '''
         self.soundClient.set_sound(1,s1)
         self.soundClient.set_sound(2,s2)
-        self.soundClient.create_sounds() ### FIXME: will be removed soon
         self.soundClient.start()
 
         # -- Prepare first trial --

@@ -36,6 +36,7 @@ import pyo
 import threading
 import serial
 import time
+import os
 from taskontrol.settings import rigsettings
 
 #from Pyro.ext import remote_nons
@@ -59,6 +60,12 @@ REALTIME = rigsettings.SOUND_SERVER['realtime']
 
 MAX_NSOUNDS = 128 # According to the serial protocol.
 
+if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
+    USEJACK = True
+    SERIALTRIGGER = True
+else:
+    USEJACK = False
+    SERIALTRIGGER = False
 
 class SoundPlayer(threading.Thread):
     def __init__(self,serialtrigger=True):
@@ -87,13 +94,32 @@ class SoundPlayer(threading.Thread):
                 soundID = ord(onechar)
                 self.play_sound(soundID)
                 #print soundID
+        else:
+            '''Emulated mode'''
+            while True:
+                try:
+                    f=open('/tmp/serialoutput.txt','r')
+                    oneval = f.read()
+                    if len(oneval):
+                        soundID = int(oneval)
+                    self.play_sound(soundID)
+                except:
+                    pass
 
     def init_pyo(self):
         # -- Initialize sound generator (pyo) --
         print 'Creating pyo server.'
+        if USEJACK:
+            self.pyoServer = pyo.Server(audio='jack').boot()
+        else:
+            self.pyoServer = pyo.Server(audio='offline').boot()
+            self.pyoServer.recordOptions(dur=0.1, filename='/tmp/tempsound.wav',
+                                         fileformat=0, sampletype=0)
+        '''
         self.pyoServer = pyo.Server(sr=SAMPLING_RATE, nchnls=N_CHANNELS,
                                     buffersize=BUFFER_SIZE,
                                     duplex=0, audio='jack').boot()
+        '''
         self.pyoServer.start()
         print 'Pyo server ready'
 
@@ -107,8 +133,23 @@ class SoundPlayer(threading.Thread):
         {'type':'tone', 'frequency':200, 'duration':0.2, 'amplitude':0.1}
         '''
         self.soundsParamsDict[soundID] = soundParams
+        (self.sounds[soundID],self.soundwaves[soundID]) = \
+            self.create_sound(self.soundsParamsDict[soundID])
 
-    def create_sounds(self):
+    def create_sound(self,soundParams):
+        if soundParams['type']=='tone':
+            soundObj = pyo.Fader(fadein=self.risetime,
+                                 fadeout=self.falltime,
+                                 dur=soundParams['duration'],
+                                 mul=soundParams['amplitude'])
+            soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
+                                    mul=soundObj).mix(2).out()
+            return(soundObj,soundwaveObj)
+        else:
+            print 'Sound type not implemented.'
+            return(None,None)
+
+    def OLD_create_sounds(self):
         # FIXME: maybe soundsParamsDict it should be an input to this method
         for soundID,soundParams in self.soundsParamsDict.iteritems():
             if soundParams['type']=='tone':
@@ -123,7 +164,16 @@ class SoundPlayer(threading.Thread):
 
     def play_sound(self,soundID):
         # FIXME: check that this sound as been defined
-        self.sounds[soundID].play()
+        if USEJACK:
+            self.sounds[soundID].play()
+        else:
+            soundfile = '/tmp/tempsound.wav'
+            duration = self.sounds[soundID].dur
+            self.pyoServer.recordOptions(dur=duration, filename=soundfile,
+                                         fileformat=0, sampletype=0)
+            self.sounds[soundID].play()
+            self.pyoServer.start()
+            os.system('aplay {0}'.format(soundfile))
 
     def shutdown(self):
         self.pyoServer.shutdown()
@@ -135,8 +185,9 @@ class SoundClient(object):
     Object for connecting to the sound server and defining sounds.
     '''
 
-    def __init__(self, serialtrigger=True):
-        self.soundPlayerThread = SoundPlayer(serialtrigger=serialtrigger)
+    #def __init__(self, serialtrigger=True):
+    def __init__(self):
+        self.soundPlayerThread = SoundPlayer(serialtrigger=SERIALTRIGGER)
         self.soundPlayerThread.daemon=True
 
     def start(self):
@@ -162,7 +213,7 @@ class SoundClient(object):
 
 
 if __name__ == "__main__":
-    CASE = 1
+    CASE = 3
     if CASE==1:
         soundPlayerThread = SoundPlayer(serialtrigger=True)
         soundPlayerThread.daemon=True
@@ -184,14 +235,18 @@ if __name__ == "__main__":
        
 
     if CASE==3:
-        sc = SoundClient(serial=False)
-        s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
+        sc = SoundClient(serialtrigger=False)
+        s1 = {'type':'tone', 'frequency':500, 'duration':0.2, 'amplitude':0.1}
+        s2 = {'type':'tone', 'frequency':400, 'duration':0.1, 'amplitude':0.1}
         sc.set_sound(1,s1)
+        sc.set_sound(2,s2)
+        sc.create_sounds() ### FIXME: will be removed soon
         sc.start()
-        sc.define_sounds()
-        #sc.play_sound(1)
+        #sc.define_sounds()
+        sc.play_sound(1)
+        sc.play_sound(2)
     if CASE==2:
-        sc = SoundClient(serial=True)
+        sc = SoundClient(serialtrigger=True)
         s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
         sc.set_sound(1,s1)
         sc.play_sound(1)

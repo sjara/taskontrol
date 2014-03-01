@@ -23,8 +23,13 @@ import sys
 import time
 import struct
 
-SERIAL_PORT_PATH = '/dev/ttyACM0'
-SERIAL_BAUD = 115200
+try:
+    from taskontrol.settings import rigsettings
+    SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
+except ImportError:
+    SERIAL_PORT_PATH = '/dev/ttyACM0'
+
+SERIAL_BAUD = 115200  # Should be the same in statemachine.ino
 SERIAL_TIMEOUT = 0.1
 NINPUTS = 8
 NOUTPUTS = 16

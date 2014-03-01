@@ -21,9 +21,12 @@ __created__ = '2013-03-18'
 STATE_MACHINE_TYPE = 'emulator'
 
 #: Serial port for the state machine.
-STATE_MACHINE_PORT = '/dev/ttyACM0'
+STATE_MACHINE_PORT = '/dev/ttyACM1'
 
-#: Parameters for the sound server.
+#: Parameters for triggering sounds.
+SOUND_TRIGGER_PORT = '/dev/ttyACM0'
+
+'''
 SOUND_SERVER = {'port':'/dev/ttyACM1',
                 'baudRate':115200,
                 'soundCard':'hw:0',
@@ -31,22 +34,9 @@ SOUND_SERVER = {'port':'/dev/ttyACM1',
                 'nChannels':2,
                 'bufferSize':512,
                 'realtime':True}
-
-_ignore=0
-'''
-Testing
-
-SOUND_SERVER_SERIAL_PORT = '/dev/ttyACM1'
-#SOUND_SERVER_PYRO_PORT = 9124
-
-SOUND_CARD = 'hw:0'
-SAMPLING_RATE = 41000
-N_CHANNELS = 2
-BUFFER_SIZE = 128
-REALTIME = False
 '''
 
-
+#_ignore=0
 
 DATA_DIR = '/tmp/'
 REMOTE_DIR = 'localhost://tmp/remote'
@@ -72,18 +62,4 @@ OUTPUTS = {
     'stim1'      :6,
     'stim2'      :7,
 }
-
-'''
-OUTPUTS = {
-    'CenterWater':0,
-    'CenterLED'  :1,
-    'LeftWater'  :2,
-    'LeftLED'    :3,
-    'RightWater' :4,
-    'RightLED'   :5,
-#    'Stim1'      :6,
-#    'Stim2'      :7,
-    'Stim3'      :8,
-}
-'''
 

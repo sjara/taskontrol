@@ -22,7 +22,7 @@ LONGTIME = 100
 
 class Paradigm(templates.Paradigm2AFC):
     def __init__(self,parent=None, paramfile=None, paramdictname=None):
-        super(Paradigm, self).__init__(parent,dummy=0)
+        super(Paradigm, self).__init__(parent)
 
          # -- Add parameters --
         self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.02,

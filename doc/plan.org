@@ -17,11 +17,22 @@
     add a new trial at the end of a session when stop is pressed.
     Think if it's good to prepare a trial when pressing START. (first time and after)
 
-
-* To do soon:
-*** TODO How to estimate withdrawals before stim?
+* For main paradigm:
+*** TODO Antibias: repeat-mistake and percent one side
+*** TODO Randomize time before stimulus
+*** TODO Randomize intensity of sound.
+*** TODO How to estimate time of withdrawals before stim?
     A histogram would be cut at sound-onset because of before that, the trials
     are not restarted, the machine just goes to waitForCpoke.
+*** TODO Save to repository of data.
+
+* To do soon:
+*** TODO Soundclient emulator (to test paradigms).
+    I can now run paradigms that have sound without errors, but no sound yet.
+    The problem is that I don't know how to trigger SoundClient.play_sound()
+     from smemulator.enter_state() (where the serial output are changed).
+    Maybe get the soundclient to read something over and over, and have
+     smemulator change that.
 *** DONE on_next_correct is reported the same as only_if in sidesplot
     Not anymore. There is an outcome called 'aftererror'
 *** DONE Have a state that indicates aborted? or some way anyway

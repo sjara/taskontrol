@@ -318,6 +318,12 @@ class StateMachineClient(QtCore.QObject):
         self.outputs = self.stateOutputs[currentState,:]
         self.emuGUI.set_outputs(self.outputs)
         self.serialout = self.serialOutputs[currentState]
+        self.emulate_serial_output()
+
+    def emulate_serial_output(self):
+        f=open('/tmp/serialoutput.txt','w')
+        f.write(str(self.serialout))
+        f.close()
 
     def update_state_machine(self):
         while(self.eventsToProcess>0):
