@@ -68,6 +68,11 @@ class Paradigm(templates.Paradigm2AFC):
                                                         units='Hz',group='Sound Parameters')
         self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=5000,
                                                         units='Hz',group='Sound Parameters')
+        self.params['soundMaxAmplitude'] = paramgui.NumericParam('Max amplitude',value=0.01,
+                                                        units='[0-1]',group='Sound Parameters')
+        self.params['soundAmplitude'] = paramgui.NumericParam('Amplitude',value=0.01,units='[0-1]',
+                                                        enabled=False,group='Sound Parameters')
+        
         '''
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=500,
                                                         units='Hz',group='Sound Parameters')
