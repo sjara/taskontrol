@@ -149,30 +149,46 @@ class Paradigm(templates.Paradigm2AFC):
         print '***** FIXME: HARDCODED TIME DELAY TO WAIT FOR SERIAL PORT! *****'
         time.sleep(0.2)
         self.soundClient = soundclient.SoundClient()
+        '''
         highFreq = self.params['highFreq'].get_value()
         lowFreq = self.params['lowFreq'].get_value()
         stimDur = self.params['targetDuration'].get_value()
         s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':0.01}
         s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':0.01}
-        '''
-        s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':0.1}
-        s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':0.1}
-        '''
         self.soundClient.set_sound(1,s1)
         self.soundClient.set_sound(2,s2)
+        '''
         self.soundClient.start()
 
         # -- Prepare first trial --
         self.prepare_next_trial(0)
        
+    def define_sounds(self):
+        amplitudeFactor = [0.25,0.5,1]
+        possibleAmplitudes = self.params['soundMaxAmplitude'].get_value()*np.array(amplitudeFactor)
+        soundAmplitude = possibleAmplitudes[np.random.randint(len(possibleAmplitudes))]
+        self.params['soundAmplitude'].set_value(soundAmplitude)
+
+        highFreq = self.params['highFreq'].get_value()
+        lowFreq = self.params['lowFreq'].get_value()
+        stimDur = self.params['targetDuration'].get_value()
+        s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':soundAmplitude}
+        s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':soundAmplitude}
+        self.soundClient.set_sound(1,s1)
+        self.soundClient.set_sound(2,s2)
 
     def prepare_next_trial(self, nextTrial):
+        import time
+        TicTime = time.time()
+
         self.params.update_history()
 
         # -- Prepare next trial --
+        self.define_sounds()
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
         self.set_state_matrix(nextCorrectChoice)
         self.dispatcherModel.ready_to_start_trial()
+        print 'Elapsed Time (preparing next trial): ' + str(time.time()-TicTime)
 
         # -- Calculate results from last trial (update outcome, choice, etc) --
         if nextTrial>0:
