@@ -280,8 +280,7 @@ class Paradigm(templates.Paradigm2AFC):
                               transitions={'Tup':'playStimulus','Cout':'waitForCenterPoke'})
             self.sm.add_state(name='playStimulus', statetimer=targetDuration,
                               transitions={'Tup':'waitForSidePoke','Cout':'earlyWithdrawal'},
-                              outputsOn=[stimOutput])
-            #                  outputsOn=[stimOutput],serialOut=soundID)
+                              outputsOn=[stimOutput],serialOut=soundID)
             self.sm.add_state(name='waitForSidePoke', statetimer=rewardAvailability,
                               transitions={'Lin':'choiceLeft','Rin':'choiceRight',
                                            'Tup':'noChoice'},
