@@ -135,6 +135,7 @@ class SoundPlayer(threading.Thread):
         self.soundsParamsDict[soundID] = soundParams
         (self.sounds[soundID],self.soundwaves[soundID]) = \
             self.create_sound(self.soundsParamsDict[soundID])
+        ###soundutils.create_sound(self.soundsParamsDict[soundID])
 
     def create_sound(self,soundParams):
         if soundParams['type']=='tone':
@@ -145,22 +146,16 @@ class SoundPlayer(threading.Thread):
             soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
                                     mul=soundObj).mix(2).out()
             return(soundObj,soundwaveObj)
+        elif soundParams['type']=='noise':
+            soundObj = pyo.Fader(fadein=self.risetime,
+                                 fadeout=self.falltime,
+                                 dur=soundParams['duration'],
+                                 mul=soundParams['amplitude'])
+            soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
+            return(soundObj,soundwaveObj)
         else:
-            print 'Sound type not implemented.'
-            return(None,None)
-
-    def OLD_create_sounds(self):
-        # FIXME: maybe soundsParamsDict it should be an input to this method
-        for soundID,soundParams in self.soundsParamsDict.iteritems():
-            if soundParams['type']=='tone':
-                self.sounds[soundID] = pyo.Fader(fadein=self.risetime,
-                                                 fadeout=self.falltime,
-                                                 dur=soundParams['duration'],
-                                                 mul=soundParams['amplitude'])
-                self.soundwaves[soundID] = pyo.Sine(freq=soundParams['frequency'],
-                                                    mul=self.sounds[soundID]).mix(2).out()
-            else:
-                print 'Sound type not implemented.'
+            raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
+            #return(None,None)
 
     def play_sound(self,soundID):
         # FIXME: check that this sound as been defined

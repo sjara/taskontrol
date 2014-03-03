@@ -72,6 +72,9 @@ class Paradigm(templates.Paradigm2AFC):
                                                         units='[0-1]',group='Sound Parameters')
         self.params['soundAmplitude'] = paramgui.NumericParam('Amplitude',value=0.01,units='[0-1]',
                                                         enabled=False,group='Sound Parameters')
+        self.params['punishSoundAmplitude'] = paramgui.NumericParam('Punish amplitude',value=0.01,
+                                                              units='[0-1]',
+                                                              group='Sound Parameters')
         
         '''
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=500,
@@ -163,6 +166,11 @@ class Paradigm(templates.Paradigm2AFC):
         self.soundClient.set_sound(1,s1)
         self.soundClient.set_sound(2,s2)
         '''
+
+        punishSoundAmplitude = self.params['punishSoundAmplitude'].get_value()
+        sNoise = {'type':'noise', 'duration':0.5, 'amplitude':punishSoundAmplitude}
+        self.punishSoundID = 127
+        self.soundClient.set_sound(self.punishSoundID,sNoise)
         self.soundClient.start()
 
         # -- Prepare first trial --
@@ -272,7 +280,8 @@ class Paradigm(templates.Paradigm2AFC):
                               transitions={'Tup':'playStimulus','Cout':'waitForCenterPoke'})
             self.sm.add_state(name='playStimulus', statetimer=targetDuration,
                               transitions={'Tup':'waitForSidePoke','Cout':'earlyWithdrawal'},
-                              outputsOn=[stimOutput],serialOut=soundID)
+                              outputsOn=[stimOutput])
+            #                  outputsOn=[stimOutput],serialOut=soundID)
             self.sm.add_state(name='waitForSidePoke', statetimer=rewardAvailability,
                               transitions={'Lin':'choiceLeft','Rin':'choiceRight',
                                            'Tup':'noChoice'},
@@ -293,7 +302,7 @@ class Paradigm(templates.Paradigm2AFC):
                                   transitions={'Tup':'reward'})
             self.sm.add_state(name='earlyWithdrawal', statetimer=punishTimeEarly,
                               transitions={'Tup':'readyForNextTrial'},
-                              outputsOff=[stimOutput])
+                              outputsOff=[stimOutput],serialOut=self.punishSoundID)
             self.sm.add_state(name='reward', statetimer=rewardDuration,
                               transitions={'Tup':'stopReward'},
                               outputsOn=[rewardOutput])
@@ -331,7 +340,7 @@ class Paradigm(templates.Paradigm2AFC):
                                   transitions={'Tup':'reward'})
             self.sm.add_state(name='earlyWithdrawal', statetimer=punishTimeEarly,
                               transitions={'Tup':'readyForNextTrial'},
-                              outputsOff=[stimOutput])
+                              outputsOff=[stimOutput],serialOut=self.punishSoundID)
             self.sm.add_state(name='reward', statetimer=rewardDuration,
                               transitions={'Tup':'stopReward'},
                               outputsOn=[rewardOutput])
