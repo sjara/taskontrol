@@ -17,12 +17,17 @@ from taskontrol.core import arraycontainer
 
 from taskontrol.plugins import templates
 reload(templates)
+from taskontrol.plugins import performancedynamicsplot
 
 LONGTIME = 100
 
 class Paradigm(templates.Paradigm2AFC):
     def __init__(self,parent=None, paramfile=None, paramdictname=None):
         super(Paradigm, self).__init__(parent)
+
+        # -- Performance dynamics plot --
+        performancedynamicsplot.set_pg_colors(self)
+        self.myPerformancePlot = performancedynamicsplot.PerformanceDynamicsPlot(nTrials=400,winsize=10)
 
          # -- Add parameters --
         self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.02,
@@ -38,12 +43,15 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['outcomeMode'] = paramgui.MenuParam('Outcome mode',
                                                         ['sides_direct','direct',
                                                          'on_next_correct','only_if_correct'],
-                                                        value=2,group='Choice parameters')
+                                                        value=1,group='Choice parameters')
+        self.params['antibiasMode'] = paramgui.MenuParam('Anti-bias mode',
+                                                        ['off','repeat_mistake'],
+                                                        value=1,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
         self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.1,
                                                         units='s',group='Timing Parameters')
-        self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.5,
+        self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.1,
                                                         units='s',group='Timing Parameters')
         self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
                                                         units='s',group='Timing Parameters')
@@ -69,6 +77,7 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol1 = QtGui.QVBoxLayout()
         layoutCol2 = QtGui.QVBoxLayout()
         layoutCol3 = QtGui.QVBoxLayout()
+        layoutCol4 = QtGui.QVBoxLayout()
         
         layoutMain.addLayout(layoutTop)
         #layoutMain.addStretch()
@@ -76,10 +85,12 @@ class Paradigm(templates.Paradigm2AFC):
         layoutMain.addLayout(layoutBottom)
 
         layoutTop.addWidget(self.mySidesPlot)
+        layoutTop.addWidget(self.myPerformancePlot)
 
         layoutBottom.addLayout(layoutCol1)
         layoutBottom.addLayout(layoutCol2)
         layoutBottom.addLayout(layoutCol3)
+        layoutBottom.addLayout(layoutCol4)
 
         layoutCol1.addWidget(self.saveData)
         layoutCol1.addWidget(self.sessionInfo)
@@ -91,8 +102,10 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol2.addStretch()
 
         layoutCol3.addWidget(timingParams)
-        layoutCol3.addWidget(reportParams)
         layoutCol3.addStretch()
+
+        layoutCol4.addWidget(reportParams)
+        layoutCol4.addStretch()
 
         self.centralWidget.setLayout(layoutMain)
         self.setCentralWidget(self.centralWidget)
@@ -120,20 +133,31 @@ class Paradigm(templates.Paradigm2AFC):
        
 
     def prepare_next_trial(self, nextTrial):
+        #print '---------- ENTERING PREPARE TRIAL {0} --------------'.format(nextTrial) ###DEBUG
         self.params.update_history()
+
+        # -- Calculate results from last trial (update outcome, choice, etc) --
+        if nextTrial>0:
+            self.calculate_results(nextTrial-1)
+            # -- Apply anti-bias --
+            if self.params['antibiasMode'].get_string()=='repeat_mistake':
+                if self.results['outcome'][nextTrial-1]==self.results.labels['outcome']['error']:
+                    print 'INSIDE ***********************************************'
+                    print self.results['outcome'][nextTrial-1]
+                    self.results['rewardSide'][nextTrial] = self.results['rewardSide'][nextTrial-1]
 
         # -- Prepare next trial --
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
         self.set_state_matrix(nextCorrectChoice)
         self.dispatcherModel.ready_to_start_trial()
 
-        # -- Calculate results from last trial (update outcome, choice, etc) --
-        if nextTrial>0:
-            self.calculate_results(nextTrial-1)
-
         # -- Update sides plot --
         self.mySidesPlot.update(self.results['rewardSide'],self.results['outcome'],nextTrial)
 
+        # -- Update performance plot --
+        self.myPerformancePlot.update(self.results['rewardSide'],self.results.labels['rewardSide'],
+                                      self.results['outcome'],self.results.labels['outcome'],
+                                      nextTrial)
 
     def set_state_matrix(self,nextCorrectChoice):
         self.sm.reset_transitions()
@@ -275,14 +299,14 @@ class Paradigm(templates.Paradigm2AFC):
 
         else:
             raise TypeError('outcomeMode={0} has not been implemented'.format(outcomeMode))
-        print self.sm ### DEBUG
+        #print self.sm ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm)
 
 
     def calculate_results(self,trialIndex):
         eventsThisTrial = self.dispatcherModel.events_one_trial(trialIndex)
         print '===== Trial {0} ====='.format(trialIndex)
-        print eventsThisTrial
+        #print eventsThisTrial
 
         # -- Find beginning of trial --
         startTrialStateID = self.sm.statesNameToIndex['startTrial']
@@ -292,11 +316,9 @@ class Paradigm(templates.Paradigm2AFC):
         '''
         '''
 
-        # -- Store choice and outcome --
-        outcomeMode = self.params['outcomeMode'].get_string()
-
-
-        ####### FIXME: what happens to 'choice' in the trials without one? ########
+        # -- Find outcomeMode for that trial --
+        outcomeModeID = self.params.history['outcomeMode'][trialIndex]
+        outcomeModeString = self.params['outcomeMode'].get_items()[outcomeModeID]
 
         # -- Check if it's an aborted trial --
         lastEvent = eventsThisTrial[-1,:]
@@ -304,10 +326,10 @@ class Paradigm(templates.Paradigm2AFC):
             self.results['outcome'][trialIndex] = self.results.labels['outcome']['aborted']
         # -- Otherwise evaluate 'choice' and 'outcome' --
         else:
-            if outcomeMode=='sides_direct' or outcomeMode=='direct':
+            if outcomeModeString=='sides_direct' or outcomeModeString=='direct':
                 self.results['outcome'][trialIndex] = self.results.labels['outcome']['free']
                 self.params['nRewarded'].add(1)
-            if outcomeMode=='on_next_correct' or outcomeMode=='only_if_correct':
+            if outcomeModeString=='on_next_correct' or outcomeModeString=='only_if_correct':
                 if self.sm.statesNameToIndex['choiceLeft'] in eventsThisTrial[:,2]:
                     self.results['choice'][trialIndex] = self.results.labels['choice']['left']
                 elif self.sm.statesNameToIndex['choiceRight'] in eventsThisTrial[:,2]:

@@ -31,17 +31,30 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
     '''
     def __init__(self, parent=None, widgetSize=(200,140),nTrials=100,winsize=10):
 
+        if parent is not None:
+            set_pg_colors(parent)
+            #FIXME: when done this way, x-axis starts at -40, not 0
         super(PerformanceDynamicsPlot, self).__init__(parent)
+
         self.initialSize = widgetSize
 
         self.nTrialsToPlot = nTrials
         self.trialsToPlot = np.arange(self.nTrialsToPlot)
 
-        self.movingAverage = np.tile(-1,MAXNTRIALS).astype(float)
+        self.movingAverageBoth = np.tile(-1,MAXNTRIALS).astype(float)
+        self.movingAverageLeft = np.tile(-1,MAXNTRIALS).astype(float)
+        self.movingAverageRight = np.tile(-1,MAXNTRIALS).astype(float)
         self.windowSize = winsize
 
-        self.mainPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True)
+        self.mainPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True,
+                                           pen='k', brush='k')
+        self.perfLeftPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True,
+                                               pen='#4DB8B8', brush='#4DB8B8')
+        self.perfRightPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True,
+                                               pen='#CC33FF', brush='#CC33FF')
         self.addItem(self.mainPlot)
+        self.addItem(self.perfLeftPlot)
+        self.addItem(self.perfRightPlot)
 
         self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,
                            'nochoice':4,'aftererror':5,'aborted':6} 
@@ -72,36 +85,49 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
         self.pens = np.concatenate(pensList)
         self.brushes = np.concatenate(brushesList)
 
-    def update(self,sides=[],outcome=[],outcomeLabels=[],currentTrial=0):
+    def update(self,sides=[],sidesLabels={},outcome=[],outcomeLabels={},currentTrial=0):
         xd = np.tile(range(self.nTrialsToPlot),3)
         validLabels = [outcomeLabels['correct'],outcomeLabels['error']]
         # FIXME: this should ask if outcome in [someset] (using ismember)
         validTrials = np.zeros(currentTrial,dtype=bool)
         for oneValidLabel in validLabels:
             validTrials[outcome[:currentTrial]==oneValidLabel] = True
+        validLeft  = (sides[:currentTrial]==sidesLabels['left'])[validTrials]
+        validRight = (sides[:currentTrial]==sidesLabels['right'])[validTrials]
+
 
         nValid = np.sum(validTrials) #Maybe just add one every this is called
-        correct = outcome==self.outcomeIDs['correct']
+        #nValidLeft = np.sum(validLeft) #Maybe just add one every this is called
+        correct = outcome==self.outcomeIDs['correct'] # SIZE:nTrials
         # FIXME: the following should not be hardcoded but use sidesLabels
-        leftCorrect = ((sides==0) & correct)[:currentTrial][validTrials]
-        rightCorrect = ((sides==1) & correct)[:currentTrial][validTrials]
-        validCorrect = correct[validTrials]
-        '''
-        print validTrials.astype(int)
-        print correct.astype(int)
-        print validCorrect.astype(int)
-        '''
+        #leftCorrect = ((sides==0) & correct)[:currentTrial][validTrials]
+        #rightCorrect = ((sides==1) & correct)[:currentTrial][validTrials]
+        validCorrect = correct[validTrials] # SIZE:nValid
+
         if len(validTrials) and validTrials[-1]:
-            trialsToAverage = np.arange(max(0,nValid-self.windowSize),nValid)
-            self.movingAverage[nValid-1] = np.mean(validCorrect[trialsToAverage])
+            #trialsToAverage = np.arange(max(0,nValid-self.windowSize),nValid)
+            trialsToAverage = np.zeros(nValid,dtype=bool) # SIZE:nValid
+            trialsToAverage[np.arange(max(0,nValid-self.windowSize),nValid)]=True
+            #trialsToAverageLeft = np.arange(max(0,nValid-self.windowSize),nValid)
+            self.movingAverageBoth[nValid-1] = np.mean(validCorrect[trialsToAverage])
+            if np.any(trialsToAverage&validLeft):
+                self.movingAverageLeft[nValid-1] = np.mean(validCorrect[trialsToAverage&validLeft])
+            if np.any(trialsToAverage&validRight):
+                self.movingAverageRight[nValid-1] = np.mean(validCorrect[trialsToAverage&validRight])
             #print self.movingAverage[:nValid-1]
-            
-            xMAboth = np.arange(nValid)
-            xAll = xMAboth#np.concatenate((xMAboth))
-            yAll = self.movingAverage[xAll]
-            self.make_pens([ [len(xMAboth),'k'] ])
-            self.mainPlot.setData(x=xAll, y=yAll, pen=self.pens, brush=self.brushes)
-            minTrial = 0
+            #print trialsToAverage&validLeft
+            #print self.movingAverageRight
+            #print self.movingAverageLeft
+
+            xValues = np.arange(nValid)
+            #yAll = self.movingAverageBoth[xValues]
+            #self.make_pens([ [len(xMAboth),'k'],
+            #                 [len(xMAleft),'c'], [len(xMAright),'m'],])
+            #self.mainPlot.setData(x=xValues, y=yAll, pen=self.pens, brush=self.brushes)
+            self.mainPlot.setData(x=xValues, y=self.movingAverageBoth[xValues])
+            self.perfLeftPlot.setData(x=xValues, y=self.movingAverageLeft[xValues])
+            self.perfRightPlot.setData(x=xValues, y=self.movingAverageRight[xValues])
+            minTrial = max(0,nValid-self.nTrialsToPlot)
             self.setXRange(minTrial, minTrial+self.nTrialsToPlot)
 
         '''
@@ -158,7 +184,7 @@ if __name__ == "__main__":
     ###valid = np.random.randint(0,2,ntrials).astype(bool)
     #outcome = np.array([0,0,0,1,1,0,1,1,1,1])
     for currentTrial in range(16):
-        splot.update(sides,outcome,{'error':0,'correct':1},currentTrial=currentTrial)
+        splot.update(sides,{'left':0,'right':1},outcome,{'error':0,'correct':1},currentTrial=currentTrial)
     # FIXME: add outcomeLabels to update()
 
     layoutMain = QtGui.QHBoxLayout()

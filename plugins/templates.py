@@ -39,7 +39,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
         # -- Sides plot --
         sidesplot.set_pg_colors(self)
-        self.mySidesPlot = sidesplot.SidesPlot(nTrials=80)
+        self.mySidesPlot = sidesplot.SidesPlot(nTrials=120)
 
         # -- Module for saving data --
         self.saveData = savedata.SaveData(rigsettings.DATA_DIR)

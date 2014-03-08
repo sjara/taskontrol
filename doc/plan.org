@@ -16,6 +16,58 @@
     and prepare a new one when pressing start again. Be careful that it does not
     add a new trial at the end of a session when stop is pressed.
     Think if it's good to prepare a trial when pressing START. (first time and after)
+*** dispatcher.resume() now emits prepareNextTrial signal
+*** The old flow is as follows:
+***** Paradigm GUI opens
+******* currentTrial=-1
+******* state=0
+***** paradigm.prepare_next_trial(0) is called at the end of __init__, which calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1)
+***** On START: dispatcher.resume() calls statemachine.run()
+******* Since state is already 1, the state machines runs until it reaches the end of a trial
+******* for example, reaching state 'readyForNextTrial' (state 0)
+***** dispatcher.timeout() checks if currentState is in prepareNextTrialStates
+******* If so, it emits prepareNextTrial.emit(self.currentTrial+1)
+******* The list of prepareNextTrialStates is obtained via stateMatrix.get_ready_states()
+******* The default readystate (defined by stateMatrix) is 'readyForNextTrial' (state 0)
+***** paradigm.prepare_next_trial() updates history and calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1) (and the machines continues)
+***** On STOP: dispatcher.pause() calls self.statemachine.stop()
+******* self.statemachine.force_state(0)
+***** On START: dispatcher.resume() calls statemachine.run()
+******* Because state is 0, dispatcher.timeout() should see it and prepare a trial
+*** The NEW flow should be:            
+***** Paradigm GUI opens
+******* currentTrial=-1
+******* state=0
+***** dispatcher sets a matrix of only zeros
+***** On START: dispatcher.resume() calls statemachine.run()
+******* The machine stays at state 0
+******* dispatcher.resume() emits prepareNextTrial.emit(self.currentTrial+1)
+	(the order of run and emit should not matter, the machine stays at 0)
+***** paradigm.prepare_next_trial() updates history and calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+******* I need to add a conditional to avoid trying to update inexistent history
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1) (and the machines continues)
+
+***** 
+***** 
+      
+
+
+* PerformanceDynamicsPlot:
+*** TODO Move window when reaching the end.
 
 * For main paradigm:
 *** TODO Antibias: repeat-mistake and percent one side
@@ -25,8 +77,16 @@
     A histogram would be cut at sound-onset because of before that, the trials
     are not restarted, the machine just goes to waitForCpoke.
 *** TODO Save to repository of data.
+*** TODO Plot with average performance.
 
 * To do soon:
+*** TODO If the state matrix has not been created with all possible states at
+    the beginning, there is a chance that calculate_results will fail,
+    because it asks for example for self.sm.statesNameToIndex['choiceLeft']
+    which has not been created (on 'direct' mode)
+*** TODO What happens if a new matrix is send while the machine is still running?
+    Presumable it can create emptyt transitions or go crazy?
+    This should only happen while on state 0, but what about other 'ready' states?
 *** TODO Soundclient emulator (to test paradigms).
     I can now run paradigms that have sound without errors, but no sound yet.
     The problem is that I don't know how to trigger SoundClient.play_sound()
