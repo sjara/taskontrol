@@ -47,7 +47,7 @@ class Paradigm(templates.Paradigm2AFC):
                                                         value=3,group='Choice parameters')
         self.params['antibiasMode'] = paramgui.MenuParam('Anti-bias mode',
                                                         ['off','repeat_mistake'],
-                                                        value=1,group='Choice parameters')
+                                                        value=0,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
         self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.2,
