@@ -11,7 +11,7 @@ appropriate settings for the rig.
 '''
 
 __version__ = '0.2'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-03-18'
 
 
