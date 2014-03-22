@@ -70,11 +70,12 @@ class Paradigm(templates.Paradigm2AFC):
                                                          group='Report')
         reportParams = self.params.layout_group('Report')
 
-        self.params['highFreq'] = paramgui.NumericParam('High freq',value=9800,
+	# 5000, 7000, 9800 (until 2014-03-19)
+        self.params['highFreq'] = paramgui.NumericParam('High freq',value=16000,
                                                         units='Hz',group='Sound Parameters')
         self.params['midFreq'] = paramgui.NumericParam('Middle freq',value=7000,
                                                         units='Hz',group='Sound Parameters')
-        self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=5000,
+        self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=3000,
                                                         units='Hz',group='Sound Parameters')
         self.params['soundMaxAmplitude'] = paramgui.NumericParam('Max amplitude',value=0.01,
                                                         units='[0-1]',group='Sound Parameters')
