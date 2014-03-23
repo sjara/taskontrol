@@ -38,6 +38,7 @@ import serial
 import time
 import os
 from taskontrol.settings import rigsettings
+import numpy as np
 
 #from Pyro.ext import remote_nons
 #import Pyro.errors
@@ -146,6 +147,20 @@ class SoundPlayer(threading.Thread):
             soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
                                     mul=soundObj).mix(2).out()
             return(soundObj,soundwaveObj)
+        elif soundParams['type']=='chord':
+            nTones = soundParams['ntones']  # Number of components in chord
+            factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
+            centerFreq = soundParams['frequency']
+            freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
+            soundObj = pyo.Fader(fadein=self.risetime,
+                                 fadeout=self.falltime,
+                                 dur=soundParams['duration'],
+                                 mul=soundParams['amplitude'])
+            soundwaveObjs = nTones*[None]
+            for indcomp in range(nTones):
+                soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
+                                              mul=soundObj).mix(2).out())
+            return(soundObj,soundwaveObjs)
         elif soundParams['type']=='noise':
             soundObj = pyo.Fader(fadein=self.risetime,
                                  fadeout=self.falltime,
@@ -191,9 +206,11 @@ class SoundClient(object):
     def set_sound(self,soundID,soundParams):
         self.soundPlayerThread.set_sound(soundID,soundParams)
 
+    '''
     def create_sounds(self):
         # FIXME: should be removed. set_sound should create the sound.
         self.soundPlayerThread.create_sounds()
+    '''
 
     def play_sound(self,soundID):
         # FIXME: check that this sound as been defined
@@ -230,16 +247,27 @@ if __name__ == "__main__":
        
 
     if CASE==3:
-        sc = SoundClient(serialtrigger=False)
-        s1 = {'type':'tone', 'frequency':500, 'duration':0.2, 'amplitude':0.1}
+        sc = SoundClient() #(serialtrigger=False)
+        s1 = {'type':'tone', 'frequency':3500, 'duration':0.1, 'amplitude':0.1}
         s2 = {'type':'tone', 'frequency':400, 'duration':0.1, 'amplitude':0.1}
+        s3 = {'type':'chord', 'frequency':3000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        s4 = {'type':'chord', 'frequency':7000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        s5 = {'type':'chord', 'frequency':16000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        import time
+        TicTime = time.time()
         sc.set_sound(1,s1)
-        sc.set_sound(2,s2)
-        sc.create_sounds() ### FIXME: will be removed soon
+        print 'Elapsed Time: ' + str(time.time()-TicTime)
+        TicTime = time.time()
+        sc.set_sound(2,s4)
+        print 'Elapsed Time: ' + str(time.time()-TicTime)
+        TicTime = time.time()
+        sc.set_sound(3,s5)
+        print 'Elapsed Time: ' + str(time.time()-TicTime)
         sc.start()
         #sc.define_sounds()
         sc.play_sound(1)
         sc.play_sound(2)
+        sc.play_sound(3)
     if CASE==2:
         sc = SoundClient(serialtrigger=True)
         s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
