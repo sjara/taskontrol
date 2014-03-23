@@ -7,108 +7,19 @@
 *** TODO Document taskontrol.core
 *** TODO Clean up taskontrol.plugins
 
-* Solving the START/STOP dispatcher issue to advance one trial
-*** DONE Find how dispatcher knows that a new trial has happened
-    It polls past events and checks if machine has reached state 0
-    method timeout() checks if self.currentState in self.prepareNextTrialStates
-    it then emits prepareNextTrial
-*** TODO When stopping dispatcher, the system should label that trial as invalid
-    and prepare a new one when pressing start again. Be careful that it does not
-    add a new trial at the end of a session when stop is pressed.
-    Think if it's good to prepare a trial when pressing START. (first time and after)
-*** DONE dispatcher.resume() now emits prepareNextTrial signal
-*** The new flow has been implemented, but has the following problems:
-***** DONE dispatcherModel.events_one_trial() includes state 0
-      both at the end and at the beginning.
-      Not anymore. Even trial 0 only includes from state 1 on (until state 0 at the end)
-***** TODO Start-stop-start on trial 0 causes error:
-      IndexError: list index out of range in dispatcher.py(277)events_one_trial()
-      indLast = self.indexLastEventEachTrial[-1]
-      because self.indexLastEventEachTrial is empty
-***** TODO Stop-start after a few trials causes trial outcome to be the same
-      as the last not-aborted trial (it should be aborted and shown in black)
-      Probably because self.indexLastEventEachTrial was not updated
-***** TODO SOLUTIONS:
-******* I need to make sure that update_trial_borders() is called when STOP
-	so that the aborted trial is registered in indexLastEventEachTrial
-******* This call could be made in different ways:
-********* call timeout() on dispatcher.resume()
-********* call update_trial_borders() on dispatcher.pause()
-
-
-*** The OLD flow is as follows:
-***** Paradigm GUI opens
-******* currentTrial=-1  (defined by dispatcher)
-******* state=0          (defined by dispatcher 'currentState')
-	The state is updated via statemachine.get_events() after START button is pressed.
-***** paradigm.prepare_next_trial(0) is called at the end of __init__, which calls:
-******* set_state_matrix(nextCorrectChoice)
-******* dispatcherModel.ready_to_start_trial()
-***** dispatcherModel.ready_to_start_trial()
-******* self.currentTrial += 1
-******* self.statemachine.force_state(1)
-***** On START: dispatcher.resume() calls statemachine.run()
-******* Since state is already 1, the state machines runs until it reaches the end of a trial
-******* for example, reaching state 'readyForNextTrial' (state 0)
-***** dispatcher.timeout() checks if currentState is in prepareNextTrialStates
-******* If so, it emits prepareNextTrial.emit(self.currentTrial+1)
-******* The list of prepareNextTrialStates is obtained via stateMatrix.get_ready_states()
-******* The default readystate (defined by stateMatrix) is 'readyForNextTrial' (state 0)
-***** paradigm.prepare_next_trial() updates history and calls:
-******* set_state_matrix(nextCorrectChoice)
-******* dispatcherModel.ready_to_start_trial()
-***** dispatcherModel.ready_to_start_trial()
-******* self.currentTrial += 1
-******* self.statemachine.force_state(1) (and the machines continues)
-***** On STOP: dispatcher.pause() calls self.statemachine.stop()
-******* self.statemachine.force_state(0)
-***** On START: dispatcher.resume() calls statemachine.run()
-******* Because state is 0, dispatcher.timeout() should see it and prepare a trial
-***** OBSERVATIONS:
-      - Changing a parameter before starting does not change the first trial
-*** The NEW flow should be:            
-***** Paradigm GUI opens
-******* currentTrial=-1  (defined by dispatcher)
-******* state=0          (defined by dispatcher 'currentState')
-	The state is updated via statemachine.get_events() after START button is pressed.
-***** dispatcher sets a matrix of only zeros
-******* reset_state_matrix()
-***** On START: dispatcher.resume() calls statemachine.run()
-******* The machine stays at state 0
-******* dispatcher.resume() emits prepareNextTrial.emit(self.currentTrial+1)
-	(the order of run and emit should not matter, the machine stays at 0)
-***** paradigm.prepare_next_trial() updates history and calls:
-******* set_state_matrix(nextCorrectChoice)
-******* dispatcherModel.ready_to_start_trial()
-********* I need to add a conditional to avoid trying to update inexistent history
-********* Make sure updating history is not done twice!
-	  before and after stopping, or missing one trial if trial aborted.
-***** dispatcherModel.ready_to_start_trial()
-******* self.currentTrial += 1
-******* self.statemachine.force_state(1) (and the machines continues)
-*** Alternative:
-***** On START: dispatcher.resume()
-******* Prepare next trial: create state matrix and upload (and wait until it's done)
-******* Force state 1
-******* Call statemachine.run()
-	The problem is that dispatcher would need to know when prepare next trial
-	is done before calling statemachine.run()
-
-      
-
-
 * PerformanceDynamicsPlot:
-*** TODO Move window when reaching the end.
+*** DONE Move window when reaching the end.
 
 * For main paradigm:
-*** TODO Antibias: repeat-mistake and percent one side
+*** DONE Antibias: repeat-mistake
+*** TODO percent one side
 *** TODO Randomize time before stimulus
-*** TODO Randomize intensity of sound.
+*** DONE Randomize intensity of sound.
 *** TODO How to estimate time of withdrawals before stim?
     A histogram would be cut at sound-onset because of before that, the trials
     are not restarted, the machine just goes to waitForCpoke.
 *** TODO Save to repository of data.
-*** TODO Plot with average performance.
+*** DONE Plot with average performance.
 
 * To do soon:
 *** TODO If the state matrix has not been created with all possible states at
@@ -239,6 +150,90 @@
     because test condition nTrials<nDeliveries is false
     I added a 'Ndelivered' variable.
 
+* Solving the START/STOP dispatcher issue to advance one trial
+*** DONE Find how dispatcher knows that a new trial has happened
+    It polls past events and checks if machine has reached state 0
+    method timeout() checks if self.currentState in self.prepareNextTrialStates
+    it then emits prepareNextTrial
+*** DONE When stopping dispatcher, the system should label that trial as invalid
+    and prepare a new one when pressing start again. Be careful that it does not
+    add a new trial at the end of a session when stop is pressed.
+    Think if it's good to prepare a trial when pressing START. (first time and after)
+*** DONE dispatcher.resume() now emits prepareNextTrial signal
+*** The new flow has been implemented, but has the following problems:
+***** DONE dispatcherModel.events_one_trial() includes state 0
+      both at the end and at the beginning.
+      Not anymore. Even trial 0 only includes from state 1 on (until state 0 at the end)
+***** DONE Start-stop-start on trial 0 causes error:
+      IndexError: list index out of range in dispatcher.py(277)events_one_trial()
+      indLast = self.indexLastEventEachTrial[-1]
+      because self.indexLastEventEachTrial is empty
+***** DONE Stop-start after a few trials causes trial outcome to be the same
+      as the last not-aborted trial (it should be aborted and shown in black)
+      Probably because self.indexLastEventEachTrial was not updated
+***** DONE SOLUTIONS:
+******* I need to make sure that update_trial_borders() is called when STOP
+	so that the aborted trial is registered in indexLastEventEachTrial
+******* This call could be made in different ways:
+********* call timeout() on dispatcher.resume()  [CHOSEN]
+********* call update_trial_borders() on dispatcher.pause()
+*** The OLD flow is as follows:
+***** Paradigm GUI opens
+******* currentTrial=-1  (defined by dispatcher)
+******* state=0          (defined by dispatcher 'currentState')
+	The state is updated via statemachine.get_events() after START button is pressed.
+***** paradigm.prepare_next_trial(0) is called at the end of __init__, which calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1)
+***** On START: dispatcher.resume() calls statemachine.run()
+******* Since state is already 1, the state machines runs until it reaches the end of a trial
+******* for example, reaching state 'readyForNextTrial' (state 0)
+***** dispatcher.timeout() checks if currentState is in prepareNextTrialStates
+******* If so, it emits prepareNextTrial.emit(self.currentTrial+1)
+******* The list of prepareNextTrialStates is obtained via stateMatrix.get_ready_states()
+******* The default readystate (defined by stateMatrix) is 'readyForNextTrial' (state 0)
+***** paradigm.prepare_next_trial() updates history and calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1) (and the machines continues)
+***** On STOP: dispatcher.pause() calls self.statemachine.stop()
+******* self.statemachine.force_state(0)
+***** On START: dispatcher.resume() calls statemachine.run()
+******* Because state is 0, dispatcher.timeout() should see it and prepare a trial
+***** OBSERVATIONS:
+      - Changing a parameter before starting does not change the first trial
+*** The NEW flow should be:            
+***** Paradigm GUI opens
+******* currentTrial=-1  (defined by dispatcher)
+******* state=0          (defined by dispatcher 'currentState')
+	The state is updated via statemachine.get_events() after START button is pressed.
+***** dispatcher sets a matrix of only zeros
+******* reset_state_matrix()
+***** On START: dispatcher.resume() calls statemachine.run()
+******* The machine stays at state 0
+******* dispatcher.resume() emits prepareNextTrial.emit(self.currentTrial+1)
+	(the order of run and emit should not matter, the machine stays at 0)
+***** paradigm.prepare_next_trial() updates history and calls:
+******* set_state_matrix(nextCorrectChoice)
+******* dispatcherModel.ready_to_start_trial()
+********* I need to add a conditional to avoid trying to update inexistent history
+********* Make sure updating history is not done twice!
+	  before and after stopping, or missing one trial if trial aborted.
+***** dispatcherModel.ready_to_start_trial()
+******* self.currentTrial += 1
+******* self.statemachine.force_state(1) (and the machines continues)
+*** Alternative:
+***** On START: dispatcher.resume()
+******* Prepare next trial: create state matrix and upload (and wait until it's done)
+******* Force state 1
+******* Call statemachine.run()
+	The problem is that dispatcher would need to know when prepare next trial
+	is done before calling statemachine.run()
 
 * Bugs and fixes:
 *** TODO Some of the core classes/methods depend on settings.rigsettings.
