@@ -8,6 +8,11 @@ Create a frequency discrimination 2AFC paradigm.
 - Note that outcomeMode (menu) is saved different from labels (e.g., outcome)
 - Verify that the choice of last trial is saved properly
 
+
+2014-03-23 Add to example012:
+#self.prepare_next_trial(0)
+self.results['choice'][trialIndex] = self.results.labels['choice']['none']
+
 '''
 
 import numpy as np
@@ -43,7 +48,7 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['outcomeMode'] = paramgui.MenuParam('Outcome mode',
                                                         ['sides_direct','direct',
                                                          'on_next_correct','only_if_correct'],
-                                                        value=1,group='Choice parameters')
+                                                        value=3,group='Choice parameters')
         self.params['antibiasMode'] = paramgui.MenuParam('Anti-bias mode',
                                                         ['off','repeat_mistake'],
                                                         value=1,group='Choice parameters')
@@ -129,7 +134,7 @@ class Paradigm(templates.Paradigm2AFC):
         self.params.from_file(paramfile,paramdictname)
 
         # -- Prepare first trial --
-        self.prepare_next_trial(0)
+        #self.prepare_next_trial(0)
        
 
     def prepare_next_trial(self, nextTrial):
@@ -142,8 +147,7 @@ class Paradigm(templates.Paradigm2AFC):
             # -- Apply anti-bias --
             if self.params['antibiasMode'].get_string()=='repeat_mistake':
                 if self.results['outcome'][nextTrial-1]==self.results.labels['outcome']['error']:
-                    print 'INSIDE ***********************************************'
-                    print self.results['outcome'][nextTrial-1]
+                    #print self.results['outcome'][nextTrial-1]
                     self.results['rewardSide'][nextTrial] = self.results['rewardSide'][nextTrial-1]
 
         # -- Prepare next trial --
@@ -187,7 +191,22 @@ class Paradigm(templates.Paradigm2AFC):
 
         # -- Set state matrix --
         outcomeMode = self.params['outcomeMode'].get_string()
-        if outcomeMode=='sides_direct':
+        if outcomeMode=='simulated':
+            self.sm.add_state(name='startTrial', statetimer=0,
+                              transitions={'Tup':'waitForCenterPoke'})
+            self.sm.add_state(name='waitForCenterPoke', statetimer=1,
+                              transitions={'Tup':'playStimulus'})
+            self.sm.add_state(name='playStimulus', statetimer=targetDuration,
+                              transitions={'Tup':'reward'},
+                              outputsOn=[stimOutput],serialOut=soundID)
+            self.sm.add_state(name='reward', statetimer=rewardDuration,
+                              transitions={'Tup':'stopReward'},
+                              outputsOn=[rewardOutput],
+                              outputsOff=[stimOutput])
+            self.sm.add_state(name='stopReward', statetimer=0,
+                              transitions={'Tup':'readyForNextTrial'},
+                              outputsOff=[rewardOutput])
+        elif outcomeMode=='sides_direct':
             self.sm.add_state(name='startTrial', statetimer=0,
                               transitions={'Tup':'waitForCenterPoke'})
             self.sm.add_state(name='waitForCenterPoke', statetimer=LONGTIME,
@@ -305,6 +324,9 @@ class Paradigm(templates.Paradigm2AFC):
 
     def calculate_results(self,trialIndex):
         eventsThisTrial = self.dispatcherModel.events_one_trial(trialIndex)
+
+        #print eventsThisTrial
+        #print np.array(self.dispatcherModel.eventsMat)
         print '===== Trial {0} ====='.format(trialIndex)
         #print eventsThisTrial
 
@@ -313,8 +335,6 @@ class Paradigm(templates.Paradigm2AFC):
         # FIXME: Next line seems inefficient. Is there a better way?
         startTrialInd = np.flatnonzero(eventsThisTrial[:,2]==startTrialStateID)[0]
         self.results['timeTrialStart'][trialIndex] = eventsThisTrial[startTrialInd,0]
-        '''
-        '''
 
         # -- Find outcomeMode for that trial --
         outcomeModeID = self.params.history['outcomeMode'][trialIndex]
@@ -324,10 +344,13 @@ class Paradigm(templates.Paradigm2AFC):
         lastEvent = eventsThisTrial[-1,:]
         if lastEvent[1]==-1 and lastEvent[2]==0:
             self.results['outcome'][trialIndex] = self.results.labels['outcome']['aborted']
+            self.results['choice'][trialIndex] = self.results.labels['choice']['none']
         # -- Otherwise evaluate 'choice' and 'outcome' --
         else:
-            if outcomeModeString=='sides_direct' or outcomeModeString=='direct':
+            if outcomeModeString in ['simulated','sides_direct','direct']:
                 self.results['outcome'][trialIndex] = self.results.labels['outcome']['free']
+                self.results['choice'][trialIndex] = self.results.labels['choice']['none']
+                self.params['nValid'].add(1)
                 self.params['nRewarded'].add(1)
             if outcomeModeString=='on_next_correct' or outcomeModeString=='only_if_correct':
                 if self.sm.statesNameToIndex['choiceLeft'] in eventsThisTrial[:,2]:
@@ -342,7 +365,7 @@ class Paradigm(templates.Paradigm2AFC):
                    self.results['outcome'][trialIndex] = \
                         self.results.labels['outcome']['correct']
                    self.params['nRewarded'].add(1)
-                   if outcomeMode=='on_next_correct' and \
+                   if outcomeModeString=='on_next_correct' and \
                            self.sm.statesNameToIndex['keepWaitForSide'] in eventsThisTrial[:,2]:
                        self.results['outcome'][trialIndex] = \
                            self.results.labels['outcome']['aftererror']
@@ -353,10 +376,11 @@ class Paradigm(templates.Paradigm2AFC):
                     elif self.sm.statesNameToIndex['punish'] in eventsThisTrial[:,2]:
                         self.results['outcome'][trialIndex] = \
                             self.results.labels['outcome']['error']
-            # -- Check if it was a valid trial --
-            if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
-                self.params['nValid'].add(1)
-
+            	# -- Check if it was a valid trial --
+            	if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
+                	self.params['nValid'].add(1)
+        print '************************************'
+        print self.results['choice'][trialIndex]
 
 if __name__ == "__main__":
     (app,paradigm) = paramgui.create_app(Paradigm)

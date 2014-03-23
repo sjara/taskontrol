@@ -73,7 +73,7 @@ class Dispatcher(QtCore.QObject):
             pass
         
         # -- Set trial structure variables --
-        self.prepareNextTrialStates = []
+        self.prepareNextTrialStates = [0]    # Default state to prepare next trial
         self.preparingNextTrial = False      # True while preparing next trial
 
         # -- Create a state machine client --
@@ -96,7 +96,7 @@ class Dispatcher(QtCore.QObject):
         #self.eventsMat = np.empty((0,3)) # Matrix with info about all events
         self.lastEvents = []   # Matrix with info about last events
         self.eventsMat = []    # Matrix with info about all events
-        self._stateMatrixStatus = False # To indicate if a matrix has been set
+        #self._stateMatrixStatus = False # To indicate if a matrix has been set
         self.indexLastEventEachTrial = [] # index of last event for each trial
 
         # -- Create timer --
@@ -104,12 +104,23 @@ class Dispatcher(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.timeout)
 
+        # -- Start with just a zero-state --
+        self.reset_state_matrix()
+
     def connect_to_sm(self):
         '''Connect to state machine server and initialize it.'''
         self.statemachine.connect()
-        #self.statemachine.initialize()
+        ###self.statemachine.initialize()
         self.statemachine.set_sizes(self.nInputs,self.nOutputs,0)
         self.isConnected = True
+
+    def reset_state_matrix(self):
+        nActions = 2*self.nInputs+1
+        blankMatrix = [nActions*[0]]
+        blankOutputs = [self.nOutputs*[0]]
+        blankSerial = None
+        blankTimers = [60] # in sec
+        self._set_state_matrix(blankMatrix,blankOutputs,blankSerial,blankTimers)
 
     def set_state_matrix(self,stateMatrix):
         '''
@@ -150,7 +161,7 @@ class Dispatcher(QtCore.QObject):
             if serialOutputs:
                 self.statemachine.set_serial_outputs(serialOutputs)
             self.statemachine.set_state_timers(stateTimers)
-            self._stateMatrixStatus = True
+            #self._stateMatrixStatus = True
         else:
             print 'Call to setStateMatrix, but the client is not connected.\n'
 
@@ -159,6 +170,7 @@ class Dispatcher(QtCore.QObject):
         to the client to prepare the next trial.'''
         if not isinstance(prepareNextTrialStatesAsStrings,list):
             raise TypeError('prepareNextTrialStatesAsStrings must be a list of strings')
+        self.prepareNextTrialStates = []
         for oneState in prepareNextTrialStatesAsStrings:
             self.prepareNextTrialStates.append(statesDict[oneState])
 
@@ -172,15 +184,17 @@ class Dispatcher(QtCore.QObject):
         ### self.startNewTrial.emit(self.currentTrial) # FIXME: is this really necessary?
 
     def timeout(self):
+        ###print '************************ TIMEOUT *********************'
         self.query_state_machine()
         self.timerTic.emit(self.serverTime,self.currentState,self.eventCount,self.currentTrial)
-        #print self.serverTime ### DEBUG
+        ###print '{0}  {1}'.format(self.currentState,self.serverTime) ### DEBUG
+        ###print self.prepareNextTrialStates
         # -- Check if one of the PrepareNextTrialStates has been reached --
         #print len(self.lastEvents), self.currentState  # DEBUG
         #print self.prepareNextTrialStates # DEBUG
         # Is current state a prepare-next-trial state?
         if self.currentState in self.prepareNextTrialStates:
-            #print "SIGNAL WILL BE EMITTED"  # DEBUG
+            print "SIGNAL WILL BE EMITTED"  # DEBUG
             self.preparingNextTrial = True
             self.update_trial_borders()
             self.prepareNextTrial.emit(self.currentTrial+1)
@@ -204,11 +218,15 @@ class Dispatcher(QtCore.QObject):
         self.timer.start(1e3*self.interval) # timer takes interval in ms
         # -- Start state machine --
         if self.isConnected:
-            if self._stateMatrixStatus:
+            if 1: #self._stateMatrixStatus:
+                # Prepare next trial when start is pressed
+                #self.prepareNextTrial.emit(self.currentTrial+1)
                 self.statemachine.run()
                 self.logMessage.emit('Started')
-                ### FIXME: Next line already emitted by timeout?
-                ### self.prepareNextTrial.emit(self.currentTrial+1)
+                # Prepare next trial (and jump to state 1) when pressing START
+                # this is also emitted when timeout() encounters end of trial
+                #self.prepareNextTrial.emit(self.currentTrial+1)
+                self.timeout()
             else:
                 raise Exception('A state matrix has not been set')
         else:
@@ -265,7 +283,10 @@ class Dispatcher(QtCore.QObject):
             indPrev = 0
         else:
             indPrev = self.indexLastEventEachTrial[-2]
-        eventsThisTrial = self.eventsMat[indPrev:indLast+1] # eventsMat is a list
+        # -- Include the state 0 at the beginning of the trial --
+        #eventsThisTrial = self.eventsMat[indPrev:indLast+1] # eventsMat is a list
+        # -- Do not include the state 0 at the beginning of the trial --
+        eventsThisTrial = self.eventsMat[indPrev+1:indLast+1] # eventsMat is a list
         return np.array(eventsThisTrial)
         ####### FIXME: this seems inefficient because eventsMat is an array and we
         #######        need only a set of trials. Do we need to convert the whole thing?
