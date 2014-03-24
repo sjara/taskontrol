@@ -44,11 +44,14 @@ class SaveData(QtGui.QGroupBox):
         self.buttonSaveData.setFont(buttonFont)
         self.checkInteractive = QtGui.QCheckBox('Interactive')
         self.checkInteractive.setChecked(False)
+        self.checkOverwrite = QtGui.QCheckBox('Overwrite')
+        self.checkOverwrite.setChecked(False)
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
-        layout.addWidget(self.buttonSaveData, 0,0)
+        layout.addWidget(self.buttonSaveData, 0,0, 1,2)
         layout.addWidget(self.checkInteractive, 1,0)
+        layout.addWidget(self.checkOverwrite, 1,1)
         self.setLayout(layout)
         self.setTitle('Manage Data')
 
@@ -91,17 +94,24 @@ class SaveData(QtGui.QGroupBox):
         self.logMessage.emit('Saving data...')
 
         if self.checkInteractive.checkState():
-            fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
+            #fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
+            fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'Save to file',defaultFileName,'*.*')
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
-        else:
+        elif self.checkOverwrite.checkState():
             fname = defaultFileName
+        else:
+            msgBox = QtGui.QMessageBox()
+            msgBox.setIcon(QtGui.QMessageBox.Warning)
+            msgBox.setText('File exists. Use <b>Interactive</b> or <b>Overwrite</b> modes')
+            msgBox.exec_()
+            return
         
         # -- Create data file --
         # FIXME: check that the file opened correctly
         if os.path.exists(fname):
-            self.logMessage.emit('File exists. I will rewrite {0}'.format(fname))
+            self.logMessage.emit('File exists. I will overwrite {0}'.format(fname))
         h5file = h5py.File(fname,'w')
 
         for container in containers:
