@@ -44,9 +44,9 @@ class Paradigm(templates.Paradigm2AFC):
         waterDelivery = self.params.layout_group('Water delivery')
         
         self.params['outcomeMode'] = paramgui.MenuParam('Outcome mode',
-                                                        ['simulated','sides_direct','direct',
-                                                         'on_next_correct','only_if_correct'],
-                                                        value=0,group='Choice parameters')
+                                                        ['sides_direct','direct','on_next_correct',
+                                                         'only_if_correct','simulated'],
+                                                         value=3,group='Choice parameters')
         self.params['antibiasMode'] = paramgui.MenuParam('Anti-bias mode',
                                                         ['off','repeat_mistake'],
                                                         value=0,group='Choice parameters')
@@ -123,7 +123,6 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol2 = QtGui.QVBoxLayout()
         layoutCol3 = QtGui.QVBoxLayout()
         layoutCol4 = QtGui.QVBoxLayout()
-
         
         layoutMain.addLayout(layoutTop)
         #layoutMain.addStretch()
@@ -197,7 +196,7 @@ class Paradigm(templates.Paradigm2AFC):
         self.soundClient.start()
 
         # -- Prepare first trial --
-        self.prepare_next_trial(0)
+        #self.prepare_next_trial(0)
        
     def define_sounds(self):
         if self.params['soundIntensityMode'].get_string() == 'randMinus20':
@@ -230,8 +229,12 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['soundAmplitudeMid'].set_value(ampMid)
         self.params['soundAmplitudeHigh'].set_value(ampHigh)
         
-        s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':ampLow}
-        s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':ampHigh}
+        #s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':ampLow}
+        #s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':ampHigh}
+        s1 = {'type':'chord', 'frequency':lowFreq, 'duration':stimDur,
+              'amplitude':ampLow, 'ntones':12, 'factor':1.2}
+        s2 = {'type':'chord', 'frequency':highFreq, 'duration':stimDur,
+              'amplitude':ampHigh, 'ntones':12, 'factor':1.2}
         self.soundClient.set_sound(1,s1)
         self.soundClient.set_sound(2,s2)
 
@@ -444,6 +447,7 @@ class Paradigm(templates.Paradigm2AFC):
         lastEvent = eventsThisTrial[-1,:]
         if lastEvent[1]==-1 and lastEvent[2]==0:
             self.results['outcome'][trialIndex] = self.results.labels['outcome']['aborted']
+            self.results['choice'][trialIndex] = self.results.labels['choice']['none']
         # -- Otherwise evaluate 'choice' and 'outcome' --
         else:
             if outcomeModeString in ['simulated','sides_direct','direct']:
