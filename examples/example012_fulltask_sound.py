@@ -84,7 +84,7 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['soundIntensityMode'] = paramgui.MenuParam('Intensity mode',
                                                         ['fixed','randMinus20'],
                                                         value=1,group='Sound Parameters')
-        self.params['soundMaxIntensity'] = paramgui.NumericParam('Max intensity',value=70,
+        self.params['soundMaxIntensity'] = paramgui.NumericParam('Max intensity',value=60,
                                                         units='dB-SPL',group='Sound Parameters')
         self.params['soundIntensity'] = paramgui.NumericParam('Intensity',value=0.0,units='db-SPL',
                                                         enabled=False,group='Sound Parameters')
