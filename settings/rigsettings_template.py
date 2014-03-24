@@ -26,19 +26,13 @@ STATE_MACHINE_PORT = '/dev/ttyACM1'
 #: Parameters for triggering sounds.
 SOUND_TRIGGER_PORT = '/dev/ttyACM0'
 
-'''
-SOUND_SERVER = {'port':'/dev/ttyACM1',
-                'baudRate':115200,
-                'soundCard':'hw:0',
-                'samplingRate':192000, 
-                'nChannels':2,
-                'bufferSize':512,
-                'realtime':True}
-'''
+#: File that defines the calibration of speakers
+SPEAKER_CALIBRATION = None
+#SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5' #None #
 
 #_ignore=0
 
-DATA_DIR = '/tmp/'
+DATA_DIR = '/var/tmp/'
 REMOTE_DIR = 'localhost://tmp/remote'
 
 DEFAULT_PARAMSFILE = './params.py'
