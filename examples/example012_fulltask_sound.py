@@ -35,11 +35,11 @@ class Paradigm(templates.Paradigm2AFC):
         self.myPerformancePlot = performancedynamicsplot.PerformanceDynamicsPlot(nTrials=400,winsize=10)
 
          # -- Add parameters --
-        self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.04,
+        self.params['timeWaterValveL'] = paramgui.NumericParam('Time valve left',value=0.03,
                                                                units='s',group='Water delivery')
-        self.params['timeWaterValveC'] = paramgui.NumericParam('Time valve center',value=0.04,
+        self.params['timeWaterValveC'] = paramgui.NumericParam('Time valve center',value=0.03,
                                                                units='s',group='Water delivery')
-        self.params['timeWaterValveR'] = paramgui.NumericParam('Time valve right',value=0.04,
+        self.params['timeWaterValveR'] = paramgui.NumericParam('Time valve right',value=0.03,
                                                                units='s',group='Water delivery')
         waterDelivery = self.params.layout_group('Water delivery')
         
