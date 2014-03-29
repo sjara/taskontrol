@@ -232,14 +232,17 @@ class StringParam(GenericParam):
 
 
 class NumericParam(GenericParam):
-    def __init__(self, labelText='', value=0, units='', group=None,
+    def __init__(self, labelText='', value=0, units='', group=None, decimals=None,
                  history=True, labelWidth=80, enabled=True, parent=None):
         super(NumericParam, self).__init__(labelText, value, group,
                                            history, labelWidth,  parent)
         self._type = 'numeric'
+        self.decimals=decimals
 
         # -- Define graphical interface --
         self.editWidget = QtGui.QLineEdit()
+        #self.editWidget.setToolTip('[{0}]'.format(units))
+        self.editWidget.setToolTip('{0}'.format(units))
         self.editWidget.setObjectName('ParamEdit')
         self.set_enabled(enabled)
 
@@ -249,7 +252,11 @@ class NumericParam(GenericParam):
 
     def set_value(self,value):
         self._value = value
-        self.editWidget.setText(str(value))
+        if self.decimals is not None:
+            strFormat = '{{0:0.{0}f}}'.format(self.decimals)
+            self.editWidget.setText(strFormat.format(value))
+        else:
+            self.editWidget.setText(str(value))
 
     def get_value(self):
         try:
