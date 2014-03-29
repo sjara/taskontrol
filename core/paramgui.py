@@ -95,7 +95,12 @@ class Container(dict):
         '''
         for key,val in valuesdict.iteritems():
             if key in self:
-                self[key].set_value(val)
+                if isinstance(self[key],MenuParam):
+                    self[key].set_string(val)
+                else:
+                    self[key].set_value(val)
+            else:
+                print 'Warning! {0} is not a valid parameter.'.format(key)
 
     def from_file(self,filename,dictname='default'):
         '''
@@ -285,7 +290,11 @@ class MenuParam(GenericParam):
 
     def set_string(self,newstring):
         # FIXME: graceful warning if wrong string (ValueError exception)
-        value = self._items.index(newstring)
+        try:
+            value = self._items.index(newstring)
+        except ValueError:
+            print "'{0}' is not a valid menu item".format(newstring)
+            raise
         self._value = value
         self.editWidget.setCurrentIndex(value)
 
