@@ -52,8 +52,13 @@ class Paradigm(templates.Paradigm2AFC):
                                                         value=0,group='Choice parameters')
         choiceParams = self.params.layout_group('Choice parameters')
 
-        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.2,
+        self.params['delayToTargetMean'] = paramgui.NumericParam('Mean delay to target',value=0.3,
                                                         units='s',group='Timing Parameters')
+        self.params['delayToTargetHalfRange'] = paramgui.NumericParam('+/-',value=0.05,
+                                                        units='s',group='Timing Parameters')
+        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.3,
+                                                        units='s',group='Timing Parameters',
+                                                        enabled=False,decimals=3)
         self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.1,
                                                         units='s',group='Timing Parameters')
         self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
@@ -86,14 +91,14 @@ class Paradigm(templates.Paradigm2AFC):
                                                         value=1,group='Sound Parameters')
         self.params['soundMaxIntensity'] = paramgui.NumericParam('Max intensity',value=60,
                                                         units='dB-SPL',group='Sound Parameters')
-        self.params['soundIntensity'] = paramgui.NumericParam('Intensity',value=0.0,units='db-SPL',
+        self.params['soundIntensity'] = paramgui.NumericParam('Intensity',value=0.0,units='dB-SPL',
                                                         enabled=False,group='Sound Parameters')
         self.params['soundAmplitudeHigh'] = paramgui.NumericParam('AmplitudeHigh',value=0.0,units='[0-1]',
-                                                        enabled=False,group='Sound Parameters')
+                                                        enabled=False,decimals=4,group='Sound Parameters')
         self.params['soundAmplitudeMid'] = paramgui.NumericParam('AmplitudeMid',value=0.0,units='[0-1]',
-                                                        enabled=False,group='Sound Parameters')
+                                                        enabled=False,decimals=4,group='Sound Parameters')
         self.params['soundAmplitudeLow'] = paramgui.NumericParam('AmplitudeLow',value=0.0,units='[0-1]',
-                                                        enabled=False,group='Sound Parameters')
+                                                        enabled=False,decimals=4,group='Sound Parameters')
         self.params['punishSoundAmplitude'] = paramgui.NumericParam('Punish amplitude',value=0.01,
                                                               units='[0-1]',
                                                               group='Sound Parameters')
@@ -290,7 +295,10 @@ class Paradigm(templates.Paradigm2AFC):
         else:
             raise ValueError('Value of nextCorrectChoice is not appropriate')
 
-        delayToTarget = self.params['delayToTarget'].get_value()
+        randNum = (2*np.random.random(1)[0]-1) # In range [-1,1)
+        delayToTarget = self.params['delayToTargetMean'].get_value() + \
+            self.params['delayToTargetHalfRange'].get_value()*randNum
+        self.params['delayToTarget'].set_value(delayToTarget)
         rewardAvailability = self.params['rewardAvailability'].get_value()
         punishTimeError = self.params['punishTimeError'].get_value()
         punishTimeEarly = self.params['punishTimeEarly'].get_value()
