@@ -99,19 +99,21 @@ class SaveData(QtGui.QGroupBox):
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
-        elif self.checkOverwrite.checkState():
-            fname = defaultFileName
+        elif os.path.exists(defaultFileName):
+            if self.checkOverwrite.checkState():
+                fname = defaultFileName
+                self.logMessage.emit('File exists. I will overwrite {0}'.format(fname))
+            else:
+                msgBox = QtGui.QMessageBox()
+                msgBox.setIcon(QtGui.QMessageBox.Warning)
+                msgBox.setText('File exists: <br>{0} <br>Use <b>Interactive</b> or <b>Overwrite</b> modes.'.format(defaultFileName))
+                msgBox.exec_()
+                return
         else:
-            msgBox = QtGui.QMessageBox()
-            msgBox.setIcon(QtGui.QMessageBox.Warning)
-            msgBox.setText('File exists. Use <b>Interactive</b> or <b>Overwrite</b> modes')
-            msgBox.exec_()
-            return
+            fname = defaultFileName
         
         # -- Create data file --
         # FIXME: check that the file opened correctly
-        if os.path.exists(fname):
-            self.logMessage.emit('File exists. I will overwrite {0}'.format(fname))
         h5file = h5py.File(fname,'w')
 
         for container in containers:
