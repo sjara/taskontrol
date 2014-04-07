@@ -7,50 +7,28 @@
 *** TODO Document taskontrol.core
 *** TODO Clean up taskontrol.plugins
 
-* PerformanceDynamicsPlot:
-*** DONE Move window when reaching the end.
+* Remote repository (on client):
+  sudo apt-get install sshfs
+  sudo mkdir /mnt/jarahub
+  sudo chmod 777 /mnt/jarahub
+  sshfs sjara@localhost:/tmp/remote/ /mnt/jarahub
+*** To unmount:
+    fusermount -u /mnt/jarahub
 
 * For main paradigm:
-*** DONE Antibias: repeat-mistake
-*** TODO percent one side
-*** TODO Randomize time before stimulus
-*** DONE Randomize intensity of sound.
+*** TODO Save to repository of data.
+*** TODO Percent one side
+*** DONE Randomize time before stimulus
+*** TODO Design water reward module.
+*** TODO Write protocol for calibration water (almost done)
 *** TODO How to estimate time of withdrawals before stim?
     A histogram would be cut at sound-onset because of before that, the trials
     are not restarted, the machine just goes to waitForCpoke.
-*** TODO Save to repository of data.
 *** DONE Plot with average performance.
+*** DONE Antibias: repeat-mistake
+*** DONE Randomize intensity of sound.
 
 * To do soon:
-*** TODO If the state matrix has not been created with all possible states at
-    the beginning, there is a chance that calculate_results will fail,
-    because it asks for example for self.sm.statesNameToIndex['choiceLeft']
-    which has not been created (on 'direct' mode)
-*** TODO What happens if a new matrix is send while the machine is still running?
-    Presumable it can create emptyt transitions or go crazy?
-    This should only happen while on state 0, but what about other 'ready' states?
-*** TODO Soundclient emulator (to test paradigms).
-    I can now run paradigms that have sound without errors, but no sound yet.
-    The problem is that I don't know how to trigger SoundClient.play_sound()
-     from smemulator.enter_state() (where the serial output are changed).
-    Maybe get the soundclient to read something over and over, and have
-     smemulator change that.
-*** DONE on_next_correct is reported the same as only_if in sidesplot
-    Not anymore. There is an outcome called 'aftererror'
-*** DONE Have a state that indicates aborted? or some way anyway
-    and plot it in sidesplot.
-    It's not really a state. I am checking if transition is forced into state -1
-*** DONE sidesplot should show nochoice trials.
-*** TODO Show how many valid trials and how many rewarded
-*** TODO Incrementing a paramgui is cumbersome
-    self.params['nRewarded'].set_value(self.params['nRewarded'].set_value()+1)
-    Maybe we can add a method for incrementing
-
-*** TODO Redo sounds when parameters change
-*** DONE Save hostname and date/time in sessionData group
-    See paramgui for creation of that group
-*** DONE Menu params are saved different than Labels of variables:
-    menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
 *** TODO Save dicts as something else (currently each item is one variable)
 *** DONE remove the old soundclient.py
 *** TODO Object to set layout
@@ -112,21 +90,45 @@
     because it is defined in another module and I should avoid dependencies.
     SOLUTION: this method takes as input a list of objects with method append_to_file()
               it doesn't matter what object type as long as it has that method.
-
-* MINIPROJECT:
+*** PerformanceDynamicsPlot:
+***** DONE Move window when reaching the end.
+*** DONE Soundclient emulator (to test paradigms).
+    I can now run paradigms that have sound without errors, but no sound yet.
+    The problem is that I don't know how to trigger SoundClient.play_sound()
+     from smemulator.enter_state() (where the serial output are changed).
+    Maybe get the soundclient to read something over and over, and have
+     smemulator change that.
+*** DONE on_next_correct is reported the same as only_if in sidesplot
+    Not anymore. There is an outcome called 'aftererror'
+*** DONE Have a state that indicates aborted? or some way anyway
+    and plot it in sidesplot.
+    It's not really a state. I am checking if transition is forced into state -1
+*** DONE sidesplot should show nochoice trials.
+*** DONE Show how many valid trials and how many rewarded
+*** DONE If the state matrix has not been created with all possible states at
+    the beginning, there is a chance that calculate_results will fail,
+    because it asks for example for self.sm.statesNameToIndex['choiceLeft']
+    which has not been created (on 'direct' mode)
+*** DONE Incrementing a paramgui is cumbersome
+    self.params['nRewarded'].set_value(self.params['nRewarded'].set_value()+1)
+    Maybe we can add a method for incrementing
+*** DONE Redo sounds when parameters change
+    Sounds are now created before each trial
+*** DONE Save hostname and date/time in sessionData group
+    See paramgui for creation of that group
+*** DONE Menu params are saved different than Labels of variables:
+    menus are saved as dicts {int:str}, labels as var1:int, var2:int, ...
 *** DONE Separate rawEvents into times and transitions.
-*** Data comes to dispatcher as [prevstate time nextstate]
-*** Should save as [time] and [prevstate, nextstate]
-*** protocol.save_to_file() calls
-    self.saveData.to_file(self.params,self.dispatcherModel.eventsMat)
+***** Data comes to dispatcher as [prevstate time nextstate]
+***** Should save as [time] and [prevstate, nextstate]
+***** protocol.save_to_file() calls
+      self.saveData.to_file(self.params,self.dispatcherModel.eventsMat)
+*** DONE Make an emulator (in addition to the dummy)
+*** DONE SaveData.to_file takes very specific inputs (like a paramgui.Container)
 
 * To do later:
 *** TODO Add test cases for each module/method
-*** TODO Design water reward module.
-*** TODO Write protocol for calibration water.
 *** TODO Make specific exceptions when needed.
-*** TODO Make an emulator (in addition to the dummy)
-*** TODO SaveData.to_file takes very specific inputs (like a paramgui.Container)
 
 * To do (extra plugins):
 *** TODO Fix eventsplot [2/3]
@@ -236,6 +238,9 @@
 	is done before calling statemachine.run()
 
 * Bugs and fixes:
+*** TODO What happens if a new matrix is send while the machine is still running?
+    Presumable it can create empty transitions or go crazy?
+    This should only happen while on state 0, but what about other 'ready' states?
 *** TODO Some of the core classes/methods depend on settings.rigsettings.
     This simplifies the way these methods are called, but it may change in the
     future to eliminate cross-dependencies.

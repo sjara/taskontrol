@@ -33,7 +33,7 @@ SPEAKER_CALIBRATION = None
 #_ignore=0
 
 DATA_DIR = '/var/tmp/'
-REMOTE_DIR = 'localhost://tmp/remote'
+REMOTE_DIR = '/mnt/jarahub/'
 
 DEFAULT_PARAMSFILE = './params.py'
 

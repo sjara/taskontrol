@@ -15,6 +15,10 @@ from PySide import QtGui
 import subprocess
 #from taskontrol.settings import rigsettings
 
+# A file with this name must exist in the remote directory
+REMOTEDIR_VERIFICATION = 'REMOTEDIR.txt'
+
+
 class SaveData(QtGui.QGroupBox):
     '''
     A widget to save data, transfer it to a remote repository, and update the database.
@@ -32,10 +36,10 @@ class SaveData(QtGui.QGroupBox):
         '''
         super(SaveData, self).__init__(parent)
 
-        self.filename = None
         self.datadir = datadir
         self.remotedir = remotedir
-        
+        self.filename = None
+
         # -- Create graphical objects --
         self.buttonSaveData = QtGui.QPushButton("Save data")
         self.buttonSaveData.setMinimumHeight(50)
@@ -46,12 +50,15 @@ class SaveData(QtGui.QGroupBox):
         self.checkInteractive.setChecked(False)
         self.checkOverwrite = QtGui.QCheckBox('Overwrite')
         self.checkOverwrite.setChecked(False)
+        self.checkSendToRepo = QtGui.QCheckBox('Send to repository')
+        self.checkSendToRepo.setChecked(True)
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
         layout.addWidget(self.buttonSaveData, 0,0, 1,2)
         layout.addWidget(self.checkInteractive, 1,0)
         layout.addWidget(self.checkOverwrite, 1,1)
+        layout.addWidget(self.checkSendToRepo, 2,0, 1,2)
         self.setLayout(layout)
         self.setTitle('Manage Data')
 
@@ -85,11 +92,12 @@ class SaveData(QtGui.QGroupBox):
                 date = time.strftime('%Y%m%d',time.localtime())
             dataRootDir = self.datadir
             fileExt = 'h5'
-            dataDir = os.path.join(dataRootDir,experimenter,subject)
-            if not os.path.exists(dataDir):
-                os.makedirs(dataDir)
+            relativePath = os.path.join(experimenter,subject,'') # Added trailing separator
+            fullDataDir = os.path.join(dataRootDir,relativePath)
+            if not os.path.exists(fullDataDir):
+                os.makedirs(fullDataDir)
             fileNameOnly = '{0}_{1}_{2}{3}.{4}'.format(subject,paradigm,date,suffix,fileExt)
-            defaultFileName = os.path.join(dataDir,fileNameOnly)
+            defaultFileName = os.path.join(fullDataDir,fileNameOnly)
 
         self.logMessage.emit('Saving data...')
 
@@ -130,19 +138,40 @@ class SaveData(QtGui.QGroupBox):
         self.filename = fname
         self.logMessage.emit('Saved data to {0}'.format(fname))
 
-        if self.remotedir:
-            self.send_to_repository()
+        if self.checkSendToRepo.checkState():
+            if self.remotedir:
+                self.send_to_repository(relativePath,fileNameOnly)
+            else:
+                self.logMessage.emit('Remote directory has not been defined. '+\
+                                     'Nothing sent to repository.')
 
-    def send_to_repository(self):
+    def send_to_repository(self,relativePath,fileNameOnly):
         '''
         Send saved data to repository.
-        FIXME: The remote directory must exist, otherwise it will fail.
+        FIXME: The remote subdirectories must exist, otherwise it will fail.
         '''
-        remoteLocation = self.remotedir + os.path.sep
+        verificationFile = os.path.join(self.remotedir,REMOTEDIR_VERIFICATION)
+        if os.path.exists(verificationFile):
+            fullRemoteDir = os.path.join(self.remotedir,relativePath)
+            if not os.path.exists(fullRemoteDir):
+                os.makedirs(fullRemoteDir)
+            cmd = 'rsync'
+            flags = '-avb'
+            localfile = self.filename
+            cmdlist = [cmd,flags,localfile,fullRemoteDir]
+            p = subprocess.Popen(cmdlist,shell=False,stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            if stderr:
+                raise IOError(stderr)
+            self.logMessage.emit('Sent data to {0}'.format(fullRemoteDir))            
+        else:
+            self.logMessage.emit('Remote verification file not found. Nothing was sent.')
+
+        '''
         #'sjara@localhost://tmp/remote/'
-        self.logMessage.emit('Sent data to {0}'.format(remoteLocation))
         cmd = 'rsync'
-        flags = '-av'
+        flags = '-avb'
         args1 = '-e'
         args2 = 'ssh -o "NumberOfPasswordPrompts 0"'
         localfile = self.filename
@@ -153,7 +182,7 @@ class SaveData(QtGui.QGroupBox):
         if stderr:
             raise IOError(stderr)
         pass
-        self.logMessage.emit('Done sending data.')
+        '''
 
 if __name__ == "__main__":
     import signal

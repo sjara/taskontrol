@@ -42,7 +42,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
         self.mySidesPlot = sidesplot.SidesPlot(nTrials=120)
 
         # -- Module for saving data --
-        self.saveData = savedata.SaveData(rigsettings.DATA_DIR)
+        self.saveData = savedata.SaveData(rigsettings.DATA_DIR, remotedir=rigsettings.REMOTE_DIR)
 
         # -- Create an empty state matrix --
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
