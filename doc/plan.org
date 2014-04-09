@@ -25,10 +25,13 @@
   ssh jarahub
   [may need to answer YES to verify authenticity of host]
 
-*** To mount
-  sshfs jarauser@jarahub:/data/behavior/ /mnt/jarahubdata
+*** To mount (need to map uid)
+  sshfs -o idmap=user jarauser@jarahub:/data/behavior/ /mnt/jarahubdata
 *** To unmount:
-    fusermount -u /mnt/jarahub
+  fusermount -u /mnt/jarahub
+
+*** For rsync, you need to use flag --no-g to avoid errors when
+    the uid in server and client are not the same.
 
 * For main paradigm:
 *** TODO Save to repository of data.
