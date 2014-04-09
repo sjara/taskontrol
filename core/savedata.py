@@ -156,9 +156,10 @@ class SaveData(QtGui.QGroupBox):
             if not os.path.exists(fullRemoteDir):
                 os.makedirs(fullRemoteDir)
             cmd = 'rsync'
-            flags = '-avb'
+            flag1 = '-ab'
+            flag2 = '--no-g'
             localfile = self.filename
-            cmdlist = [cmd,flags,localfile,fullRemoteDir]
+            cmdlist = [cmd,flag1,flag2,localfile,fullRemoteDir]
             p = subprocess.Popen(cmdlist,shell=False,stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             stdout, stderr = p.communicate()
