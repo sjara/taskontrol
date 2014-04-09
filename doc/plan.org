@@ -9,9 +9,24 @@
 
 * Remote repository (on client):
   sudo apt-get install sshfs
-  sudo mkdir /mnt/jarahub
-  sudo chmod 777 /mnt/jarahub
-  sshfs sjara@localhost:/tmp/remote/ /mnt/jarahub
+  sudo mkdir /mnt/jarahubdata
+  sudo chmod 777 /mnt/jarahubdata
+*** Set up ssh:
+  mkdir ~/.ssh
+  chmod 700 ~/.ssh
+  rsync -a jarahub:~/.ssh/id_rsa ~/.ssh/
+  ssh-add ~/.ssh/id_rsa
+
+*** Generate key [only once, in jarahub]
+  ssh-keygen -t rsa -C "jarauser@jararig"
+  [save with default name]
+  cat id_rsa.pub >> ~/.ssh/authorized_keys
+
+  ssh jarahub
+  [may need to answer YES to verify authenticity of host]
+
+*** To mount
+  sshfs jarauser@jarahub:/data/behavior/ /mnt/jarahubdata
 *** To unmount:
     fusermount -u /mnt/jarahub
 
