@@ -194,7 +194,6 @@ class Dispatcher(QtCore.QObject):
         #print self.prepareNextTrialStates # DEBUG
         # Is current state a prepare-next-trial state?
         if self.currentState in self.prepareNextTrialStates:
-            print "SIGNAL WILL BE EMITTED"  # DEBUG
             self.preparingNextTrial = True
             self.update_trial_borders()
             self.prepareNextTrial.emit(self.currentTrial+1)
@@ -306,7 +305,6 @@ class Dispatcher(QtCore.QObject):
         eventsGroup.create_dataset('indexLastEventEachTrial', dtype=int,
                                    data=np.array(self.indexLastEventEachTrial))
 
-        print 'FIXME: what happens (on trial 1) when indexLastEventEachTrial is empty'
         ###### FIXME: what happens (on trial 1) when indexLastEventEachTrial is empty? #####
 
 
