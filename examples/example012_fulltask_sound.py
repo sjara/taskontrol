@@ -53,21 +53,29 @@ class Paradigm(templates.Paradigm2AFC):
         choiceParams = self.params.layout_group('Choice parameters')
 
         self.params['delayToTargetMean'] = paramgui.NumericParam('Mean delay to target',value=0.3,
-                                                        units='s',group='Timing Parameters')
+                                                        units='s',group='Timing parameters')
         self.params['delayToTargetHalfRange'] = paramgui.NumericParam('+/-',value=0.05,
-                                                        units='s',group='Timing Parameters')
-        self.params['delayToTarget'] = paramgui.NumericParam('Delay to Target',value=0.3,
-                                                        units='s',group='Timing Parameters',
+                                                        units='s',group='Timing parameters')
+        self.params['delayToTarget'] = paramgui.NumericParam('Delay to target',value=0.3,
+                                                        units='s',group='Timing parameters',
                                                         enabled=False,decimals=3)
-        self.params['targetDuration'] = paramgui.NumericParam('Target Duration',value=0.1,
-                                                        units='s',group='Timing Parameters')
-        self.params['rewardAvailability'] = paramgui.NumericParam('Reward Availability',value=4,
-                                                        units='s',group='Timing Parameters')
+        self.params['targetDuration'] = paramgui.NumericParam('Target duration',value=0.1,
+                                                        units='s',group='Timing parameters')
+        self.params['rewardAvailability'] = paramgui.NumericParam('Reward availability',value=4,
+                                                        units='s',group='Timing parameters')
         self.params['punishTimeError'] = paramgui.NumericParam('Punishment (error)',value=0,
-                                                        units='s',group='Timing Parameters')
+                                                        units='s',group='Timing parameters')
         self.params['punishTimeEarly'] = paramgui.NumericParam('Punishment (early)',value=0,
-                                                        units='s',group='Timing Parameters')
-        timingParams = self.params.layout_group('Timing Parameters')
+                                                        units='s',group='Timing parameters')
+        timingParams = self.params.layout_group('Timing parameters')
+
+        self.params['trialsPerBlock'] = paramgui.NumericParam('Trials per block',value=300,
+                                                              units='trials (0=no-switch)',
+                                                              group='Switching parameters')
+        self.params['currentBlock'] = paramgui.MenuParam('Current block',
+                                                         ['mid_boundary','low_boundary','high_boundary'],
+                                                         value=0,group='Switching parameters')
+        switchingParams = self.params.layout_group('Switching parameters')
 
         self.params['nValid'] = paramgui.NumericParam('N valid',value=0,
                                                       units='',enabled=False,
@@ -79,40 +87,44 @@ class Paradigm(templates.Paradigm2AFC):
 
         # 5000, 7000, 9800 (until 2014-03-19)
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=16000,
-                                                        units='Hz',group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
         self.params['midFreq'] = paramgui.NumericParam('Middle freq',value=7000,
-                                                        units='Hz',group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
         self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=3000,
-                                                        units='Hz',group='Sound Parameters')
-        #self.params['soundMaxAmplitude'] = paramgui.NumericParam('Max amplitude',value=0.01,
-        #                                                units='[0-1]',group='Sound Parameters')
-        self.params['soundIntensityMode'] = paramgui.MenuParam('Intensity mode',
-                                                        ['fixed','randMinus20'],
-                                                        value=1,group='Sound Parameters')
-        self.params['soundMaxIntensity'] = paramgui.NumericParam('Max intensity',value=60,
-                                                        units='dB-SPL',group='Sound Parameters')
-        self.params['soundIntensity'] = paramgui.NumericParam('Intensity',value=0.0,units='dB-SPL',
-                                                        enabled=False,group='Sound Parameters')
-        self.params['soundAmplitudeHigh'] = paramgui.NumericParam('AmplitudeHigh',value=0.0,units='[0-1]',
-                                                        enabled=False,decimals=4,group='Sound Parameters')
-        self.params['soundAmplitudeMid'] = paramgui.NumericParam('AmplitudeMid',value=0.0,units='[0-1]',
-                                                        enabled=False,decimals=4,group='Sound Parameters')
-        self.params['soundAmplitudeLow'] = paramgui.NumericParam('AmplitudeLow',value=0.0,units='[0-1]',
-                                                        enabled=False,decimals=4,group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
+        self.params['targetFrequency'] = paramgui.NumericParam('Target freq',value=0,
+                                                        units='Hz',enabled=False,group='Sound parameters')
+        self.params['targetIntensityMode'] = paramgui.MenuParam('Intensity mode',
+                                                               ['fixed','randMinus20'],
+                                                               value=1,group='Sound parameters')
+        self.params['targetMaxIntensity'] = paramgui.NumericParam('Max intensity',value=60,
+                                                        units='dB-SPL',group='Sound parameters')
+        self.params['targetIntensity'] = paramgui.NumericParam('Intensity',value=0.0,units='dB-SPL',
+                                                        enabled=False,group='Sound parameters')
+        '''
+        self.params['targetAmplitudeHigh'] = paramgui.NumericParam('AmplitudeHigh',value=0.0,units='[0-1]',
+                                                        enabled=False,decimals=4,group='Sound parameters')
+        self.params['targetAmplitudeMid'] = paramgui.NumericParam('AmplitudeMid',value=0.0,units='[0-1]',
+                                                        enabled=False,decimals=4,group='Sound parameters')
+        self.params['targetAmplitudeLow'] = paramgui.NumericParam('AmplitudeLow',value=0.0,units='[0-1]',
+                                                        enabled=False,decimals=4,group='Sound parameters')
+        '''                                                        
+        self.params['targetAmplitude'] = paramgui.NumericParam('Target amplitude',value=0.0,units='[0-1]',
+                                                        enabled=False,decimals=4,group='Sound parameters')
         self.params['punishSoundAmplitude'] = paramgui.NumericParam('Punish amplitude',value=0.01,
-                                                              units='[0-1]',
-                                                              group='Sound Parameters')
+                                                              units='[0-1]',enabled=False,
+                                                              group='Sound parameters')
         
         '''
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=500,
-                                                        units='Hz',group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
         self.params['midFreq'] = paramgui.NumericParam('Middle freq',value=440,
-                                                        units='Hz',group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
         self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=400,
-                                                        units='Hz',group='Sound Parameters')
+                                                        units='Hz',group='Sound parameters')
         #4200, 9200, 20200
         '''
-        soundParams = self.params.layout_group('Sound Parameters')
+        soundParams = self.params.layout_group('Sound parameters')
 
 
         # 
@@ -147,15 +159,20 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol1.addWidget(self.dispatcherView)
         
         layoutCol2.addWidget(self.manualControl)
+        layoutCol2.addStretch()
         layoutCol2.addWidget(waterDelivery)
+        layoutCol2.addStretch()
         layoutCol2.addWidget(choiceParams)
         layoutCol2.addStretch()
 
         layoutCol3.addWidget(timingParams)
-        layoutCol4.addWidget(soundParams)
-        layoutCol3.addWidget(reportParams)
+        layoutCol3.addStretch()
+        layoutCol3.addWidget(switchingParams)
         layoutCol3.addStretch()
 
+        layoutCol4.addWidget(soundParams)
+        layoutCol3.addStretch()
+        layoutCol4.addWidget(reportParams)
         layoutCol4.addStretch()
 
         self.centralWidget.setLayout(layoutMain)
@@ -171,10 +188,20 @@ class Paradigm(templates.Paradigm2AFC):
         self.results.labels['outcome'] = {'correct':1,'error':0,'invalid':2,
                                           'free':3,'nochoice':4,'aftererror':5,'aborted':6}
         self.results['outcome'] = np.empty(maxNtrials,dtype=int)
+        # Saving as bool creates an 'enum' vector, so I'm saving as 'int'
+        self.results['valid'] = np.zeros(maxNtrials,dtype='int8') # redundant but useful
         self.results['timeTrialStart'] = np.empty(maxNtrials,dtype=float)
         self.results['timeCenterIn'] = np.empty(maxNtrials,dtype=float)
         self.results['timeCenterOut'] = np.empty(maxNtrials,dtype=float)
         self.results['timeSideIn'] = np.empty(maxNtrials,dtype=float)
+
+
+        # -- Define first block --
+        import datetime
+        if (datetime.datetime.now().day%2):
+            self.params['currentBlock'].set_string('low_boundary')
+        else:
+            self.params['currentBlock'].set_string('high_boundary')
 
         # -- Load parameters from a file --
         self.params.from_file(paramfile,paramdictname)
@@ -203,22 +230,33 @@ class Paradigm(templates.Paradigm2AFC):
         # -- Prepare first trial --
         #self.prepare_next_trial(0)
        
-    def define_sounds(self):
-        if self.params['soundIntensityMode'].get_string() == 'randMinus20':
-            possibleIntensities = self.params['soundMaxIntensity'].get_value()+\
+    def prepare_target_sound(self,targetFrequency):
+        if self.params['targetIntensityMode'].get_string() == 'randMinus20':
+            possibleIntensities = self.params['targetMaxIntensity'].get_value()+\
                                   np.array([-20,-15,-10,-5,0])
-            soundIntensity = possibleIntensities[np.random.randint(len(possibleIntensities))]
+            targetIntensity = possibleIntensities[np.random.randint(len(possibleIntensities))]
         else:
-            soundIntensity = self.params['soundMaxIntensity'].get_value()
-        self.params['soundIntensity'].set_value(soundIntensity)
+            targetIntensity = self.params['targetMaxIntensity'].get_value()
+        self.params['targetIntensity'].set_value(targetIntensity)
                 
-            
-        #amplitudeFactor = [0.25,0.5,1]
-        #possibleAmplitudes = self.params['soundMaxAmplitude'].get_value()*np.array(amplitudeFactor)
-        #soundAmplitude = possibleAmplitudes[np.random.randint(len(possibleAmplitudes))]
+        spkCal = speakercalibration.Calibration(rigsettings.SPEAKER_CALIBRATION)
 
-        #soundAmplitude = 0.01
-        #self.params['soundAmplitude'].set_value(soundAmplitude)
+        # FIXME: currently I am averaging calibration from both speakers (not good)
+        targetAmp = spkCal.find_amplitude(targetFrequency,targetIntensity).mean()
+        self.params['targetAmplitude'].set_value(targetAmp)
+
+        stimDur = self.params['targetDuration'].get_value()
+        s1 = {'type':'chord', 'frequency':targetFrequency, 'duration':stimDur,
+              'amplitude':targetAmp, 'ntones':12, 'factor':1.2}
+        self.soundClient.set_sound(1,s1)
+
+        '''
+        #amplitudeFactor = [0.25,0.5,1]
+        #possibleAmplitudes = self.params['targetMaxAmplitude'].get_value()*np.array(amplitudeFactor)
+        #targetAmplitude = possibleAmplitudes[np.random.randint(len(possibleAmplitudes))]
+
+        #targetAmplitude = 0.01
+        #self.params['targetAmplitude'].set_value(targetAmplitude)
 
         highFreq = self.params['highFreq'].get_value()
         midFreq = self.params['midFreq'].get_value()
@@ -226,22 +264,23 @@ class Paradigm(templates.Paradigm2AFC):
         stimDur = self.params['targetDuration'].get_value()
         
         spkCal = speakercalibration.Calibration(rigsettings.SPEAKER_CALIBRATION)
-        ampLow = spkCal.find_amplitude(lowFreq,soundIntensity).mean()
-        ampMid = spkCal.find_amplitude(midFreq,soundIntensity).mean()
-        ampHigh = spkCal.find_amplitude(highFreq,soundIntensity).mean()
+        ampLow = spkCal.find_amplitude(lowFreq,targetIntensity).mean()
+        ampMid = spkCal.find_amplitude(midFreq,targetIntensity).mean()
+        ampHigh = spkCal.find_amplitude(highFreq,targetIntensity).mean()
         
-        self.params['soundAmplitudeLow'].set_value(ampLow)
-        self.params['soundAmplitudeMid'].set_value(ampMid)
-        self.params['soundAmplitudeHigh'].set_value(ampHigh)
+        self.params['targetAmplitudeLow'].set_value(ampLow)
+        self.params['targetAmplitudeMid'].set_value(ampMid)
+        self.params['targetAmplitudeHigh'].set_value(ampHigh)
         
         #s1 = {'type':'tone', 'frequency':lowFreq, 'duration':stimDur, 'amplitude':ampLow}
         #s2 = {'type':'tone', 'frequency':highFreq, 'duration':stimDur, 'amplitude':ampHigh}
         s1 = {'type':'chord', 'frequency':lowFreq, 'duration':stimDur,
               'amplitude':ampLow, 'ntones':12, 'factor':1.2}
-        s2 = {'type':'chord', 'frequency':highFreq, 'duration':stimDur,
-              'amplitude':ampHigh, 'ntones':12, 'factor':1.2}
+        #s2 = {'type':'chord', 'frequency':highFreq, 'duration':stimDur,
+        #      'amplitude':ampHigh, 'ntones':12, 'factor':1.2}
         self.soundClient.set_sound(1,s1)
-        self.soundClient.set_sound(2,s2)
+        #self.soundClient.set_sound(2,s2)
+        '''
 
     def prepare_next_trial(self, nextTrial):
         import time
@@ -256,10 +295,41 @@ class Paradigm(templates.Paradigm2AFC):
             if self.params['antibiasMode'].get_string()=='repeat_mistake':
                 if self.results['outcome'][nextTrial-1]==self.results.labels['outcome']['error']:
                     self.results['rewardSide'][nextTrial] = self.results['rewardSide'][nextTrial-1]
+            # -- Set current block if switching --
+            trialsPerBlock = self.params['trialsPerBlock'].get_value()
+            nValid = self.params['nValid'].get_value()
+            ###print '{0} {1} {2}'.format(nValid,trialsPerBlock,np.mod(nValid,trialsPerBlock))
+            if (nValid>0) and not (np.mod(nValid,trialsPerBlock)):
+                if self.params['currentBlock'].get_string()=='low_boundary':
+                    newBlock = 'high_boundary'
+                elif self.params['currentBlock'].get_string()=='high_boundary':
+                    newBlock = 'low_boundary'
+                else:
+                    newBlock = 'mid_boundary' # No switch
+                self.params['currentBlock'].set_string(newBlock)
 
-        # -- Prepare next trial --
-        self.define_sounds()
+        # === Prepare next trial ===
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
+
+        # -- Prepare sound --
+        highFreq = self.params['highFreq'].get_value()
+        midFreq = self.params['midFreq'].get_value()
+        lowFreq = self.params['lowFreq'].get_value()
+        currentBlock = self.params['currentBlock'].get_string()
+        if currentBlock=='mid_boundary':
+            freqsLH = [lowFreq,highFreq]
+        elif currentBlock=='low_boundary':
+            freqsLH = [lowFreq,midFreq]
+        elif currentBlock=='high_boundary':
+            freqsLH = [midFreq,highFreq]
+        if nextCorrectChoice==self.results.labels['rewardSide']['left']:
+            targetFrequency = freqsLH[0]
+        elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
+            targetFrequency = freqsLH[1]
+        self.params['targetFrequency'].set_value(targetFrequency)
+        self.prepare_target_sound(targetFrequency)
+
+        # -- Prepare state matrix --
         self.set_state_matrix(nextCorrectChoice)
         self.dispatcherModel.ready_to_start_trial()
         print 'Elapsed Time (preparing next trial): ' + str(time.time()-TicTime)
@@ -275,6 +345,7 @@ class Paradigm(templates.Paradigm2AFC):
     def set_state_matrix(self,nextCorrectChoice):
         self.sm.reset_transitions()
 
+        soundID = 1  # The appropriate sound has already been prepared and sent to server with ID=1
         targetDuration = self.params['targetDuration'].get_value()
         if nextCorrectChoice==self.results.labels['rewardSide']['left']:
             rewardDuration = self.params['timeWaterValveL'].get_value()
@@ -283,7 +354,7 @@ class Paradigm(templates.Paradigm2AFC):
             fromChoiceR = 'punish'
             rewardOutput = 'leftWater'
             correctSidePort = 'Lin'
-            soundID = 1
+            #soundID = 1
         elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
             rewardDuration = self.params['timeWaterValveR'].get_value()
             stimOutput = 'rightLED'
@@ -291,7 +362,7 @@ class Paradigm(templates.Paradigm2AFC):
             fromChoiceR = 'reward'
             rewardOutput = 'rightWater'
             correctSidePort = 'Rin'
-            soundID = 2
+            #soundID = 2
         else:
             raise ValueError('Value of nextCorrectChoice is not appropriate')
 
@@ -463,6 +534,7 @@ class Paradigm(templates.Paradigm2AFC):
                 self.results['choice'][trialIndex] = self.results.labels['choice']['none']
                 self.params['nValid'].add(1)
                 self.params['nRewarded'].add(1)
+                self.results['valid'][trialIndex] = 1
             if outcomeModeString=='on_next_correct' or outcomeModeString=='only_if_correct':
                 if self.sm.statesNameToIndex['choiceLeft'] in eventsThisTrial[:,2]:
                     self.results['choice'][trialIndex] = self.results.labels['choice']['left']
@@ -490,6 +562,8 @@ class Paradigm(templates.Paradigm2AFC):
             	# -- Check if it was a valid trial --
             	if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
                 	self.params['nValid'].add(1)
+                        self.results['valid'][trialIndex] = 1
+
 
 
 if __name__ == "__main__":
