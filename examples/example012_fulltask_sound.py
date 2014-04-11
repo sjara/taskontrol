@@ -300,13 +300,14 @@ class Paradigm(templates.Paradigm2AFC):
             nValid = self.params['nValid'].get_value()
             ###print '{0} {1} {2}'.format(nValid,trialsPerBlock,np.mod(nValid,trialsPerBlock))
             if (nValid>0) and not (np.mod(nValid,trialsPerBlock)):
-                if self.params['currentBlock'].get_string()=='low_boundary':
-                    newBlock = 'high_boundary'
-                elif self.params['currentBlock'].get_string()=='high_boundary':
-                    newBlock = 'low_boundary'
-                else:
-                    newBlock = 'mid_boundary' # No switch
-                self.params['currentBlock'].set_string(newBlock)
+                if self.results['valid'][nextTrial-1]:
+                    if self.params['currentBlock'].get_string()=='low_boundary':
+                        newBlock = 'high_boundary'
+                    elif self.params['currentBlock'].get_string()=='high_boundary':
+                        newBlock = 'low_boundary'
+                    else:
+                        newBlock = 'mid_boundary' # No switch
+                    self.params['currentBlock'].set_string(newBlock)
 
         # === Prepare next trial ===
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
