@@ -7,6 +7,17 @@
 *** TODO Document taskontrol.core
 *** TODO Clean up taskontrol.plugins
 
+* BUGS (fix soon):
+*** TODO Overwrite saves on top of an existing file and data is corrupted.
+*** DONE Up to 2014-04-14 I was calling self.params.update_history() outside if nextTrial>0:
+    but update_history() uses append, so it created an extra item at the beginning.
+    I should change update_history() so that it takes the parameter (nextTrial-1)
+*** DONE Block switches don't happen exactly at multiples of 300.
+    It may be related to the bug about update_history() but I'm not sure.
+    I could replicate this problem by shifting the 'valid' array, so it is likely
+    that the problem was a misalignment between 'currentBlock' and 'valid',
+    because of the problem with update_history().
+
 * Remote repository (on client):
   sudo apt-get install sshfs
   sudo mkdir /mnt/jarahubdata

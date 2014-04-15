@@ -208,7 +208,7 @@ class Paradigm(templates.Paradigm2AFC):
 
         # -- Connect to sound server and define sounds --
         print 'Conecting to soundserver...'
-        print '***** FIXME: HARDCODED TIME DELAY TO WAIT FOR SERIAL PORT! *****'
+        print '***** FIXME: HARDCODED TIME DELAY TO WAIT FOR SERIAL PORT! *****' ### DEBUG
         time.sleep(0.2)
         self.soundClient = soundclient.SoundClient()
         '''
@@ -286,10 +286,9 @@ class Paradigm(templates.Paradigm2AFC):
         import time
         TicTime = time.time()
 
-        self.params.update_history()
-
         # -- Calculate results from last trial (update outcome, choice, etc) --
         if nextTrial>0:
+            self.params.update_history()
             self.calculate_results(nextTrial-1)
             # -- Apply anti-bias --
             if self.params['antibiasMode'].get_string()=='repeat_mistake':
@@ -298,7 +297,7 @@ class Paradigm(templates.Paradigm2AFC):
             # -- Set current block if switching --
             trialsPerBlock = self.params['trialsPerBlock'].get_value()
             nValid = self.params['nValid'].get_value()
-            ###print '{0} {1} {2}'.format(nValid,trialsPerBlock,np.mod(nValid,trialsPerBlock))
+            ###print '{0} {1} {2}'.format(nValid,trialsPerBlock,np.mod(nValid,trialsPerBlock)) ### DEBUG
             if (nValid>0) and not (np.mod(nValid,trialsPerBlock)):
                 if self.results['valid'][nextTrial-1]:
                     if self.params['currentBlock'].get_string()=='low_boundary':
@@ -308,6 +307,8 @@ class Paradigm(templates.Paradigm2AFC):
                     else:
                         newBlock = 'mid_boundary' # No switch
                     self.params['currentBlock'].set_string(newBlock)
+
+        #import pdb; pdb.set_trace() ### DEBUG
 
         # === Prepare next trial ===
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
@@ -333,7 +334,7 @@ class Paradigm(templates.Paradigm2AFC):
         # -- Prepare state matrix --
         self.set_state_matrix(nextCorrectChoice)
         self.dispatcherModel.ready_to_start_trial()
-        print 'Elapsed Time (preparing next trial): ' + str(time.time()-TicTime)
+        ###print 'Elapsed Time (preparing next trial): ' + str(time.time()-TicTime) ### DEBUG
 
         # -- Update sides plot --
         self.mySidesPlot.update(self.results['rewardSide'],self.results['outcome'],nextTrial)
@@ -504,14 +505,14 @@ class Paradigm(templates.Paradigm2AFC):
 
         else:
             raise TypeError('outcomeMode={0} has not been implemented'.format(outcomeMode))
-        print self.sm ### DEBUG
+        ###print self.sm ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm)
 
 
     def calculate_results(self,trialIndex):
         eventsThisTrial = self.dispatcherModel.events_one_trial(trialIndex)
-        #print '===== Trial {0} ====='.format(trialIndex)
-        #print eventsThisTrial
+        #print '===== Trial {0} ====='.format(trialIndex) ### DEBUG
+        #print eventsThisTrial ### DEBUG
 
         # -- Find beginning of trial --
         startTrialStateID = self.sm.statesNameToIndex['startTrial']
