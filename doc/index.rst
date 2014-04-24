@@ -6,6 +6,7 @@ TASKontrol is a framework for developing behavioral experiments.
 
 It consists of modules written in Python and PySide (Qt for Python) that help design behavioral paradigms and provide a graphical user interface to control the experiments.
 
+**This documentation is a work in progress. Many modules are still missing.**
 
 Contents:
 ^^^^^^^^^
@@ -14,6 +15,7 @@ Contents:
 
    getting_started
    statematrix
+   sound
    reference
 
 ..   settings
