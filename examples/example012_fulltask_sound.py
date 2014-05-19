@@ -77,13 +77,13 @@ class Paradigm(templates.Paradigm2AFC):
                                                          value=0,group='Switching parameters')
         switchingParams = self.params.layout_group('Switching parameters')
 
-        self.params['nValid'] = paramgui.NumericParam('N valid',value=0,
-                                                      units='',enabled=False,
-                                                      group='Report')
-        self.params['nRewarded'] = paramgui.NumericParam('N rewarded',value=0,
-                                                         units='',enabled=False,
-                                                         group='Report')
-        reportParams = self.params.layout_group('Report')
+
+        self.params['psycurveMode'] = paramgui.MenuParam('PsyCurve Mode',
+                                                         ['off','uniform'],
+                                                         value=0,group='Psychometric parameters')
+        psychometricParams = self.params.layout_group('Psychometric parameters')
+
+
 
         # 5000, 7000, 9800 (until 2014-03-19)
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=16000,
@@ -125,6 +125,14 @@ class Paradigm(templates.Paradigm2AFC):
         #4200, 9200, 20200
         '''
         soundParams = self.params.layout_group('Sound parameters')
+
+        self.params['nValid'] = paramgui.NumericParam('N valid',value=0,
+                                                      units='',enabled=False,
+                                                      group='Report')
+        self.params['nRewarded'] = paramgui.NumericParam('N rewarded',value=0,
+                                                         units='',enabled=False,
+                                                         group='Report')
+        reportParams = self.params.layout_group('Report')
 
 
         # 
@@ -168,6 +176,8 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol3.addWidget(timingParams)
         layoutCol3.addStretch()
         layoutCol3.addWidget(switchingParams)
+        layoutCol3.addStretch()
+        layoutCol3.addWidget(psychometricParams)
         layoutCol3.addStretch()
 
         layoutCol4.addWidget(soundParams)
@@ -318,16 +328,20 @@ class Paradigm(templates.Paradigm2AFC):
         midFreq = self.params['midFreq'].get_value()
         lowFreq = self.params['lowFreq'].get_value()
         currentBlock = self.params['currentBlock'].get_string()
-        if currentBlock=='mid_boundary':
-            freqsLH = [lowFreq,highFreq]
-        elif currentBlock=='low_boundary':
-            freqsLH = [lowFreq,midFreq]
-        elif currentBlock=='high_boundary':
-            freqsLH = [midFreq,highFreq]
-        if nextCorrectChoice==self.results.labels['rewardSide']['left']:
-            targetFrequency = freqsLH[0]
-        elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
-            targetFrequency = freqsLH[1]
+        psycurveMode = self.params['psycurveMode'].get_string()
+        if psycurveMode=='off':
+            if currentBlock=='mid_boundary':
+                freqsLH = [lowFreq,highFreq]
+            elif currentBlock=='low_boundary':
+                freqsLH = [lowFreq,midFreq]
+            elif currentBlock=='high_boundary':
+                freqsLH = [midFreq,highFreq]
+            if nextCorrectChoice==self.results.labels['rewardSide']['left']:
+                targetFrequency = freqsLH[0]
+            elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
+                targetFrequency = freqsLH[1]
+        elif psycurveMode=='uniform':
+            pass
         self.params['targetFrequency'].set_value(targetFrequency)
         self.prepare_target_sound(targetFrequency)
 
