@@ -84,6 +84,10 @@ class Paradigm(templates.Paradigm2AFC):
         psychometricParams = self.params.layout_group('Psychometric parameters')
 
 
+        self.params['automationMode'] = paramgui.MenuParam('Automation Mode',
+                                                           ['off','increase_delay'],
+                                                           value=0,group='Automation')
+        automationParams = self.params.layout_group('Automation')
 
         # 5000, 7000, 9800 (until 2014-03-19)
         self.params['highFreq'] = paramgui.NumericParam('High freq',value=16000,
@@ -180,6 +184,8 @@ class Paradigm(templates.Paradigm2AFC):
         layoutCol3.addWidget(psychometricParams)
         layoutCol3.addStretch()
 
+        layoutCol4.addWidget(automationParams)
+        layoutCol3.addStretch()
         layoutCol4.addWidget(soundParams)
         layoutCol3.addStretch()
         layoutCol4.addWidget(reportParams)
@@ -321,6 +327,7 @@ class Paradigm(templates.Paradigm2AFC):
         #import pdb; pdb.set_trace() ### DEBUG
 
         # === Prepare next trial ===
+        self.execute_automation()
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
 
         # -- Prepare sound --
@@ -580,6 +587,12 @@ class Paradigm(templates.Paradigm2AFC):
                 	self.params['nValid'].add(1)
                         self.results['valid'][trialIndex] = 1
 
+    def execute_automation(self):
+        automationMode = self.params['automationMode'].get_string()
+        nValid = self.params['nValid'].get_value()
+        if automationMode=='increase_delay':
+            if not nValid%10:
+                self.params['delayToTargetMean'].add(0.010)
 
 
 if __name__ == "__main__":
