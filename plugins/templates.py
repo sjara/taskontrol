@@ -51,6 +51,9 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
         # -- Add parameters --
         self.params = paramgui.Container()
+        self.params['trainer'] = paramgui.StringParam('Trainer (initials)',
+                                                      value='',
+                                                      group='Session info')
         self.params['experimenter'] = paramgui.StringParam('Experimenter',
                                                            value='experimenter',
                                                            group='Session info')
