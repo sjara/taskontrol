@@ -591,7 +591,7 @@ class Paradigm(templates.Paradigm2AFC):
         automationMode = self.params['automationMode'].get_string()
         nValid = self.params['nValid'].get_value()
         if automationMode=='increase_delay':
-            if not nValid%10:
+            if nValid>0 and not nValid%10:
                 self.params['delayToTargetMean'].add(0.010)
 
 
