@@ -16,7 +16,7 @@ sidesDirectMode = {'outcomeMode':'sides_direct', 'delayToTargetMean':0, 'delayTo
 directMode = {'outcomeMode':'direct', 'delayToTargetMean':0, 'delayToTargetHalfRange':0,
                    'currentBlock':'mid_boundary'}
 increaseDelayMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0, 'delayToTargetHalfRange':0,
-                   'currentBlock':'mid_boundary', 'automationMode':'increase_delay', 'targetDuration':0.05}
+                   'currentBlock':'mid_boundary', 'automationMode':'increase_delay', 'targetDuration':0.05,'targetMaxIntensity':80,'lowFreq':4000,'highFreq':13000}
 
 test050 = increaseDelayMode.copy()
 test050.update({'subject':'test050','experimenter':'santiago'})
