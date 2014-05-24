@@ -21,19 +21,19 @@ __created__ = '2013-03-18'
 STATE_MACHINE_TYPE = 'emulator'
 
 #: Serial port for the state machine.
-STATE_MACHINE_PORT = '/dev/ttyACM1'
+STATE_MACHINE_PORT = '/dev/ttyACM0'
 
 #: Parameters for triggering sounds.
-SOUND_TRIGGER_PORT = '/dev/ttyACM0'
+SOUND_TRIGGER_PORT = '/dev/ttyACM1'
 
 #: File that defines the calibration of speakers
 SPEAKER_CALIBRATION = None
-#SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5' #None #
+#SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5'
 
 #_ignore=0
 
-DATA_DIR = '/var/tmp/'
-REMOTE_DIR = '/mnt/jarahub/'
+DATA_DIR = '/var/tmp/data/'
+REMOTE_DIR = '/mnt/jarahubdata/'
 
 DEFAULT_PARAMSFILE = './params.py'
 
