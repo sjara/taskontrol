@@ -14,6 +14,7 @@ from PySide import QtCore
 from PySide import QtGui 
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
+from taskontrol.core import statematrix
 import signal
 
 # -- Create main window --
@@ -33,7 +34,13 @@ stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1 ] ,
                 [ 2,  2,  1,  2,  2,  2,  1 ] ]
 stateOutputs = [[0,0,0], [1,1,1], [0,0,0]]
 stateTimers  = [  0.1,    2 ,    2  ]
-dispatcherModel.set_state_matrix(stateMatrix, stateOutputs, stateTimers)
+
+sM=statematrix.StateMatrix() #Create the statematrix object to upload
+sM.stateMatrix=stateMatrix
+sM.stateOutputs=stateOutputs
+sM.stateTimers=stateTimers
+
+dispatcherModel.set_state_matrix(sM)
 
 # -- Create dispatcher GUI and connect signals --
 dispatcherView = dispatcher.DispatcherGUI(model=dispatcherModel)
