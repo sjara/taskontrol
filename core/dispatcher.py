@@ -434,6 +434,8 @@ def center(guiObj):
 
 def main(TESTCASE):
 
+    '''Create the window and allow closing it with Ctrl-C'''
+
     if TESTCASE==1:
         import signal
         # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\ 
