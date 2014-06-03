@@ -432,9 +432,8 @@ def center(guiObj):
     guiObj.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
 
 
-if __name__ == "__main__":
+def main(TESTCASE):
 
-    TESTCASE = 2
     if TESTCASE==1:
         import signal
         # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\ 
@@ -443,6 +442,7 @@ if __name__ == "__main__":
         d = Dispatcher(parent=None,serverType='dummy', connectnow=False, interval=1)
         d.start()
         sys.exit(app.exec_())
+
     elif TESTCASE==2:
         import signal
         signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
@@ -488,3 +488,7 @@ if __name__ == "__main__":
     #sys.exit(app.exec_())
 '''
 
+
+TESTCASE=2
+if __name__ == "__main__":
+    main(TESTCASE)
