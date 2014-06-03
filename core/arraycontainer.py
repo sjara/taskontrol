@@ -29,7 +29,10 @@ class Container(dict):
             # FIXME: Make sure items of self.labels are dictionaries
             utils.append_dict_to_HDF5(resultsLabelsGroup,key,item)
 
-if __name__ == "__main__":
+def main():
+
+    '''When executed as a script, create test array container and write the data to an h5 file'''
+
     import h5py
     import numpy as np
     c = Container()
@@ -40,3 +43,6 @@ if __name__ == "__main__":
     h5file.create_group('resultsData')
     c.append_to_file(h5file,4)
     h5file.close()
+
+if __name__ == "__main__":
+    main()
