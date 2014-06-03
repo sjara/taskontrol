@@ -54,7 +54,9 @@ class Messenger(QtCore.QObject):
         return '\n'.join(self.stringlist())
             
 
-if __name__ == "__main__":
+def main():
+
+    '''When executed as a script instead of imported as a module, run some test message commands'''
 
     onemsg = Message('My short message')
     print onemsg
@@ -65,3 +67,5 @@ if __name__ == "__main__":
     mess2 = Messenger()
     mess2.send('Another message')
 
+if __name__ == "__main__":
+    main()
