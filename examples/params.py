@@ -18,33 +18,36 @@ directMode = {'outcomeMode':'direct', 'delayToTargetMean':0, 'delayToTargetHalfR
 increaseDelayMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0, 'delayToTargetHalfRange':0,
                    'currentBlock':'mid_boundary', 'automationMode':'increase_delay', 'targetDuration':0.05,'targetMaxIntensity':80,'lowFreq':4000,'highFreq':13000}
 
-test050 = increaseDelayMode.copy()
+onNextCorrectMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0.2, 'delayToTargetHalfRange':0.05,
+                   'currentBlock':'mid_boundary', 'targetDuration':0.1,'targetMaxIntensity':80,'lowFreq':4000,'highFreq':13000}
+
+test050 = onNextCorrectMode.copy()
 test050.update({'subject':'test050','experimenter':'santiago'})
 
-test051 = increaseDelayMode.copy()
+test051 = onNextCorrectMode.copy()
 test051.update({'subject':'test051','experimenter':'santiago'})
 
-test052 = increaseDelayMode.copy()
+test052 = onNextCorrectMode.copy()
 test052.update({'subject':'test052','experimenter':'santiago'})
 
-test053 = increaseDelayMode.copy()
+test053 = onNextCorrectMode.copy()
 test053.update({'subject':'test053','experimenter':'santiago'})
 
-test054 = increaseDelayMode.copy()
+test054 = onNextCorrectMode.copy()
 test054.update({'subject':'test054','experimenter':'santiago'})
 
-test055 = increaseDelayMode.copy()
+test055 = onNextCorrectMode.copy()
 test055.update({'subject':'test055','experimenter':'santiago'})
 
-test056 = increaseDelayMode.copy()
+test056 = onNextCorrectMode.copy()
 test056.update({'subject':'test056','experimenter':'santiago'})
 
-test057 = increaseDelayMode.copy()
+test057 = onNextCorrectMode.copy()
 test057.update({'subject':'test057','experimenter':'santiago'})
 
-test058 = increaseDelayMode.copy()
+test058 = onNextCorrectMode.copy()
 test058.update({'subject':'test058','experimenter':'santiago'})
 
-test059 = increaseDelayMode.copy()
+test059 = onNextCorrectMode.copy()
 test059.update({'subject':'test059','experimenter':'santiago'})
 
