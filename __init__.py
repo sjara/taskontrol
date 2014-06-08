@@ -1,7 +1,6 @@
 #! /usr/bin/python 
 
 '''
-TASKontrol is a system for controlling behavioral experiments.
+TASKontrol is a framework for developing behavioral experiments.
 '''
 
-VERSION = 0.1
