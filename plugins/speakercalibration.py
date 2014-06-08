@@ -28,11 +28,25 @@ import h5py
 SOUND_FREQUENCIES = np.logspace(np.log10(1000), np.log10(40000), 16)
 DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
-MAX_AMPLITUDE = 0.05
+MAX_AMPLITUDE = 0.4
 
 DATADIR = '/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
+
+
+def create_sound(soundParams):
+    if soundParams['type']=='sine':
+        soundObjList = [pyo.Sine(freq=soundParams['frequency'],mul=DEFAULT_AMPLITUDE)]
+    if soundParams['type']=='chord':
+        nTones = soundParams['ntones']  # Number of components in chord
+        factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
+        centerFreq = soundParams['frequency']
+        freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
+        soundObjList = []
+        for indcomp in range(nTones):
+            soundObjList.append(pyo.Sine(freq=freqEachComp[indcomp],mul=DEFAULT_AMPLITUDE))
+    return soundObjList
 
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
@@ -43,18 +57,22 @@ class OutputButton(QtGui.QPushButton):
         self.soundFreq = soundFreq
         self.channel = channel
         self.setCheckable(True)
-        #self.connect(self,QtCore.SIGNAL('clicked()'),self.toggleOutput)
         self.clicked.connect(self.toggleOutput)
-        #self.soundObj = pyo.Sine(freq=self.soundFreq,mul=0.02).mix(2)
-        
-        self.soundObj = pyo.Sine(freq=self.soundFreq,mul=DEFAULT_AMPLITUDE)
+        self.create_sound(soundType='sine')
         '''
+        self.soundObj = pyo.Sine(freq=self.soundFreq,mul=DEFAULT_AMPLITUDE)
         if soundFreq<40000:
             self.soundObj = pyo.Sine(freq=self.soundFreq,mul=DEFAULT_AMPLITUDE)
         else:
             self.soundObj = pyo.Noise(mul=DEFAULT_AMPLITUDE)
         '''
-        
+    def create_sound(self,soundType):
+        if soundType=='sine':
+            soundParams = {'type':'sine', 'frequency':self.soundFreq}
+        elif soundType=='chord':
+            soundParams = {'type':'chord', 'frequency':self.soundFreq, 'ntones':12, 'factor':1.2}
+        self.soundObjList = create_sound(soundParams)
+
     def toggleOutput(self):
         if self.isChecked():
             self.start()
@@ -77,14 +95,17 @@ class OutputButton(QtGui.QPushButton):
         
     def play_sound(self):
         #self.soundObj = pyo.Sine(freq=soundfreq,mul=0.02).mix(2).out()
-        #self.soundObj.setMul(0.01)  
-        self.soundObj.out(chnl=self.channel)
+        #self.soundObj.setMul(0.01) 
+        for soundObj in self.soundObjList:
+            soundObj.out(chnl=self.channel)
 
     def change_amplitude(self,amplitude):
-        self.soundObj.setMul(amplitude)
+        for soundObj in self.soundObjList:
+            soundObj.setMul(amplitude)
 
     def stop_sound(self):
-        self.soundObj.stop()
+        for soundObj in self.soundObjList:
+            soundObj.stop()
 
 class AmplitudeControl(QtGui.QDoubleSpinBox):
     def __init__(self,soundButton,parent=None):
@@ -141,6 +162,52 @@ class SoundControl(QtGui.QGroupBox):
             amplitudeEach[indf] = oneAmplitude.value()
         return amplitudeEach
 
+class LoadButton(QtGui.QPushButton):
+    '''
+    Note: this class does not change target intensity value.
+          It load data for the saved target intensity.
+    '''
+    logMessage = QtCore.Signal(str)
+    def __init__(self, soundControlArray, parent=None):
+        super(LoadButton, self).__init__('Load data', parent)
+        self.soundControlArray = soundControlArray       
+        self.calData = None # Object to contain loaded data
+        self.clicked.connect(self.load_data)
+    def load_data(self):
+        fname,ffilter = QtGui.QFileDialog.getOpenFileName(self,'Open calibration file','/tmp/','*.h5')
+        self.calData = Calibration(fname)
+        self.update_values()
+    def update_values(self):
+        nChannels = 2 # FIXME: hardcoded
+        for indch in range(nChannels):
+            for indf in range(len(self.soundControlArray[indch].outputButtons)):
+                oneOutputButton = self.soundControlArray[indch].outputButtons[indf]
+                oneAmplitudeControl = self.soundControlArray[indch].amplitudeControl[indf]
+                thisAmp = self.calData.find_amplitude(oneOutputButton.soundFreq,
+                                                      self.calData.intensity)
+                # NOTE: We are calculating values twice.
+                #       find_amplitude() finds value for both channels
+                oneAmplitudeControl.setValue(thisAmp[indch])
+                oneOutputButton.change_amplitude(thisAmp[indch])
+
+class PlotButton(QtGui.QPushButton):
+    '''
+    '''
+    def __init__(self, soundControlArray, parent=None):
+        super(PlotButton, self).__init__('Plot results', parent)
+        self.soundControlArray = soundControlArray       
+        self.clicked.connect(self.plot_data)
+    def plot_data(self):
+        frequencies = self.soundControlArray[0].soundFreqs
+        amplitudeData = []
+        for soundControl in self.soundControlArray:
+            amplitudeData.append(soundControl.amplitude_array())
+        amplitudeData = np.array(amplitudeData)
+        import matplotlib.pyplot as plt
+        plt.plot(frequencies,np.array(amplitudeData).T,'o-')
+        plt.gca().set_xscale('log')
+        plt.draw()
+        plt.show()
 
 class SaveButton(QtGui.QPushButton):
     '''
@@ -224,24 +291,42 @@ class SpeakerCalibration(QtGui.QMainWindow):
         super(SpeakerCalibration, self).__init__(parent)
 
         self.name = 'speakercalibration'
-        self.soundServer = self.initializeSound()
+        self.soundServer = self.initialize_sound()
 
         # -- Add graphical widgets to main window --
         self.centralWidget = QtGui.QWidget()
         layoutMain = QtGui.QHBoxLayout()
         layoutRight = QtGui.QVBoxLayout()
                
-        soundControlL = SoundControl(self.soundServer, channel=0, channelName='left')
-        soundControlR = SoundControl(self.soundServer, channel=1, channelName='right')        
+        self.soundControlL = SoundControl(self.soundServer, channel=0, channelName='left')
+        self.soundControlR = SoundControl(self.soundServer, channel=1, channelName='right')
 
-        self.saveButton = SaveButton([soundControlL,soundControlR])
+        self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
+        soundTypeLabel = QtGui.QLabel('Sound type')
+        self.soundTypeMenu = QtGui.QComboBox()
+        self.soundTypeList = ['sine','chord']
+        self.soundTypeMenu.addItems(self.soundTypeList)
+        self.soundTypeMenu.activated.connect(self.change_sound_type)
+        soundTargetIntensityLabel = QtGui.QLabel('Target intensity [dB-SPL]')
+        self.soundTargetIntensity = QtGui.QLineEdit()
+        self.soundTargetIntensity.setText(str(60))
+        self.soundTargetIntensity.setEnabled(False)
+        self.loadButton = LoadButton([self.soundControlL,self.soundControlR])
+        self.plotButton = PlotButton([self.soundControlL,self.soundControlR])
         
+
         layoutRight.addWidget(self.saveButton)
+        layoutRight.addWidget(soundTypeLabel)
+        layoutRight.addWidget(self.soundTypeMenu)
+        layoutRight.addWidget(soundTargetIntensityLabel)
+        layoutRight.addWidget(self.soundTargetIntensity)
+        layoutRight.addWidget(self.loadButton)
+        layoutRight.addWidget(self.plotButton)
         layoutRight.addStretch()
 
-        layoutMain.addWidget(soundControlL)
+        layoutMain.addWidget(self.soundControlL)
         layoutMain.addWidget(VerticalLine())
-        layoutMain.addWidget(soundControlR)
+        layoutMain.addWidget(self.soundControlR)
         layoutMain.addWidget(VerticalLine())
         layoutMain.addLayout(layoutRight)
         
@@ -266,7 +351,13 @@ class SpeakerCalibration(QtGui.QMainWindow):
         # -- Connect other signals --
         #self.saveData.buttonSaveData.clicked.connect(self.save_to_file)
 
-    def initializeSound(self):
+    def change_sound_type(self,soundTypeInd):
+        for oneOutputButton in self.soundControlL.outputButtons:
+            oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+        for oneOutputButton in self.soundControlR.outputButtons:
+            oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+
+    def initialize_sound(self):
         s = pyo.Server(audio='jack').boot()
         s.start()
         return s
