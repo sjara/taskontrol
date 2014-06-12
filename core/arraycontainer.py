@@ -9,6 +9,7 @@ __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
+
 from taskontrol.core import utils
 
 
@@ -28,6 +29,7 @@ class Container(dict):
         for key,item in self.labels.iteritems():
             # FIXME: Make sure items of self.labels are dictionaries
             utils.append_dict_to_HDF5(resultsLabelsGroup,key,item)
+
 
 def main():
 
