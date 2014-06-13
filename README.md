@@ -1,7 +1,4 @@
- ______________
-
-   TASKontrol
- ______________
+#TASKontrol
 
 
 TASKontrol is a framework for developing behavioral experiments.
@@ -20,10 +17,10 @@ maintained by the Brody Lab) and the state machine for Linux+RTAI,
 originally developed at Cold Spring Harbor Laboratory.
 
 TASKontrol provides the following advantages:
-- No need for a Windows license, it runs easily on Linux.
-- No need for a Matlab license, it is written in Python.
-- No need for multiple computers, when used with the Arduino server.
-- An appealing graphical interface, it uses Qt.
+* No need for a Windows license, it runs easily on Linux.
+* No need for a Matlab license, it is written in Python.
+* No need for multiple computers, when used with the Arduino server.
+* An appealing graphical interface, it uses Qt.
 
 You can find the full documentation at:
   http://taskontrol.readthedocs.org

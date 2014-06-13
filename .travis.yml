@@ -1,9 +1,9 @@
 language: python
 python:
   - "2.7"
-before_script: export PYTHONPATH=$PYTHONPATH:~/taskontrol
+before_script: apt-get install python-numpy python-pyside python-matplotlib python-h5py && export PYTHONPATH=$PYTHONPATH:~/taskontrol
 
  #command to install dependencies
-install: "pip install -r requirements.txt"
+ #install: "pip install -r requirements.txt"
 # command to run tests
 script: nosetests
