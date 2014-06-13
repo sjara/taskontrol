@@ -1,5 +1,5 @@
+![](https://travis-ci.org/nickponvert/taskontrol.svg?branch=master)
 #TASKontrol
-
 
 TASKontrol is a framework for developing behavioral experiments.
 
