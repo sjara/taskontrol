@@ -1,4 +1,5 @@
 language: python
+    virtualenv: system_site_packages: true
 python:
   - "2.7"
 before_script: sudo apt-get install python-numpy python-pyside python-matplotlib python-h5py && export PYTHONPATH=$PYTHONPATH:~/taskontrol
