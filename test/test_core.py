@@ -8,11 +8,11 @@ def arraycontainer_test():
     c['myvar1'] = np.arange(10)
     c.labels['myvar2labels'] = {'yes':1,'no':0}
     c['myvar2'] = np.array([0,1,1,1,0])
-    h5file = h5py.File('/tmp/testh5.h5','w')
+    h5file = h5py.File('testh5.h5','w')
     h5file.create_group('resultsData')
     c.append_to_file(h5file,4)
     h5file.close()
-
+'''
 def dispatcher_test_one():
 
     from core.dispatcher import *
@@ -38,6 +38,4 @@ def dispatcher_test_one():
     #form.show()
     #app.exec_()
     #app.quit()
-
-
-    
+''' 
