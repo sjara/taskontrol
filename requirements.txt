@@ -1,5 +1,0 @@
-pyside
-numpy
-matplotlib
-h5py
-

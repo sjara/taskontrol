@@ -3,7 +3,6 @@ python:
   - "2.7"
 before_script: apt-get install python-numpy python-pyside python-matplotlib python-h5py && export PYTHONPATH=$PYTHONPATH:~/taskontrol
 
- #command to install dependencies
- #install: "pip install -r requirements.txt"
+#command to install dependencies
 # command to run tests
 script: nosetests
