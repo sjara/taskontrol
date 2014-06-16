@@ -20,7 +20,7 @@ class Container(dict):
     def append_to_file(self, h5file, currentTrial):
         '''Returns True if successful '''
         if currentTrial < 1:
-            raise UserWarning('WARNING: No trials have been completed or
+            raise UserWarning('WARNING: No trials have been completed or\
                               currentTrial not updated.')
         resultsDataGroup = h5file.require_group('resultsData')
         resultsLabelsGroup = h5file.require_group('resultsLabels')
