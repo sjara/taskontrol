@@ -28,53 +28,62 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
+from PySide import QtCore
+from PySide import QtGui
 import numpy as np
 #from taskontrol.core import messenger
 #from taskontrol.core import smclient
 
 #reload(smclient)
 
-DEFAULT_PREPARE_NEXT = 0 # State to prepare next trial
+DEFAULT_PREPARE_NEXT = 0  # State to prepare next trial
+
 
 class Dispatcher(QtCore.QObject):
+
     '''
     Dispatcher is the trial controller. It is an interface between a
     trial-structured paradigm and the state machine.
 
     It emits the following signals:
     - 'timerTic'        : at every tic of the dispatcher timer.
-                          It sends: serverTime,currentState,eventCount,currentTrial
-    - 'prepareNextTrial': whenever one of the prepare-next-trial-states is reached.
+                          It sends:
+                          serverTime,currentState,eventCount,currentTrial
+    - 'prepareNextTrial': whenever one of the prepare-next-trial-states is
+                          reached.
                           It sends: 'nextTrial'
 
     REMOVED:
-    - 'startNewTrial'   : whenever READY TO START TRIAL is sent to state machine.
+    - 'startNewTrial'   : whenever READY TO START TRIAL is sent to state
+                          machine.
                           It sends: 'currentTrial'
     '''
     # -- Create signals (they need to be before constructor) --
-    timerTic = QtCore.Signal(float,int,int,int)
+    timerTic = QtCore.Signal(float, int, int, int)
     prepareNextTrial = QtCore.Signal(int)
-    startNewTrial = QtCore.Signal(int) ### FIXME: is this really necessary?
+    startNewTrial = QtCore.Signal(int)  # FIXME: is this really necessary?
     logMessage = QtCore.Signal(str)
 
-    def __init__(self, parent=None,serverType='dummy', connectnow=True, interval=0.3,
-                 nInputs=3,nOutputs=3):
+    def __init__(self, parent=None, serverType='dummy', connectnow=True,
+                 interval=0.3, nInputs=3, nOutputs=3):
         super(Dispatcher, self).__init__(parent)
 
-        if serverType=='arduino_due':
+        if serverType == 'arduino_due':
             from taskontrol.core import smclient as smclient
-        elif serverType=='dummy':
+        elif serverType == 'dummy':
             from taskontrol.plugins import smdummy as smclient
-        elif serverType=='emulator':
+        elif serverType == 'emulator':
             from taskontrol.plugins import smemulator as smclient
         else:
             pass
-        
+
         # -- Set trial structure variables --
-        self.prepareNextTrialStates = [0]    # Default state to prepare next trial
-        self.preparingNextTrial = False      # True while preparing next trial
+
+        # Default state to prepare next trial
+        self.prepareNextTrialStates = [0]
+
+        # True while preparing next trial
+        self.preparingNextTrial = False
 
         # -- Create a state machine client --
         #self.host = host
@@ -97,10 +106,10 @@ class Dispatcher(QtCore.QObject):
         self.lastEvents = []   # Matrix with info about last events
         self.eventsMat = []    # Matrix with info about all events
         #self._stateMatrixStatus = False # To indicate if a matrix has been set
-        self.indexLastEventEachTrial = [] # index of last event for each trial
+        self.indexLastEventEachTrial = []  # index of last event for each trial
 
         # -- Create timer --
-        self.interval = interval # Polling interval (sec)
+        self.interval = interval  # Polling interval (sec)
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.timeout)
 
@@ -111,7 +120,7 @@ class Dispatcher(QtCore.QObject):
         '''Connect to state machine server and initialize it.'''
         self.statemachine.connect()
         ###self.statemachine.initialize()
-        self.statemachine.set_sizes(self.nInputs,self.nOutputs,0)
+        self.statemachine.set_sizes(self.nInputs, self.nOutputs, 0)
         self.isConnected = True
 
     def reset_state_matrix(self):
@@ -119,15 +128,16 @@ class Dispatcher(QtCore.QObject):
         blankMatrix = [nActions*[0]]
         blankOutputs = [self.nOutputs*[0]]
         blankSerial = None
-        blankTimers = [60] # in sec
-        self._set_state_matrix(blankMatrix,blankOutputs,blankSerial,blankTimers)
+        blankTimers = [60]  # in sec
+        self._set_state_matrix(blankMatrix, blankOutputs, blankSerial,
+                               blankTimers)
 
-    def set_state_matrix(self,stateMatrix):
+    def set_state_matrix(self, stateMatrix):
         '''
         Send state transition matrix to server.
         Args:
-            stateMatrix (statematrix.StateMatrix): object that contains all information
-                        about the state matrix, outputs and timers.
+            stateMatrix (statematrix.StateMatrix): object that contains all
+            information about the state matrix, outputs and timers.
         '''
         self._set_prepare_next_trial_states(stateMatrix.get_ready_states(),
                                             stateMatrix.get_states_dict())
@@ -136,15 +146,25 @@ class Dispatcher(QtCore.QObject):
                                stateMatrix.get_serial_outputs(),
                                stateMatrix.get_state_timers())
 
-    def _set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,extraTimers=None):
+    def _set_state_matrix(self, stateMatrix, stateOutputs, serialOutputs,
+                          stateTimers, extraTimers=None):
         '''
-        Send state transition matrix, outputs and timers to server, given python lists.
+        Send state transition matrix, outputs and timers to server, given
+        python lists.
 
         Data must be python lists (2D), not numpy arrays.
-        stateMatrix: [nStates][nActions]  (where nActions is 2*nInputs+1+nExtraTimers)
-        stateOutputs: [nStates][nOutputs] specifying it turn on, off, or no change.
+
+        stateMatrix: [nStates][nActions]  (where nActions is
+                                           2*nInputs+1+nExtraTimers)
+
+        stateOutputs: [nStates][nOutputs] specifying it turn on, off, or no
+                                          change.
+
                       0 (for low), 1 (for high), other (for no change)
-        serialOutputs: [nStates] (where each value is one byte corresponding to 8 outputs)
+
+        serialOutputs: [nStates] (where each value is one byte corresponding to
+                                  8 outputs)
+
         stateTimers: [nStates] (in sec)
         '''
         # -- Set prepare next trial states --
@@ -154,7 +174,7 @@ class Dispatcher(QtCore.QObject):
             #if not isinstance(statesmatrix,np.ndarray):
             #    statesmatrix = np.array(statesmatrix)
             if extraTimers:
-                #self.statemachine.setScheduledWavesDIO(schedwavesmatrix)        
+                #self.statemachine.setScheduledWavesDIO(schedwavesmatrix)
                 raise 'Sending extra-timers is not implemented yet.'
             self.statemachine.set_state_matrix(stateMatrix)
             self.statemachine.set_state_outputs(stateOutputs)
@@ -165,11 +185,13 @@ class Dispatcher(QtCore.QObject):
         else:
             print 'Call to setStateMatrix, but the client is not connected.\n'
 
-    def _set_prepare_next_trial_states(self,prepareNextTrialStatesAsStrings,statesDict):
-        '''Defines the list of states from which the state machine returns control
-        to the client to prepare the next trial.'''
-        if not isinstance(prepareNextTrialStatesAsStrings,list):
-            raise TypeError('prepareNextTrialStatesAsStrings must be a list of strings')
+    def _set_prepare_next_trial_states(self, prepareNextTrialStatesAsStrings,
+                                       statesDict):
+        '''Defines the list of states from which the state machine returns
+           control to the client to prepare the next trial.'''
+        if not isinstance(prepareNextTrialStatesAsStrings, list):
+            raise TypeError('prepareNextTrialStatesAsStrings must be a \
+                            list of strings')
         self.prepareNextTrialStates = []
         for oneState in prepareNextTrialStatesAsStrings:
             self.prepareNextTrialStates.append(statesDict[oneState])
@@ -181,12 +203,14 @@ class Dispatcher(QtCore.QObject):
         self.currentTrial += 1
         self.statemachine.force_state(1)
         self.preparingNextTrial = False
-        ### self.startNewTrial.emit(self.currentTrial) # FIXME: is this really necessary?
+        ### self.startNewTrial.emit(self.currentTrial)
+        # FIXME: is this really necessary?
 
     def timeout(self):
         ###print '************************ TIMEOUT *********************'
         self.query_state_machine()
-        self.timerTic.emit(self.serverTime,self.currentState,self.eventCount,self.currentTrial)
+        self.timerTic.emit(self.serverTime, self.currentState, self.eventCount,
+                           self.currentTrial)
         ###print '{0}  {1}'.format(self.currentState,self.serverTime) ### DEBUG
         ###print self.prepareNextTrialStates
         # -- Check if one of the PrepareNextTrialStates has been reached --
@@ -197,7 +221,8 @@ class Dispatcher(QtCore.QObject):
             self.preparingNextTrial = True
             self.update_trial_borders()
             self.prepareNextTrial.emit(self.currentTrial+1)
-        # FIXME: Should I stop the clock/timeouts here? until everything is processed?
+        # FIXME: Should I stop the clock/timeouts here? until everything is
+        #        processed?
         # FIXME: fix what to do for other preparation states
         '''
         if self.currentState and not self.preparingNextTrial) or \
@@ -206,7 +231,8 @@ class Dispatcher(QtCore.QObject):
             for state in self.prepareNextTrialStates:
                 if state in laststates:
                     self.preparingNextTrial = True
-                    #self.emit(QtCore.SIGNAL('PrepareNextTrial'), self.currentTrial+1)
+                    #self.emit(QtCore.SIGNAL('PrepareNextTrial'),
+                               self.currentTrial+1)
                     self.prepareNextTrial.emit(self.currentTrial+1)
                     break
        '''
@@ -214,10 +240,10 @@ class Dispatcher(QtCore.QObject):
     #@QtCore.Slot()
     def resume(self):
         # --- Start timer ---
-        self.timer.start(1e3*self.interval) # timer takes interval in ms
+        self.timer.start(1e3*self.interval)  # timer takes interval in ms
         # -- Start state machine --
         if self.isConnected:
-            if 1: #self._stateMatrixStatus:
+            if 1:  # self._stateMatrixStatus:
                 # Prepare next trial when start is pressed
                 #self.prepareNextTrial.emit(self.currentTrial+1)
                 self.statemachine.run()
@@ -229,7 +255,8 @@ class Dispatcher(QtCore.QObject):
             else:
                 raise Exception('A state matrix has not been set')
         else:
-            print 'The dispatcher is not connected to the state machine server.'
+            print 'The dispatcher is not connected to the state machine\
+                   server.'
 
     #@QtCore.Slot()
     def pause(self):
@@ -242,16 +269,18 @@ class Dispatcher(QtCore.QObject):
             # FIXME: self.statemachine.force_output(????)
             self.logMessage.emit('Stopped')
         else:
-            print 'The dispatcher is not connected to the state machine server.'
+            print 'The dispatcher is not connected to the state machine\
+                   server.'
 
     def query_state_machine(self):
         '''Request events information to the state machine'''
         if self.isConnected:
-            #resultsDict = self.statemachine.getTimeEventsAndState(self.eventCount+1)
+            #resultsDict =
+            #   self.statemachine.getTimeEventsAndState(self.eventCount+1)
             self.serverTime = self.statemachine.get_time()
             self.lastEvents = self.statemachine.get_events()
             #self.eventsMat = np.vstack((self.eventsMat,self.lastEvents))
-            if len(self.lastEvents)>0:
+            if len(self.lastEvents) > 0:
                 self.eventsMat.extend(self.lastEvents)
                 self.currentState = self.eventsMat[-1][2]
                 self.eventCount = len(self.eventsMat)
@@ -259,14 +288,15 @@ class Dispatcher(QtCore.QObject):
                 ### print self.eventsMat ### DEBUG
 
     def update_trial_borders(self):
-        '''Find last index of last trial.
-        It looks for state zero, which corresponds to the last state no each trial.
-        The first event of all is also state zero, but this one is ignored.'''
+        '''Find last index of last trial.  It looks for state zero, which
+        corresponds to the last state no each trial.  The first event of all is
+        also state zero, but this one is ignored.'''
         # FIXME: slow way to find end of trial
-        if self.currentTrial>=0: # & self.eventCount>0:
-            for inde in xrange(self.eventCount-1,-1,-1): # This will count from n to 0
+        if self.currentTrial >= 0:  # & self.eventCount>0:
+            for inde in xrange(self.eventCount-1, -1, -1):  # This will count
+                                                            # from n to 0
                 #if self.eventsMat[inde][2] in self.prepareNextTrialStates:
-                if self.eventsMat[inde][2]==DEFAULT_PREPARE_NEXT:
+                if self.eventsMat[inde][2] == DEFAULT_PREPARE_NEXT:
                     self.indexLastEventEachTrial.append(inde)
                     break
         # WARNING: make sure this method is not called before the events
@@ -274,48 +304,55 @@ class Dispatcher(QtCore.QObject):
         # FIXME: this function has not been tested with more than one state
         #        in prepareNextTrialStates.
 
-    def events_one_trial(self,trialID):
+    def events_one_trial(self, trialID):
         '''Return events for one trial as a numpy array'''
         #if trialID<0: eventsThisTrial = np.empty((0,3)) # NOTE: hardcoded size
         indLast = self.indexLastEventEachTrial[-1]
-        if trialID==0:
+        if trialID == 0:
             indPrev = 0
         else:
             indPrev = self.indexLastEventEachTrial[-2]
         # -- Include the state 0 at the beginning of the trial --
-        #eventsThisTrial = self.eventsMat[indPrev:indLast+1] # eventsMat is a list
+        #eventsThisTrial = self.eventsMat[indPrev:indLast+1]
+        #eventsMat is a list
         # -- Do not include the state 0 at the beginning of the trial --
-        eventsThisTrial = self.eventsMat[indPrev+1:indLast+1] # eventsMat is a list
+        eventsThisTrial = self.eventsMat[indPrev+2:indLast+1]
+        # eventsMat is a list
         return np.array(eventsThisTrial)
-        ####### FIXME: this seems inefficient because eventsMat is an array and we
-        #######        need only a set of trials. Do we need to convert the whole thing?
+        ### FIXME: this seems inefficient because eventsMat is an array and we
+        ###        need only a set of trials. Do we need to convert the whole
+        ###        thing?
 
-
-    def append_to_file(self,h5file,currentTrial=None):
+    def append_to_file(self, h5file, currentTrial=None):
         '''Add events information to an open HDF5 file.
         At this point, it ignores the value of 'currentTrial'.
         '''
-        if not (self.indexLastEventEachTrial): # not len(self.eventsMat):
-            raise UserWarning('WARNING: No trials have been completed. No events were saved.')
-        eventsGroup = h5file.create_group('/events') # Events that ocurred during the session
+        if not (self.indexLastEventEachTrial):  # not len(self.eventsMat):
+            raise UserWarning('WARNING: No trials have been completed.\
+                              No events were saved.')
+        eventsGroup = h5file.create_group('/events')  # Events that ocurred
+                                                      # during the session
         eventsMatrixAsArray = np.array(self.eventsMat)
-        eventsGroup.create_dataset('eventTime', dtype=float, data=eventsMatrixAsArray[:,0])
-        eventsGroup.create_dataset('eventCode', dtype=int, data=eventsMatrixAsArray[:,1])
-        eventsGroup.create_dataset('nextState', dtype=int, data=eventsMatrixAsArray[:,2])
+        eventsGroup.create_dataset('eventTime', dtype=float,
+                                   data=eventsMatrixAsArray[:, 0])
+        eventsGroup.create_dataset('eventCode', dtype=int,
+                                   data=eventsMatrixAsArray[:, 1])
+        eventsGroup.create_dataset('nextState', dtype=int,
+                                   data=eventsMatrixAsArray[:, 2])
         eventsGroup.create_dataset('indexLastEventEachTrial', dtype=int,
                                    data=np.array(self.indexLastEventEachTrial))
 
-        ###### FIXME: what happens (on trial 1) when indexLastEventEachTrial is empty? #####
-
+        ###### FIXME: what happens (on trial 1)
+        ######        when indexLastEventEachTrial is empty? #####
 
         #rawEventsColumnsLabels = ['eventTime','eventCode','nextState']
-        #eventsGroup.create_dataset('rawEvents', dtype=float, data=dispatcherModel.eventsMatrix)
+        #eventsGroup.create_dataset('rawEvents', dtype=float,
+        #                           data=dispatcherModel.eventsMatrix)
         #dtstr = h5py.special_dtype(vlen=str)
         #eventsGroup.create_dataset('rawEventsColumnsLabels', dtype=dtstr,
         #                           data=rawEventsColumnsLabels)
         #return True
-        
-        
+
     def die(self):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.pause()
@@ -325,13 +362,13 @@ class Dispatcher(QtCore.QObject):
             self.statemachine.force_state(0)
             self.statemachine.close()
 
+BUTTON_COLORS = {'start': 'limegreen', 'stop': 'red'}
 
-
-BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
 class DispatcherGUI(QtGui.QGroupBox):
     resumeSM = QtCore.Signal()
     pauseSM = QtCore.Signal()
+
     def __init__(self, parent=None, minwidth=220, dummy=False, model=None):
         super(DispatcherGUI, self).__init__(parent)
 
@@ -369,11 +406,13 @@ class DispatcherGUI(QtGui.QGroupBox):
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
-        layout.addWidget(self.stateLabel,0,0)
-        layout.addWidget(self.eventCountLabel,0,1)
-        layout.addWidget(self.timeLabel,1,0)
-        layout.addWidget(self.currentTrialLabel,1,1)
-        layout.addWidget(self.buttonStartStop, 2,0, 1,2) # Span 1 row, 2 cols
+        layout.addWidget(self.stateLabel, 1, 0)
+        layout.addWidget(self.eventCountLabel, 0, 1)
+        layout.addWidget(self.timeLabel, 1, 0)
+        layout.addWidget(self.currentTrialLabel, 1, 1)
+
+        # Span 1 row, 2 cols
+        layout.addWidget(self.buttonStartStop, 2, 0, 1, 2)
         self.setLayout(layout)
         self.setTitle('Dispatcher')
 
@@ -386,13 +425,14 @@ class DispatcherGUI(QtGui.QGroupBox):
         self.stop()
 
     #@QtCore.Slot(float,int,int,int)  # FIXME: is this really needed?
-    def update(self,serverTime,currentState,eventCount,currentTrial):
+    def update(self, serverTime, currentState, eventCount, currentTrial):
         '''Update display of time and events.'''
         self.timeLabel.setText(self._timeFormat.format(serverTime))
         self.stateLabel.setText(self._stateFormat.format(currentState))
         self.eventCountLabel.setText(self._eventCountFormat.format(eventCount))
-        if currentTrial>=0:
-            self.currentTrialLabel.setText(self._currentTrialFormat.format(currentTrial))
+        if currentTrial >= 0:
+            self.currentTrialLabel.setText(
+                self._currentTrialFormat.format(currentTrial))
         #trialToPrint = currentTrial if currentTrial>-1 else ''
 
     def startOrStop(self):
@@ -405,7 +445,7 @@ class DispatcherGUI(QtGui.QGroupBox):
     def start(self):
         '''Resume state machine.'''
         # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['stop']
+        stylestr = 'QWidget { background-color: %s }' % BUTTON_COLORS['stop']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Stop')
 
@@ -415,7 +455,7 @@ class DispatcherGUI(QtGui.QGroupBox):
     def stop(self):
         '''Pause state machine.'''
         # -- Change button appearance --
-        stylestr = 'QWidget { background-color: %s }'%BUTTON_COLORS['start']
+        stylestr = 'QWidget { background-color: %s }' % BUTTON_COLORS['start']
         self.buttonStartStop.setStyleSheet(stylestr)
         self.buttonStartStop.setText('Start')
         self.pauseSM.emit()
@@ -428,33 +468,39 @@ class DispatcherGUI(QtGui.QGroupBox):
 def center(guiObj):
     '''Place in the center of the screen (NOT TESTED YET)'''
     screen = QtGui.QDesktopWidget().screenGeometry()
-    size =  guiObj.geometry()
-    guiObj.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
+    size = guiObj.geometry()
+    guiObj.move((screen.width()-size.width())/2,
+                (screen.height()-size.height())/2)
 
 
 def main(TESTCASE):
 
     '''Create the window and allow closing it with Ctrl-C'''
 
-    if TESTCASE==1:
+    if TESTCASE == 1:
         import signal
-        # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\ 
+        # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         app = QtCore.QCoreApplication(sys.argv)
-        d = Dispatcher(parent=None,serverType='dummy', connectnow=False, interval=1)
+        d = Dispatcher(parent=None, serverType='dummy',
+                       connectnow=False, interval=1)
         d.start()
         sys.exit(app.exec_())
 
-    elif TESTCASE==2:
+    elif TESTCASE == 2:
         import signal
-        signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-        app=QtGui.QApplication.instance() # checks if QApplication already exists 
-        if not app: # create QApplication if it doesnt exist 
+        signal.signal(signal.SIGINT, signal.SIG_DFL)  # Enable Ctrl-C
+        # checks if QApplication already exists
+        app = QtGui.QApplication.instance()
+        if not app:  # create QApplication if it doesnt exist
             app = QtGui.QApplication(sys.argv)
         form = QtGui.QDialog()
-        form.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        #form.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
-        dispatcherModel = Dispatcher(parent=form,serverType='dummy',connectnow=True, interval=0.5)
+        form.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                           QtGui.QSizePolicy.Expanding)
+        #form.setSizePolicy(QtGui.QSizePolicy.Minimum,
+        #                   QtGui.QSizePolicy.Minimum)
+        dispatcherModel = Dispatcher(parent=form, serverType='dummy',
+                                     connectnow=True, interval=0.5)
         dispatcherView = DispatcherGUI(parent=form)
         dispatcherModel.timerTic.connect(dispatcherView.update)
         dispatcherView.resumeSM.connect(dispatcherModel.resume)
@@ -469,7 +515,8 @@ def main(TESTCASE):
     app = QtGui.QApplication(sys.argv)
     form = QtGui.QDialog()
     form.setFixedSize(180,200)
-    #form.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Expanding)
+    #form.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                        QtGui.QSizePolicy.Expanding)
 
     if TESTCASE==100:
         dispatcherwidget = Dispatcher(parent=form,connectnow=False)
@@ -485,12 +532,12 @@ def main(TESTCASE):
 
     form.show()
     app.exec_()
-    
+
     # FIXME: maybe this way is better
     #sys.exit(app.exec_())
 '''
 
 
-TESTCASE=2
+TESTCASE = 2
 if __name__ == "__main__":
     main(TESTCASE)

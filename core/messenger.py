@@ -10,7 +10,8 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import time
-from PySide import QtCore 
+from PySide import QtCore
+
 
 class Message(object):
     '''
@@ -18,13 +19,14 @@ class Message(object):
 
     It contains the timestamp, the message and the sender.
     '''
-    def __init__(self,text):
-        self.text=text
-        self.timestamp=time.localtime()
+    def __init__(self, text):
+        self.text = text
+        self.timestamp = time.localtime()
+
     def __str__(self):
         '''String representation of the message'''
-        timeString = time.strftime('[%H:%M:%S] ',self.timestamp)
-        return '%s%s'%(timeString,self.text)
+        timeString = time.strftime('[%H:%M:%S] ', self.timestamp)
+        return '%s%s' % (timeString, self.text)
 
 
 class Messenger(QtCore.QObject):
@@ -37,12 +39,13 @@ class Messenger(QtCore.QObject):
     '''
     timedMessage = QtCore.Signal(str)
     messages = []
+
     def __init__(self):
         super(Messenger, self).__init__()
         #self.messages = []
 
     @QtCore.Slot(str)
-    def collect(self,text):
+    def collect(self, text):
         newMessage = Message(text)
         Messenger.messages.append(newMessage)
         self.timedMessage.emit(str(newMessage))
@@ -52,15 +55,15 @@ class Messenger(QtCore.QObject):
 
     def __str__(self):
         return '\n'.join(self.stringlist())
-            
+
 
 def main():
 
-    '''When executed as a script instead of imported as a module, run some test message commands'''
+    '''When executed as a script instead of imported as a module, run some test
+    message commands'''
 
     onemsg = Message('My short message')
     print onemsg
- 
     mess1 = Messenger()
     mess1.send('One message')
 
