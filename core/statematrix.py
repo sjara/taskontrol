@@ -131,7 +131,9 @@ class StateMatrix(object):
         '''
         if len(self.stateMatrix)>1:
             raise Exception('You need to create all extra timers before creating any state.')
-        self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME)
+        #self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME)
+        self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME,
+                       outputsOff=self.outputsDict.keys())
 
 
     def _force_transition(self,originStateID,destinationStateID):
@@ -359,16 +361,17 @@ class StateMatrix(object):
         return outputStr
 
 if __name__ == "__main__":
-    CASE = 5
+    CASE = 1
     if CASE==1:
-        sm = StateMatrix()
+        sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
+                         outputs={'centerWater':0, 'centerLED':1})
         #elif CASE==100:
         sm.add_state(name='wait_for_cpoke', statetimer=12,
                     transitions={'Cin':'play_target'},
-                    outputsOff=['CenterLED'])
+                    outputsOff=['centerLED'])
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
-                    outputsOn=['CenterLED'])
+                    outputsOn=['centerLED'])
         print sm
     elif CASE==2:
         sm = StateMatrix()
