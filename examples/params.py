@@ -21,8 +21,8 @@ increaseDelayMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0, 'de
 #onNextCorrectMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0.2, 'delayToTargetHalfRange':0.05,
 #                   'currentBlock':'mid_boundary', 'targetDuration':0.1,'targetMaxIntensity':80,'lowFreq':4000,'highFreq':13000}
 #onNextCorrectMode = {'currentBlock':'mid_boundary','lowFreq':3000,'highFreq':16000}
-onNextCorrectMode = {'currentBlock':'low_boundary','trialsPerBlock':1000}
-
+#onNextCorrectMode = {'currentBlock':'low_boundary','trialsPerBlock':1000}
+switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4}
 
 switchBlocksMode = {'punishTimeError':4}
 
@@ -57,33 +57,33 @@ test020 = switchBlocksMode.copy()
 test020.update({'subject':'test020','experimenter':'santiago'})
 
 
-test050 = onNextCorrectMode.copy()
+test050 = switchDailyMode.copy()
 test050.update({'subject':'test050','experimenter':'santiago'})
 
-test051 = onNextCorrectMode.copy()
+test051 = switchDailyMode.copy()
 test051.update({'subject':'test051','experimenter':'santiago'})
 
-test052 = onNextCorrectMode.copy()
+test052 = switchDailyMode.copy()
 test052.update({'subject':'test052','experimenter':'santiago'})
 
-test053 = onNextCorrectMode.copy()
+test053 = switchDailyMode.copy()
 test053.update({'subject':'test053','experimenter':'santiago'})
 
-test054 = onNextCorrectMode.copy()
+test054 = switchDailyMode.copy()
 test054.update({'subject':'test054','experimenter':'santiago'})
 
-test055 = onNextCorrectMode.copy()
+test055 = switchDailyMode.copy()
 test055.update({'subject':'test055','experimenter':'santiago'})
 
-test056 = onNextCorrectMode.copy()
+test056 = switchDailyMode.copy()
 test056.update({'subject':'test056','experimenter':'santiago'})
 
-test057 = onNextCorrectMode.copy()
+test057 = switchDailyMode.copy()
 test057.update({'subject':'test057','experimenter':'santiago'})
 
-test058 = onNextCorrectMode.copy()
+test058 = switchDailyMode.copy()
 test058.update({'subject':'test058','experimenter':'santiago'})
 
-test059 = onNextCorrectMode.copy()
+test059 = switchDailyMode.copy()
 test059.update({'subject':'test059','experimenter':'santiago'})
 
