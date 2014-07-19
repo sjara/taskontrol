@@ -58,6 +58,13 @@
 *** DONE Randomize intensity of sound.
 
 * To do soon:
+*** TODO Currently, no indices can be skipped when defining inputs and outputs in settings.
+    Unexpected behavior may occur (for example when dispatcher shuts off all output on stop).
+*** DONE Outputs may stay on after pressing stop.
+    Solution: on dispatcher.pause shut them all off. Dispatcher needs to know how many outputs
+    there are. This can be defined in two ways:
+    1. Every paradigm needs to specify nOutputs parameter when creating dispatcher
+    2. Importing rigsettings in dispatcher (this is the current solution)
 *** TODO Save dicts as something else (currently each item is one variable)
 *** DONE remove the old soundclient.py
 *** TODO Object to set layout
