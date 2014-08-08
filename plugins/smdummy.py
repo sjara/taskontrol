@@ -8,7 +8,7 @@ TO DO:
 
 
 __version__ = '0.1.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2012-08-20'
 
 import time
