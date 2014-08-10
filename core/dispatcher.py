@@ -31,12 +31,15 @@ import sys
 from PySide import QtCore 
 from PySide import QtGui 
 import numpy as np
+from taskontrol.settings import rigsettings
 #from taskontrol.core import messenger
 #from taskontrol.core import smclient
 
 #reload(smclient)
 
 DEFAULT_PREPARE_NEXT = 0 # State to prepare next trial
+N_INPUTS = len(rigsettings.INPUTS)
+N_OUTPUTS = len(rigsettings.OUTPUTS)
 
 class Dispatcher(QtCore.QObject):
     '''
@@ -60,7 +63,7 @@ class Dispatcher(QtCore.QObject):
     logMessage = QtCore.Signal(str)
 
     def __init__(self, parent=None,serverType='dummy', connectnow=True, interval=0.3,
-                 nInputs=3,nOutputs=3):
+                 nInputs=N_INPUTS,nOutputs=N_OUTPUTS):
         super(Dispatcher, self).__init__(parent)
 
         if serverType=='arduino_due':
@@ -239,7 +242,8 @@ class Dispatcher(QtCore.QObject):
         if self.isConnected:
             self.statemachine.stop()
             self.statemachine.force_state(0)
-            # FIXME: self.statemachine.force_output(????)
+            for indout in range(self.nOutputs):
+                self.statemachine.force_output(indout,0)
             self.logMessage.emit('Stopped')
         else:
             print 'The dispatcher is not connected to the state machine server.'

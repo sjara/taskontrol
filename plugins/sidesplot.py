@@ -6,7 +6,7 @@ Plugin to show the correct choice on each trial and the outcome (reward/punishme
 
 
 __version__ = '0.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-07-21'
 
 from PySide import QtCore 

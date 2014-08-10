@@ -128,7 +128,8 @@ class WaterCalibration(QtGui.QMainWindow):
         paramgui.center_in_screen(self)
 
         # -- Prepare first trial --
-        self.prepare_next_trial(0)
+        # - No need to prepare here. Dispatcher sends a signal when pressing Start -
+        #self.prepare_next_trial(0)
         
 
     def _show_message(self,msg):

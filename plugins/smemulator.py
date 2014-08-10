@@ -11,7 +11,7 @@ TO DO:
 
 
 __version__ = '0.1'
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-09-23'
 
 import time

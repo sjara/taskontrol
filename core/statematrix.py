@@ -131,9 +131,10 @@ class StateMatrix(object):
         '''
         if len(self.stateMatrix)>1:
             raise Exception('You need to create all extra timers before creating any state.')
-        #self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME)
-        self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME,
-                       outputsOff=self.outputsDict.keys())
+        self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME)
+        # -- Setting outputs off here is not a good idea. Instead we do it in dispatcher --
+        #self.add_state(name=self.readyForNextTrialStateName,statetimer=VERYLONGTIME,
+        #               outputsOff=self.outputsDict.keys())
 
 
     def _force_transition(self,originStateID,destinationStateID):
@@ -286,7 +287,6 @@ class StateMatrix(object):
         return self.stateMatrix
 
     def reset_transitions(self):
-        defaultTransitions = self.nInputEvents*[0] # Default row of the matrix
         defaultTransitions = self.nInputEvents*[0] # Default row of the matrix
         for stateind in self.statesIndexToName.keys():
             self.stateMatrix[stateind] = defaultTransitions
