@@ -22,7 +22,8 @@ increaseDelayMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0, 'de
 #                   'currentBlock':'mid_boundary', 'targetDuration':0.1,'targetMaxIntensity':80,'lowFreq':4000,'highFreq':13000}
 #onNextCorrectMode = {'currentBlock':'mid_boundary','lowFreq':3000,'highFreq':16000}
 #onNextCorrectMode = {'currentBlock':'low_boundary','trialsPerBlock':1000}
-switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4}
+#switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4}
+switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4,'currentBlock':'mid_boundary','lowFreq':5000,'midFreq':11000,'highFreq':24000}
 
 switchBlocksMode = {'punishTimeError':4}
 
