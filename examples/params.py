@@ -52,7 +52,8 @@ test018 = switchBlocksMode.copy()
 test018.update({'subject':'test018','experimenter':'santiago'})
 
 test019 = switchBlocksMode.copy()
-test019.update({'subject':'test019','experimenter':'santiago', 'currentBlock':'low_boundary', 'trialsPerBlock':1000})
+#test019.update({'subject':'test019','experimenter':'santiago', 'currentBlock':'low_boundary', 'trialsPerBlock':1000})
+test019.update({'subject':'test019','experimenter':'santiago'})
 
 test020 = switchBlocksMode.copy()
 test020.update({'subject':'test020','experimenter':'santiago'})
