@@ -360,9 +360,13 @@ class Paradigm(templates.Paradigm2AFC):
             else:
                 print 'WARNING! PsyCurve for this block type has not been implemented'
             if nextCorrectChoice==self.results.labels['rewardSide']['left']:
-                targetFrequency = np.random.choice(freqsAll[leftFreqInds])
+                randindex = np.random.randint(len(freqsAll[leftFreqInds]))
+                targetFrequency = freqsAll[leftFreqInds][randindex]
+                #targetFrequency = np.random.choice(freqsAll[leftFreqInds])
             elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
-                targetFrequency = np.random.choice(freqsAll[rightFreqInds])
+                randindex = np.random.randint(len(freqsAll[rightFreqInds]))
+                targetFrequency = freqsAll[rightFreqInds][randindex]
+                #targetFrequency = np.random.choice(freqsAll[rightFreqInds])
             pass
         self.params['targetFrequency'].set_value(targetFrequency)
         self.prepare_target_sound(targetFrequency)
