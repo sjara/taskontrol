@@ -81,6 +81,8 @@ class Paradigm(templates.Paradigm2AFC):
         self.params['psycurveMode'] = paramgui.MenuParam('PsyCurve Mode',
                                                          ['off','uniform'],
                                                          value=0,group='Psychometric parameters')
+        self.params['psycurveNfreq'] = paramgui.NumericParam('N frequencies',value=8,decimals=0,
+                                                             group='Psychometric parameters')
         psychometricParams = self.params.layout_group('Psychometric parameters')
 
 
@@ -96,7 +98,7 @@ class Paradigm(templates.Paradigm2AFC):
                                                         units='Hz',group='Sound parameters')
         self.params['lowFreq'] = paramgui.NumericParam('Low freq',value=3000,
                                                         units='Hz',group='Sound parameters')
-        self.params['targetFrequency'] = paramgui.NumericParam('Target freq',value=0,
+        self.params['targetFrequency'] = paramgui.NumericParam('Target freq',value=0,decimals=0,
                                                         units='Hz',enabled=False,group='Sound parameters')
         self.params['targetIntensityMode'] = paramgui.MenuParam('Intensity mode',
                                                                ['fixed','randMinus20'],
@@ -348,6 +350,19 @@ class Paradigm(templates.Paradigm2AFC):
             elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
                 targetFrequency = freqsLH[1]
         elif psycurveMode=='uniform':
+            if currentBlock=='mid_boundary':
+                nFreqs = self.params['psycurveNfreq'].get_value()
+                freqsAll = np.logspace(np.log10(lowFreq),np.log10(highFreq),nFreqs)
+                freqBoundary = np.sqrt(lowFreq*highFreq)
+                # -- NOTE: current implementation does not present points at the psych boundary -- 
+                leftFreqInds = np.flatnonzero(freqsAll<freqBoundary)
+                rightFreqInds = np.flatnonzero(freqsAll>freqBoundary)
+            else:
+                print 'WARNING! PsyCurve for this block type has not been implemented'
+            if nextCorrectChoice==self.results.labels['rewardSide']['left']:
+                targetFrequency = np.random.choice(freqsAll[leftFreqInds])
+            elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
+                targetFrequency = np.random.choice(freqsAll[rightFreqInds])
             pass
         self.params['targetFrequency'].set_value(targetFrequency)
         self.prepare_target_sound(targetFrequency)
