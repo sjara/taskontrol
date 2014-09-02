@@ -8,6 +8,18 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 import numpy as np
 
+def find_state_sequence(states,stateSequence):
+    '''
+    Return an array with the indexes where state transitions are the same as stateSequence
+    states is a 1D array of state IDs in the order they occurred.
+    stateSequence is a 1D array containing some sequence of states.
+    '''
+    sequenceStartInd = []
+    for ind in xrange(len(states)-len(stateSequence)+1):
+        val = np.all(states[ind:ind+len(stateSequence)]==stateSequence)
+        sequenceStartInd.append(val)
+    return np.array(sequenceStartInd)
+
 def find_transition(states,prevStateID,nextStateID):
     '''
     Return an array with the indexes of transitions from origEvent to destEvent
@@ -62,3 +74,9 @@ def dict_from_HDF5(dictGroup):
         newDict[k]=v[()]
         newDict[v[()]]=k
     return newDict
+
+
+if __name__=='__main__':
+    states = np.arange(0,20,2)
+    stateSequence = [4,6,8]
+    print find_state_sequence(states,stateSequence)
