@@ -15,6 +15,7 @@ from taskontrol.settings import rigsettings
 from taskontrol.core import paramgui
 from PySide import QtGui 
 from taskontrol.core import arraycontainer
+from taskontrol.core import utils
 
 from taskontrol.plugins import templates
 reload(templates)
@@ -551,14 +552,47 @@ class Paradigm(templates.Paradigm2AFC):
 
     def calculate_results(self,trialIndex):
         eventsThisTrial = self.dispatcherModel.events_one_trial(trialIndex)
+        statesThisTrial = eventsThisTrial[:,2]
         #print '===== Trial {0} ====='.format(trialIndex) ### DEBUG
-        #print eventsThisTrial ### DEBUG
 
         # -- Find beginning of trial --
         startTrialStateID = self.sm.statesNameToIndex['startTrial']
         # FIXME: Next line seems inefficient. Is there a better way?
-        startTrialInd = np.flatnonzero(eventsThisTrial[:,2]==startTrialStateID)[0]
+        startTrialInd = np.flatnonzero(statesThisTrial==startTrialStateID)[0]
         self.results['timeTrialStart'][trialIndex] = eventsThisTrial[startTrialInd,0]
+        #print 'TrialStart : {0}'.format(self.results['timeTrialStart'][trialIndex]) ### DEBUG
+
+        # -- Find center poke-in time --
+        seqCin = [self.sm.statesNameToIndex['waitForCenterPoke'],
+                  self.sm.statesNameToIndex['delayPeriod'],
+                  self.sm.statesNameToIndex['playStimulus']]
+        seqPos = np.flatnonzero(utils.find_state_sequence(statesThisTrial,seqCin))
+        timeValue = eventsThisTrial[seqPos[0]+1,0] if len(seqPos) else np.nan
+        self.results['timeCenterIn'][trialIndex] = timeValue
+
+        # -- Find center poke-out time --
+        if len(seqPos):
+            cInInd = seqPos[0]+1
+            cOutInd = np.flatnonzero(eventsThisTrial[cInInd:,1]==self.sm.eventsDict['Cout'])
+            timeValue = eventsThisTrial[cOutInd[0]+cInInd,0] if len(cOutInd) else np.nan
+        else:
+            timeValue = np.nan
+        self.results['timeCenterOut'][trialIndex] = timeValue
+
+        # -- Find side poke time --
+        leftInInd = utils.find_transition(statesThisTrial,
+                                          self.sm.statesNameToIndex['waitForSidePoke'],
+                                          self.sm.statesNameToIndex['choiceLeft'])
+        rightInInd = utils.find_transition(statesThisTrial,
+                                           self.sm.statesNameToIndex['waitForSidePoke'],
+                                           self.sm.statesNameToIndex['choiceRight'])
+        if len(leftInInd):
+            timeValue = eventsThisTrial[leftInInd[0],0]
+        elif len(rightInInd):
+            timeValue = eventsThisTrial[rightInInd[0],0]
+        else:
+            timeValue = np.nan
+        self.results['timeSideIn'][trialIndex] = timeValue
 
         # -- Find outcomeMode for that trial --
         outcomeModeID = self.params.history['outcomeMode'][trialIndex]
@@ -614,7 +648,7 @@ class Paradigm(templates.Paradigm2AFC):
                 self.params['delayToTargetMean'].add(0.010)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     (app,paradigm) = paramgui.create_app(Paradigm)
 
 
