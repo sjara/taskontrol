@@ -210,6 +210,7 @@ class Paradigm(templates.Paradigm2AFC):
         # Saving as bool creates an 'enum' vector, so I'm saving as 'int'
         self.results['valid'] = np.zeros(maxNtrials,dtype='int8') # redundant but useful
         self.results['timeTrialStart'] = np.empty(maxNtrials,dtype=float)
+        self.results['timeTarget'] = np.empty(maxNtrials,dtype=float)
         self.results['timeCenterIn'] = np.empty(maxNtrials,dtype=float)
         self.results['timeCenterOut'] = np.empty(maxNtrials,dtype=float)
         self.results['timeSideIn'] = np.empty(maxNtrials,dtype=float)
@@ -551,9 +552,13 @@ class Paradigm(templates.Paradigm2AFC):
 
 
     def calculate_results(self,trialIndex):
+        # -- Find outcomeMode for this trial --
+        outcomeModeID = self.params.history['outcomeMode'][trialIndex]
+        outcomeModeString = self.params['outcomeMode'].get_items()[outcomeModeID]
+
         eventsThisTrial = self.dispatcherModel.events_one_trial(trialIndex)
+        #print eventsThisTrial
         statesThisTrial = eventsThisTrial[:,2]
-        #print '===== Trial {0} ====='.format(trialIndex) ### DEBUG
 
         # -- Find beginning of trial --
         startTrialStateID = self.sm.statesNameToIndex['startTrial']
@@ -562,42 +567,63 @@ class Paradigm(templates.Paradigm2AFC):
         self.results['timeTrialStart'][trialIndex] = eventsThisTrial[startTrialInd,0]
         #print 'TrialStart : {0}'.format(self.results['timeTrialStart'][trialIndex]) ### DEBUG
 
-        # -- Find center poke-in time --
-        seqCin = [self.sm.statesNameToIndex['waitForCenterPoke'],
-                  self.sm.statesNameToIndex['delayPeriod'],
-                  self.sm.statesNameToIndex['playStimulus']]
-        seqPos = np.flatnonzero(utils.find_state_sequence(statesThisTrial,seqCin))
-        timeValue = eventsThisTrial[seqPos[0]+1,0] if len(seqPos) else np.nan
-        self.results['timeCenterIn'][trialIndex] = timeValue
-
-        # -- Find center poke-out time --
-        if len(seqPos):
-            cInInd = seqPos[0]+1
-            cOutInd = np.flatnonzero(eventsThisTrial[cInInd:,1]==self.sm.eventsDict['Cout'])
-            timeValue = eventsThisTrial[cOutInd[0]+cInInd,0] if len(cOutInd) else np.nan
+        # ===== Calculate times of events =====
+        # -- Check if it's an aborted trial --
+        lastEvent = eventsThisTrial[-1,:]
+        if lastEvent[1]==-1 and lastEvent[2]==0:
+            self.results['timeTarget'][trialIndex] = np.nan
+            self.results['timeCenterIn'][trialIndex] = np.nan
+            self.results['timeCenterOut'][trialIndex] = np.nan
+            self.results['timeSideIn'][trialIndex] = np.nan
+        # -- Otherwise evaluate times of important events --
         else:
-            timeValue = np.nan
-        self.results['timeCenterOut'][trialIndex] = timeValue
+            # -- Store time of stimulus --
+            targetStateID = self.sm.statesNameToIndex['playStimulus']
+            targetEventInd = np.flatnonzero(statesThisTrial==targetStateID)[0]
+            self.results['timeTarget'][trialIndex] = eventsThisTrial[targetEventInd,0]
 
-        # -- Find side poke time --
-        leftInInd = utils.find_transition(statesThisTrial,
-                                          self.sm.statesNameToIndex['waitForSidePoke'],
-                                          self.sm.statesNameToIndex['choiceLeft'])
-        rightInInd = utils.find_transition(statesThisTrial,
-                                           self.sm.statesNameToIndex['waitForSidePoke'],
-                                           self.sm.statesNameToIndex['choiceRight'])
-        if len(leftInInd):
-            timeValue = eventsThisTrial[leftInInd[0],0]
-        elif len(rightInInd):
-            timeValue = eventsThisTrial[rightInInd[0],0]
-        else:
-            timeValue = np.nan
-        self.results['timeSideIn'][trialIndex] = timeValue
+            # -- Find center poke-in time --
+            if outcomeModeString in ['on_next_correct','only_if_correct']:
+                seqCin = [self.sm.statesNameToIndex['waitForCenterPoke'],
+                          self.sm.statesNameToIndex['delayPeriod'],
+                          self.sm.statesNameToIndex['playStimulus']]
+            elif outcomeModeString in ['simulated','sides_direct','direct']:
+                seqCin = [self.sm.statesNameToIndex['waitForCenterPoke'],
+                          self.sm.statesNameToIndex['playStimulus']]
+            else:
+                print 'CenterIn time cannot be calculated for this Outcome Mode.'
+            seqPos = np.flatnonzero(utils.find_state_sequence(statesThisTrial,seqCin))
+            timeValue = eventsThisTrial[seqPos[0]+1,0] if len(seqPos) else np.nan
+            self.results['timeCenterIn'][trialIndex] = timeValue
 
-        # -- Find outcomeMode for that trial --
-        outcomeModeID = self.params.history['outcomeMode'][trialIndex]
-        outcomeModeString = self.params['outcomeMode'].get_items()[outcomeModeID]
+            # -- Find center poke-out time --
+            if len(seqPos):
+                cInInd = seqPos[0]+1
+                cOutInd = np.flatnonzero(eventsThisTrial[cInInd:,1]==self.sm.eventsDict['Cout'])
+                timeValue = eventsThisTrial[cOutInd[0]+cInInd,0] if len(cOutInd) else np.nan
+            else:
+                timeValue = np.nan
+            self.results['timeCenterOut'][trialIndex] = timeValue
 
+            # -- Find side poke time --
+            if outcomeModeString in ['on_next_correct','only_if_correct']:
+                leftInInd = utils.find_transition(statesThisTrial,
+                                                  self.sm.statesNameToIndex['waitForSidePoke'],
+                                                  self.sm.statesNameToIndex['choiceLeft'])
+                rightInInd = utils.find_transition(statesThisTrial,
+                                                   self.sm.statesNameToIndex['waitForSidePoke'],
+                                                   self.sm.statesNameToIndex['choiceRight'])
+                if len(leftInInd):
+                    timeValue = eventsThisTrial[leftInInd[0],0]
+                elif len(rightInInd):
+                    timeValue = eventsThisTrial[rightInInd[0],0]
+                else:
+                    timeValue = np.nan
+            elif outcomeModeString in ['simulated','sides_direct','direct']:
+                timeValue = np.nan
+            self.results['timeSideIn'][trialIndex] = timeValue
+
+        # ===== Calculate choice and outcome =====
         # -- Check if it's an aborted trial --
         lastEvent = eventsThisTrial[-1,:]
         if lastEvent[1]==-1 and lastEvent[2]==0:
@@ -639,6 +665,9 @@ class Paradigm(templates.Paradigm2AFC):
             	if self.sm.statesNameToIndex['waitForSidePoke'] in eventsThisTrial[:,2]:
                 	self.params['nValid'].add(1)
                         self.results['valid'][trialIndex] = 1
+
+
+
 
     def execute_automation(self):
         automationMode = self.params['automationMode'].get_string()
