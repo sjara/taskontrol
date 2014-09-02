@@ -51,7 +51,7 @@ class SaveData(QtGui.QGroupBox):
         self.checkOverwrite = QtGui.QCheckBox('Overwrite')
         self.checkOverwrite.setChecked(False)
         self.checkSendToRepo = QtGui.QCheckBox('Send to repository')
-        self.checkSendToRepo.setChecked(True)
+        self.checkSendToRepo.setChecked(False)
 
         # -- Create layouts --
         layout = QtGui.QGridLayout()
