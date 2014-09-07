@@ -24,7 +24,13 @@ increaseDelayMode = {'outcomeMode':'on_next_correct', 'delayToTargetMean':0, 'de
 #onNextCorrectMode = {'currentBlock':'low_boundary','trialsPerBlock':1000}
 #switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4}
 #switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4,'currentBlock':'mid_boundary','lowFreq':5000,'midFreq':11000,'highFreq':24000}
-switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4,'lowFreq':5000,'midFreq':11000,'highFreq':24000}
+
+#switchDailyMode = {'trialsPerBlock':2000,'punishTimeError':4,'lowFreq':5000,'midFreq':11000,'highFreq':24000}
+psyCurveMidBound = {'trialsPerBlock':2000,'punishTimeError':4,'lowFreq':5000,'midFreq':11000,'highFreq':24000,
+                    'currentBlock':'mid_boundary','psycurveMode':'uniform'}
+switchDailyMode = psyCurveMidBound
+
+
 
 switchBlocksMode = {'punishTimeError':4}
 
