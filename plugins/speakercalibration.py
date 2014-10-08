@@ -37,8 +37,9 @@ BUTTON_COLORS = {'on':'red','off':'black'}
 
 
 def create_sound(soundParams):
+    amplitude = soundParams['amplitude']
     if soundParams['type']=='sine':
-        soundObjList = [pyo.Sine(freq=soundParams['frequency'],mul=DEFAULT_AMPLITUDE)]
+        soundObjList = [pyo.Sine(freq=soundParams['frequency'],mul=amplitude)]
     if soundParams['type']=='chord':
         nTones = soundParams['ntones']  # Number of components in chord
         factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
@@ -46,7 +47,7 @@ def create_sound(soundParams):
         freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
         soundObjList = []
         for indcomp in range(nTones):
-            soundObjList.append(pyo.Sine(freq=freqEachComp[indcomp],mul=DEFAULT_AMPLITUDE))
+            soundObjList.append(pyo.Sine(freq=freqEachComp[indcomp],mul=amplitude))
     return soundObjList
 
 class OutputButton(QtGui.QPushButton):
@@ -56,7 +57,9 @@ class OutputButton(QtGui.QPushButton):
 
         self.soundServer = soundServer
         self.soundFreq = soundFreq
+        self.soundAmplitude = DEFAULT_AMPLITUDE
         self.channel = channel
+        self.soundType = 'sine'
         self.setCheckable(True)
         self.clicked.connect(self.toggleOutput)
         self.create_sound(soundType='sine')
@@ -69,9 +72,11 @@ class OutputButton(QtGui.QPushButton):
         '''
     def create_sound(self,soundType):
         if soundType=='sine':
-            soundParams = {'type':'sine', 'frequency':self.soundFreq}
+            soundParams = {'type':'sine', 'frequency':self.soundFreq,
+                           'amplitude':self.soundAmplitude}
         elif soundType=='chord':
-            soundParams = {'type':'chord', 'frequency':self.soundFreq, 'ntones':12, 'factor':1.2}
+            soundParams = {'type':'chord', 'frequency':self.soundFreq, 'ntones':12, 'factor':1.2,
+                           'amplitude':self.soundAmplitude}
         self.soundObjList = create_sound(soundParams)
 
     def toggleOutput(self):
@@ -85,6 +90,7 @@ class OutputButton(QtGui.QPushButton):
         self.setChecked(True)
         stylestr = 'QPushButton {{color: {0}; font: bold}}'.format(BUTTON_COLORS['on'])
         self.setStyleSheet(stylestr)
+        self.create_sound(soundType=self.soundType)
         self.play_sound()
 
     def stop(self):
@@ -101,6 +107,7 @@ class OutputButton(QtGui.QPushButton):
             soundObj.out(chnl=self.channel)
 
     def change_amplitude(self,amplitude):
+        self.soundAmplitude = amplitude
         for soundObj in self.soundObjList:
             soundObj.setMul(amplitude)
 
@@ -354,9 +361,11 @@ class SpeakerCalibration(QtGui.QMainWindow):
 
     def change_sound_type(self,soundTypeInd):
         for oneOutputButton in self.soundControlL.outputButtons:
-            oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+            #oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+            oneOutputButton.soundType = self.soundTypeList[soundTypeInd]
         for oneOutputButton in self.soundControlR.outputButtons:
-            oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+            #oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
+            oneOutputButton.soundType = self.soundTypeList[soundTypeInd]
 
     def initialize_sound(self):
         s = pyo.Server(audio='jack').boot()
