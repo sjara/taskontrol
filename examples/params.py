@@ -36,6 +36,12 @@ shapingMode = {'lowFreq':5000,'midFreq':11000,'highFreq':24000, 'currentBlock':'
 switchBlocksMode = {'punishTimeError':4}
 
 # -- Angie's mice --
+test071 = shapingMode.copy()
+test071.update({'subject':'test071','experimenter':'santiago'})
+
+test070 = shapingMode.copy()
+test070.update({'subject':'test070','experimenter':'santiago'})
+
 test069 = shapingMode.copy()
 test069.update({'subject':'test069','experimenter':'santiago'})
 
