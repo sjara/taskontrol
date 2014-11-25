@@ -63,6 +63,7 @@ test064.update({'subject':'test064','experimenter':'santiago'})
 
 test011 = switchBlocksMode.copy()
 test011.update({'subject':'test011','experimenter':'santiago'})
+test011.update({'currentBlock':'high_boundary'})
 
 test012 = switchBlocksMode.copy()
 test012.update({'subject':'test012','experimenter':'santiago'})
@@ -75,12 +76,15 @@ test014.update({'subject':'test014','experimenter':'santiago'})
 
 test015 = switchBlocksMode.copy()
 test015.update({'subject':'test015','experimenter':'santiago'})
+test015.update({'currentBlock':'low_boundary'})
 
 test016 = switchBlocksMode.copy()
 test016.update({'subject':'test016','experimenter':'santiago'})
+test016.update({'currentBlock':'low_boundary'})
 
 test017 = switchBlocksMode.copy()
 test017.update({'subject':'test017','experimenter':'santiago'})
+test017.update({'currentBlock':'high_boundary'})
 
 test018 = switchBlocksMode.copy()
 test018.update({'subject':'test018','experimenter':'santiago'})
