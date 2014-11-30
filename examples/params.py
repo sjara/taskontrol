@@ -33,7 +33,7 @@ psyCurveMidBound = {'trialsPerBlock':2000,'punishTimeError':4,'lowFreq':5000,'mi
 shapingMode = {'lowFreq':5000,'midFreq':11000,'highFreq':24000, 'currentBlock':'mid_boundary','targetIntensityMode':'fixed'}
 
 
-switchBlocksMode = {'punishTimeError':4}
+switchBlocksMode = {'punishTimeError':4, 'delayToTargetMean':0.2}
 
 # -- Angie's mice --
 test071 = shapingMode.copy()
@@ -63,7 +63,7 @@ test064.update({'subject':'test064','experimenter':'santiago'})
 
 test011 = switchBlocksMode.copy()
 test011.update({'subject':'test011','experimenter':'santiago'})
-test011.update({'currentBlock':'high_boundary'})
+test011.update({'currentBlock':'high_boundary','trialsPerBlock':200,'trainer':'sj'})
 
 test012 = switchBlocksMode.copy()
 test012.update({'subject':'test012','experimenter':'santiago'})
@@ -76,15 +76,15 @@ test014.update({'subject':'test014','experimenter':'santiago'})
 
 test015 = switchBlocksMode.copy()
 test015.update({'subject':'test015','experimenter':'santiago'})
-test015.update({'currentBlock':'low_boundary'})
+test015.update({'currentBlock':'low_boundary','trialsPerBlock':200,'trainer':'sj'})
 
 test016 = switchBlocksMode.copy()
 test016.update({'subject':'test016','experimenter':'santiago'})
-test016.update({'currentBlock':'low_boundary'})
+test016.update({'currentBlock':'low_boundary','trialsPerBlock':200,'trainer':'sj'})
 
 test017 = switchBlocksMode.copy()
 test017.update({'subject':'test017','experimenter':'santiago'})
-test017.update({'currentBlock':'high_boundary'})
+test017.update({'currentBlock':'high_boundary','trialsPerBlock':200,'trainer':'sj'})
 
 test018 = switchBlocksMode.copy()
 test018.update({'subject':'test018','experimenter':'santiago'})
