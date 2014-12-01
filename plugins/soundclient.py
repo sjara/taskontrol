@@ -74,7 +74,9 @@ class SoundPlayer(threading.Thread):
         self.serialtrigger = serialtrigger
         self.pyoServer = None
         self.ser = None
-        
+        self._stop = threading.Event()
+        self._done = threading.Event()
+
         self.init_pyo()
         if self.serialtrigger:
             self.init_serial()
@@ -90,14 +92,14 @@ class SoundPlayer(threading.Thread):
     def run(self):
         '''Execute thread'''
         if self.serialtrigger:
-            while True:
+            while not self.stopped():
                 onechar = self.ser.read(1)
                 soundID = ord(onechar)
                 self.play_sound(soundID)
                 #print soundID
         else:
             '''Emulated mode'''
-            while True:
+            while not self.stopped():
                 try:
                     f=open('/tmp/serialoutput.txt','r')
                     oneval = f.read()
@@ -106,6 +108,7 @@ class SoundPlayer(threading.Thread):
                     self.play_sound(soundID)
                 except:
                     pass
+        self._done.set()
 
     def init_pyo(self):
         # -- Initialize sound generator (pyo) --
@@ -185,7 +188,14 @@ class SoundPlayer(threading.Thread):
             self.pyoServer.start()
             os.system('aplay {0}'.format(soundfile))
 
+    def stopped(self):
+        return self._stop.isSet()
+
     def shutdown(self):
+        '''Stop thread loop and shutdown pyo sound server'''
+        self._stop.set() # Set flag to stop thread (checked on the thread loop).
+        while not self._done.isSet(): # Make sure the loop stopped before shutdown.
+            pass
         self.pyoServer.shutdown()
 
 

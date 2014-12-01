@@ -75,9 +75,6 @@ class EmulatorGUI(QtGui.QWidget):
 
         self.show()
         self.activateWindow()
-        
-
-
     def inputOn(self,inputID):
         #print 'ON: {0}'.format(inputID)
         self.inputStatus[inputID] = 1
@@ -272,6 +269,7 @@ class StateMachineClient(QtCore.QObject):
         pass
     def close(self):
         print 'EMULATOR: Close.'
+        self.emuGUI.close()
 
     def add_event(self,thisEventCode):
         self.eventsTime[self.nEvents] = self.get_time()

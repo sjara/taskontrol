@@ -666,9 +666,6 @@ class Paradigm(templates.Paradigm2AFC):
                 	self.params['nValid'].add(1)
                         self.results['valid'][trialIndex] = 1
 
-
-
-
     def execute_automation(self):
         automationMode = self.params['automationMode'].get_string()
         nValid = self.params['nValid'].get_value()
@@ -676,6 +673,15 @@ class Paradigm(templates.Paradigm2AFC):
             if nValid>0 and not nValid%10:
                 self.params['delayToTargetMean'].add(0.010)
 
+    def closeEvent(self, event):
+        '''
+        Executed when closing the main window.
+        This method is inherited from QtGui.QMainWindow, which explains
+        its camelCase naming.
+        '''
+        self.soundClient.shutdown()
+        self.dispatcherModel.die()
+        event.accept()
 
 if __name__ == '__main__':
     (app,paradigm) = paramgui.create_app(Paradigm)
