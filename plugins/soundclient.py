@@ -50,7 +50,7 @@ import numpy as np
 
 SERIAL_PORT_PATH= rigsettings.SOUND_TRIGGER_PORT
 SERIAL_BAUD_RATE = 115200  # Should be the same in statemachine.ino
-SERIAL_TIMEOUT = None
+SERIAL_TIMEOUT = 0.1 #None
 '''
 SOUND_CARD = rigsettings.SOUND_SERVER['soundCard']
 SAMPLING_RATE = rigsettings.SOUND_SERVER['samplingRate']
@@ -94,9 +94,9 @@ class SoundPlayer(threading.Thread):
         if self.serialtrigger:
             while not self.stopped():
                 onechar = self.ser.read(1)
-                soundID = ord(onechar)
-                self.play_sound(soundID)
-                #print soundID
+                if onechar:
+                    soundID = ord(onechar)
+                    self.play_sound(soundID)
         else:
             '''Emulated mode'''
             while not self.stopped():
