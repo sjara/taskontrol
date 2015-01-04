@@ -390,7 +390,7 @@ class SpeakerCalibration(QtGui.QMainWindow):
         '''
         #print 'ENTERED closeEvent()' # DEBUG
         #print 'Closing all connections.' # DEBUG
-        #self.soundClient.shutdown()
+        self.soundClient.shutdown()
         event.accept()
 
 class Calibration(object):
