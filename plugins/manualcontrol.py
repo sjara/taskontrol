@@ -80,6 +80,25 @@ class OutputButton(QtGui.QPushButton):
         self.setStyleSheet(stylestr)
         self.statemachine.force_output(self.outputIndex,0)
 
+class WaterControl(QtGui.QGroupBox):
+    '''
+    Manual control of water valves
+    '''
+    def __init__(self, statemachine, parent=None):
+        super(WaterControl, self).__init__(parent)
+        # -- Create graphical objects --
+        layout = QtGui.QHBoxLayout()
+        self.outputButtons = {}
+        outputsDict = {'Left':rigsettings.OUTPUTS['leftWater'],
+                       'Right':rigsettings.OUTPUTS['rightWater']}
+        for key,value in iter(sorted(outputsDict.iteritems())):
+            self.outputButtons[key] = OutputButton(statemachine, key,value)
+            self.outputButtons[key].setObjectName('ManualControlButton')
+            self.outputButtons[key].setMinimumHeight(80)
+            layout.addWidget(self.outputButtons[key])
+        self.setLayout(layout)
+        self.setTitle('Water control')
+
 
 if __name__ == "__main__":
     import signal
