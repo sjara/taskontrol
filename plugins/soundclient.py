@@ -135,6 +135,8 @@ class SoundPlayer(threading.Thread):
         '''
         soundParams is a dictionary that defines a sound, for example
         {'type':'tone', 'frequency':200, 'duration':0.2, 'amplitude':0.1}
+        {'type':'fromfile','filename':'/tmp/sound.wav','duration':None,'channel':0,'amplitude':0.1}
+        channel can be 'left', 'right', 'both'
         '''
         self.soundsParamsDict[soundID] = soundParams
         (self.sounds[soundID],self.soundwaves[soundID]) = \
@@ -142,34 +144,57 @@ class SoundPlayer(threading.Thread):
         ###soundutils.create_sound(self.soundsParamsDict[soundID])
 
     def create_sound(self,soundParams):
+        '''
+        NOTE: This methods needs to return both the soundObj and soundwaveObj to be able to
+        play the sound form elsewhere. If soundwaveObj is not returned, it will not exist
+        outside this scope, and the pyo server plays nothing on soundObj.play()
+        '''
+        if isinstance(soundParams['amplitude'],list) or isinstance(soundParams['amplitude'],np.ndarray):
+            soundAmp = list(soundParams['amplitude'])
+        else:
+            soundAmp = 2*[soundParams['amplitude']]
+        # -- Define sound according to type --
         if soundParams['type']=='tone':
-            soundObj = pyo.Fader(fadein=self.risetime,
-                                 fadeout=self.falltime,
-                                 dur=soundParams['duration'],
-                                 mul=soundParams['amplitude'])
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=soundAmp)
             soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
-                                    mul=soundObj).mix(2).out()
+                                    mul=soundObj).out()
             return(soundObj,soundwaveObj)
         elif soundParams['type']=='chord':
             nTones = soundParams['ntones']  # Number of components in chord
             factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
             centerFreq = soundParams['frequency']
             freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
-            soundObj = pyo.Fader(fadein=self.risetime,
-                                 fadeout=self.falltime,
-                                 dur=soundParams['duration'],
-                                 mul=soundParams['amplitude'])
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=soundAmp)
             soundwaveObjs = nTones*[None]
             for indcomp in range(nTones):
                 soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
                                               mul=soundObj).mix(2).out())
             return(soundObj,soundwaveObjs)
         elif soundParams['type']=='noise':
-            soundObj = pyo.Fader(fadein=self.risetime,
-                                 fadeout=self.falltime,
-                                 dur=soundParams['duration'],
-                                 mul=soundParams['amplitude'])
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=soundAmp)
             soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
+            return(soundObj,soundwaveObj)
+        elif soundParams['type']=='fromfile':
+            tableObj = pyo.SndTable(soundParams['filename'])
+            samplingFreq = tableObj.getRate()
+            if soundParams.get('duration'):
+                duration = soundParams['duration']
+            else:
+                duration = tableObj.getDur()
+            if soundParams.get('channel')=='left':
+                fs = [samplingFreq,0]
+            elif soundParams.get('channel')=='right':
+                fs = [0,samplingFreq]
+            else:
+                fs = 2*[samplingFreq]
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=duration, mul=soundAmp)
+            print duration
+            print fs
+            soundwaveObj = pyo.Osc(table=tableObj, freq=fs, mul=soundObj).out()
             return(soundObj,soundwaveObj)
         else:
             raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
@@ -235,7 +260,7 @@ class SoundClient(object):
 
 
 if __name__ == "__main__":
-    CASE = 3
+    CASE = 4
     if CASE==1:
         soundPlayerThread = SoundPlayer(serialtrigger=True)
         soundPlayerThread.daemon=True
@@ -254,8 +279,11 @@ if __name__ == "__main__":
         soundPlayerThread.create_sounds()
         #soundPlayerThread.play_sound(1)
         time.sleep(4)
-       
-
+    if CASE==2:
+        sc = SoundClient(serialtrigger=True)
+        s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
+        sc.set_sound(1,s1)
+        sc.play_sound(1)
     if CASE==3:
         sc = SoundClient() #(serialtrigger=False)
         s1 = {'type':'tone', 'frequency':3500, 'duration':0.1, 'amplitude':0.1}
@@ -278,12 +306,16 @@ if __name__ == "__main__":
         sc.play_sound(1)
         sc.play_sound(2)
         sc.play_sound(3)
-    if CASE==2:
-        sc = SoundClient(serialtrigger=True)
-        s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
+    if CASE==4:
+        sc = SoundClient() #(serialtrigger=False)
+        s1 = {'type':'tone', 'frequency':500, 'duration':0.2, 'amplitude':np.array([1,1])}
+        filename = '/home/sjara/src/taskontrol/examples/left.wav'
+        s2 = {'type':'fromfile', 'filename':filename, 'amplitude':[1,0]}
         sc.set_sound(1,s1)
+        sc.set_sound(2,s2)
+        sc.start()
         sc.play_sound(1)
-
+        sc.shutdown()
 
 #test.play_sound(0)
 #test.change_message(1,'dos')
