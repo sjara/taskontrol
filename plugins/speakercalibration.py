@@ -18,6 +18,7 @@ import sys
 from PySide import QtCore 
 from PySide import QtGui 
 from taskontrol.core import messenger
+from taskontrol.settings import rigsettings
 import pyo
 import signal
 import time
@@ -29,12 +30,20 @@ SOUND_FREQUENCIES = np.logspace(np.log10(1000), np.log10(40000), 16)
 SOUND_FREQUENCIES = np.sort(np.concatenate((SOUND_FREQUENCIES,[3000,5000,7000,11000,16000,24000])))
 DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
-MAX_AMPLITUDE = 0.4
+MAX_AMPLITUDE = 0.5
 
 DATADIR = '/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
+
+# -- Set computer's sound level --
+if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
+    baseVol = rigsettings.SOUND_VOLUME_LEVEL
+    if baseVol is not None:
+        os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
+        print 'Set sound volume to {0}%'.format(baseVol)
+        
 
 def create_sound(soundParams):
     amplitude = soundParams['amplitude']
@@ -182,7 +191,7 @@ class LoadButton(QtGui.QPushButton):
         self.calData = None # Object to contain loaded data
         self.clicked.connect(self.load_data)
     def load_data(self):
-        fname,ffilter = QtGui.QFileDialog.getOpenFileName(self,'Open calibration file','/tmp/','*.h5')
+        fname,ffilter = QtGui.QFileDialog.getOpenFileName(self,'Open calibration file',DATADIR,'*.h5')
         self.calData = Calibration(fname)
         self.update_values()
     def update_values(self):
@@ -245,7 +254,7 @@ class SaveButton(QtGui.QPushButton):
         self.logMessage.emit('Saving data...')
 
         if self.interactive:
-            fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
+            fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE',DATADIR,'*.*')
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
@@ -390,7 +399,8 @@ class SpeakerCalibration(QtGui.QMainWindow):
         '''
         #print 'ENTERED closeEvent()' # DEBUG
         #print 'Closing all connections.' # DEBUG
-        self.soundClient.shutdown()
+        self.soundServer.shutdown()
+        #self.pyoServer.shutdown()
         event.accept()
 
 class Calibration(object):
