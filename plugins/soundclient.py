@@ -68,6 +68,13 @@ else:
     USEJACK = False
     SERIALTRIGGER = False
 
+# -- Set computer's sound level --
+if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
+    baseVol = rigsettings.SOUND_VOLUME_LEVEL
+    if baseVol is not None:
+        os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
+        print 'Set sound volume to {0}%'.format(baseVol)
+        
 class SoundPlayer(threading.Thread):
     def __init__(self,serialtrigger=True):
         threading.Thread.__init__(self)
