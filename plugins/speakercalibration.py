@@ -32,7 +32,7 @@ DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
 MAX_AMPLITUDE = 0.5
 
-DATADIR = '/tmp/'
+DATADIR = '/var/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
