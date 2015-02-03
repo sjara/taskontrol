@@ -176,13 +176,16 @@ class SoundPlayer(threading.Thread):
                                  dur=soundParams['duration'], mul=soundAmp)
             soundwaveObjs = []
             for indcomp in range(nTones):
+                #soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
+                #                              mul=soundObj).mix(2).out())
                 soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
-                                              mul=soundObj).mix(2).out())
+                                              mul=soundObj).out())
             return(soundObj,soundwaveObjs)
         elif soundParams['type']=='noise':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'], mul=soundAmp)
-            soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
+            #soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
+            soundwaveObj = pyo.Noise(mul=soundObj).out()
             return(soundObj,soundwaveObj)
         elif soundParams['type']=='fromfile':
             tableObj = pyo.SndTable(soundParams['filename'])
@@ -210,11 +213,15 @@ class SoundPlayer(threading.Thread):
     def play_sound(self,soundID):
         # FIXME: check that this sound has been defined
         if USEJACK:
-            if isinstance(self.soundwaves[soundID],list):
-                for sw in self.soundwaves[soundID]:
-                    sw.reset() # Reset phase to 0
-            else:
-                self.soundwaves[soundID].reset()
+            try:
+                if isinstance(self.soundwaves[soundID],list):
+                    for sw in self.soundwaves[soundID]:
+                        sw.reset() # Reset phase to 0
+                else:
+                    self.soundwaves[soundID].reset()
+            except:
+                print 'Warning! Sound #{0} cannot be reset.'.format(soundID)
+                raise
             self.sounds[soundID].play()
         else:
             soundfile = '/tmp/tempsound.wav'
