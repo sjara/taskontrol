@@ -31,7 +31,7 @@ SPEAKER_CALIBRATION = None
 #SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5'
 
 #: Computer volume level [0-100%]
-SOUND_VOLUME_LEVEL = 50
+SOUND_VOLUME_LEVEL = 82
 
 DATA_DIR = '/var/tmp/data/'
 REMOTE_DIR = '/mnt/jarahubdata/'
