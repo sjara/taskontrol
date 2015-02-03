@@ -210,6 +210,7 @@ class SoundPlayer(threading.Thread):
     def play_sound(self,soundID):
         # FIXME: check that this sound as been defined
         if USEJACK:
+            self.soundwaves[soundID].reset() # Reset phase to 0
             self.sounds[soundID].play()
         else:
             soundfile = '/tmp/tempsound.wav'
