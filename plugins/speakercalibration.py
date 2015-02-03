@@ -32,7 +32,9 @@ DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
 MAX_AMPLITUDE = 0.5
 
-DATADIR = '/tmp/'
+DEFAULT_INTENSITY = 60 # dB-SPL
+
+DATADIR = '/var/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
@@ -281,8 +283,11 @@ class SaveButton(QtGui.QPushButton):
             dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
             dsetFreq = h5file.create_dataset('frequency',data=SOUND_FREQUENCIES)
             dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
-            dsetRef = h5file.create_dataset('intensity',data=[60])
+            dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
             dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+            dsetRef = h5file.create_dataset('computerSoundLevel',
+                                            data=rigsettings.SOUND_VOLUME_LEVEL)
+            dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
         except UserWarning as uwarn:
             self.logMessage.emit(uwarn.message)
             print uwarn.message
@@ -326,8 +331,12 @@ class SpeakerCalibration(QtGui.QMainWindow):
         self.soundTypeMenu.activated.connect(self.change_sound_type)
         soundTargetIntensityLabel = QtGui.QLabel('Target intensity [dB-SPL]')
         self.soundTargetIntensity = QtGui.QLineEdit()
-        self.soundTargetIntensity.setText(str(60))
+        self.soundTargetIntensity.setText(str(DEFAULT_INTENSITY))
         self.soundTargetIntensity.setEnabled(False)
+        computerSoundLevelLabel = QtGui.QLabel('Computer sound level [%]')
+        self.computerSoundLevel = QtGui.QLineEdit()
+        self.computerSoundLevel.setText(str(rigsettings.SOUND_VOLUME_LEVEL))
+        self.computerSoundLevel.setEnabled(False)
         self.loadButton = LoadButton([self.soundControlL,self.soundControlR])
         self.plotButton = PlotButton([self.soundControlL,self.soundControlR])
         
@@ -337,6 +346,8 @@ class SpeakerCalibration(QtGui.QMainWindow):
         layoutRight.addWidget(self.soundTypeMenu)
         layoutRight.addWidget(soundTargetIntensityLabel)
         layoutRight.addWidget(self.soundTargetIntensity)
+        layoutRight.addWidget(computerSoundLevelLabel)
+        layoutRight.addWidget(self.computerSoundLevel)
         layoutRight.addWidget(self.loadButton)
         layoutRight.addWidget(self.plotButton)
         layoutRight.addStretch()
