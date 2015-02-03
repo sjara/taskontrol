@@ -174,7 +174,7 @@ class SoundPlayer(threading.Thread):
             freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'], mul=soundAmp)
-            soundwaveObjs = nTones*[None]
+            soundwaveObjs = []
             for indcomp in range(nTones):
                 soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
                                               mul=soundObj).mix(2).out())
@@ -210,7 +210,11 @@ class SoundPlayer(threading.Thread):
     def play_sound(self,soundID):
         # FIXME: check that this sound has been defined
         if USEJACK:
-            #self.soundwaves[soundID].reset() # Reset phase to 0
+            if isinstance(self.soundwaves[soundID],list):
+                for sw in self.soundwaves[soundID]:
+                    sw.reset() # Reset phase to 0
+            else:
+                self.soundwaves[soundID].reset()
             self.sounds[soundID].play()
         else:
             soundfile = '/tmp/tempsound.wav'
