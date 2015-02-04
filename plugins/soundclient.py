@@ -221,7 +221,7 @@ class SoundPlayer(threading.Thread):
                     self.soundwaves[soundID].reset()
             except:
                 print 'Warning! Sound #{0} cannot be reset.'.format(soundID)
-                raise
+                #raise
             self.sounds[soundID].play()
         else:
             soundfile = '/tmp/tempsound.wav'
