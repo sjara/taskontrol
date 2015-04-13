@@ -73,6 +73,9 @@ if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
     if baseVol is not None:
         os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
+        # Change volume of the first two sound-cards
+        #os.system('amixer -c 0 set Master {0}% > /dev/null'.format(baseVol))
+        #os.system('amixer -c 1 set Master {0}% > /dev/null'.format(baseVol))
         print 'Set sound volume to {0}%'.format(baseVol)
         
 class SoundPlayer(threading.Thread):
