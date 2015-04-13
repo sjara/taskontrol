@@ -220,7 +220,8 @@ class SoundPlayer(threading.Thread):
                 else:
                     self.soundwaves[soundID].reset()
             except:
-                print 'Warning! Sound #{0} cannot be reset.'.format(soundID)
+                #print 'Warning! Sound #{0} cannot be reset.'.format(soundID)
+                pass
                 #raise
             self.sounds[soundID].play()
         else:
