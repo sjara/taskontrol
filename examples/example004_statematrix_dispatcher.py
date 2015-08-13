@@ -5,7 +5,7 @@ This example shows a simple paradigm organized by trials (using dispatcher)
 and how to use the statematrix module to assemble the matrix easily.
 '''
 
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-03-18'
 
 import sys
@@ -24,7 +24,7 @@ class Paradigm(QtGui.QMainWindow):
         smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Create dispatcher --
-        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.5)
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.3)
         self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
 
         # -- Add graphical widgets to main window --
@@ -33,8 +33,6 @@ class Paradigm(QtGui.QMainWindow):
         layoutMain.addWidget(self.dispatcherView)
         centralWidget.setLayout(layoutMain)
         self.setCentralWidget(centralWidget)
-
-        # -- Center in screen --
         self.center_in_screen()
 
         # --- Create state matrix ---
@@ -42,34 +40,30 @@ class Paradigm(QtGui.QMainWindow):
 
         # -- Connect signals from dispatcher --
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
-        self.dispatcherModel.startNewTrial.connect(self.start_new_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
 
     def center_in_screen(self):
+        '''Position window in center of screen'''
         qr = self.frameGeometry()
         cp = QtGui.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def set_state_matrix(self):
-        self.sm = statematrix.StateMatrix(readystate='ready_next_trial')
+        self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
+                                          outputs=rigsettings.OUTPUTS,
+                                          readystate='ready_next_trial')
 
         # -- Set state matrix --
-        self.sm.add_state(name='first_state', statetimer=1,
+        self.sm.add_state(name='first_state', statetimer=0.9,
                     transitions={'Cin':'second_state','Tup':'second_state'},
                     outputsOn={'CenterWater'})
-        self.sm.add_state(name='second_state', statetimer=2,
+        self.sm.add_state(name='second_state', statetimer=2.1,
                     transitions={'Lin':'first_state','Tup':'ready_next_trial'},
                     outputsOff={'CenterWater'})
         print self.sm
 
-        prepareNextTrialStates = ['ready_next_trial']
-        self.dispatcherModel.setPrepareNextTrialStates(prepareNextTrialStates,
-                                                  self.sm.get_states_dict())
-
-        self.dispatcherModel.set_state_matrix(self.sm.get_matrix(),
-                                              self.sm.get_outputs(),
-                                              self.sm.get_state_timers())
+        self.dispatcherModel.set_state_matrix(self.sm)
 
     def prepare_next_trial(self, nextTrial):
         print '\nPrepare trial %d'%nextTrial
@@ -80,9 +74,10 @@ class Paradigm(QtGui.QMainWindow):
             #print np.array(lastTenEvents)
         self.dispatcherModel.ready_to_start_trial()
 
-
+    '''
     def start_new_trial(self, currentTrial):
         print '\n======== Started trial %d ======== '%currentTrial
+    '''
 
 
     def timer_tic(self,etime,lastEvents):

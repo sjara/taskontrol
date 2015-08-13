@@ -10,6 +10,7 @@ __author__ = 'Santiago Jaramillo'
 __created__ = '2013-03-17'
 
 from taskontrol.core import smclient
+import time
 
 nInputs = 3  # Inputs: C,L,R
 nOutputs = 3 # Outputs
@@ -26,6 +27,9 @@ stateTimers  = [  0.1,    0.8 ,    1.2  ]
 
 
 sm = smclient.StateMachineClient()
+
+version = sm.get_version()
+print 'Server version {0}'.format(version)
 
 sm.set_sizes(nInputs,nOutputs,nExtraTimers)
 sm.set_state_matrix(stateMatrix)

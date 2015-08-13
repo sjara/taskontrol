@@ -32,8 +32,11 @@ stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1 ] ,
                 [ 2,  1,  1,  1,  1,  1,  2 ] ,
                 [ 2,  2,  1,  2,  2,  2,  1 ] ]
 stateOutputs = [[0,0,0], [1,1,1], [0,0,0]]
+serialOutputs = None
 stateTimers  = [  0.1,    2 ,    2  ]
-dispatcherModel.set_state_matrix(stateMatrix, stateOutputs, stateTimers)
+# Here we use _set_state_matrix to load the matrix as a python list,
+# other methods are used when taking advantage of StateMatrix objects.
+dispatcherModel._set_state_matrix(stateMatrix, stateOutputs, serialOutputs, stateTimers)
 
 # -- Create dispatcher GUI and connect signals --
 dispatcherView = dispatcher.DispatcherGUI(model=dispatcherModel)
