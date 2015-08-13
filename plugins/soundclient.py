@@ -190,6 +190,19 @@ class SoundPlayer(threading.Thread):
             #soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
             soundwaveObj = pyo.Noise(mul=soundObj).out()
             return(soundObj,soundwaveObj)
+        elif soundParams['type']=='AM':
+            envelope = pyo.Sine(freq=soundParams['modFrequency'],mul=soundAmp,add=soundAmp)
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=envelope)
+            soundwaveObj = pyo.Noise(mul=soundObj).out()
+            return(soundObj,[envelope,soundwaveObj])
+            '''
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=soundAmp)
+            envelope = pyo.Sine(freq=soundParams['modFrequency'],mul=soundObj,add=soundAmp,phase=0)
+            soundwaveObj = pyo.Noise(mul=envelope).out()
+            return(soundObj,[envelope,soundwaveObj])
+            '''
         elif soundParams['type']=='fromfile':
             tableObj = pyo.SndTable(soundParams['filename'])
             samplingFreq = tableObj.getRate()
@@ -283,7 +296,7 @@ class SoundClient(object):
 
 
 if __name__ == "__main__":
-    CASE = 4
+    CASE = 5
     if CASE==1:
         soundPlayerThread = SoundPlayer(serialtrigger=True)
         soundPlayerThread.daemon=True
@@ -336,6 +349,13 @@ if __name__ == "__main__":
         s2 = {'type':'fromfile', 'filename':filename, 'amplitude':[1,0]}
         sc.set_sound(1,s1)
         sc.set_sound(2,s2)
+        sc.start()
+        sc.play_sound(1)
+        sc.shutdown()
+    if CASE==5:
+        sc = SoundClient() #(serialtrigger=False)
+        s1 = {'type':'AM', 'modFrequency':10, 'duration':1, 'amplitude':0.1*np.array([1,1])}
+        sc.set_sound(1,s1)
         sc.start()
         sc.play_sound(1)
         sc.shutdown()
