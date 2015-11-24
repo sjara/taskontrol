@@ -7,6 +7,7 @@ ___________________________________
 The steps necessary to get started on any operating system are as follows :
 - Install python, PySide (which depends on Qt4), numpy and h5py.
 - For data plots you will also need matplotlib and pyqtgraph.
+- For sounds you will need pyo and serial.
 - Download the TASKontrol source code (using git).
 - Create the file .../settings/rigsettings.py based on
   rigsettings_template.py and change values according to
@@ -15,13 +16,13 @@ The steps necessary to get started on any operating system are as follows :
 - Test your system with one of the example paradigms.
 
 
-===== Installation steps for Ubuntu 12.04 =====
+===== Installation steps for Ubuntu 12.04 or 14.04 =====
 
-* Before starting you may need to update the list of packages:
+* Before starting, you may need to update the list of packages:
   sudo apt-get update
 
 * Install dependencies:
-  sudo apt-get install git ipython python-pyside python-numpy python-matplotlib python-h5py
+  sudo apt-get install git ipython python-pyside python-numpy python-matplotlib python-h5py python-pyo python-serial
 
 * Some widgets/plots depend on pyqtgraph (faster than matplotlib).
   Download .deb from  http://luke.campagnola.me/debian/dev/
