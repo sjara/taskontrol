@@ -191,7 +191,13 @@ class SoundPlayer(threading.Thread):
             soundwaveObj = pyo.Noise(mul=soundObj).out()
             return(soundObj,soundwaveObj)
         elif soundParams['type']=='AM':
-            envelope = pyo.Sine(freq=soundParams['modFrequency'],mul=0.5*soundAmp,add=0.5*soundAmp,phase=0.75)
+            if isinstance(soundAmp, list):
+                halfAmp = [0.5*x for x in soundAmp]
+            else:
+                halfAmp = 0.5*soundAmp
+            envelope = pyo.Sine(freq=soundParams['modFrequency'],
+                                mul=halfAmp,
+                                add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'], mul=envelope)
             soundwaveObj = pyo.Noise(mul=soundObj).out()
