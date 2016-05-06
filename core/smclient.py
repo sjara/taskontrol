@@ -102,10 +102,11 @@ class StateMachineClient(object):
             except serial.SerialException:
                 print 'Waiting for Arduino to be ready...'
                 time.sleep(1)
-        self.ser.setTimeout(1)
+        self.ser.setTimeout(0.1)
         #self.ser.flushOutput()  # FIXME: Discard anything in output buffer?
         #self.ser.flushInput()   # FIXME: Discard anything in input buffer?
         while not fsmReady:
+            time.sleep(0.1)
             self.ser.write(opcode['CONNECT'])
             print 'Establishing connection...'
             sys.stdout.flush()
