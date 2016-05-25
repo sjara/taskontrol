@@ -57,10 +57,10 @@ class Paradigm(QtGui.QMainWindow):
         # -- Set state matrix --
         self.sm.add_state(name='first_state', statetimer=0.9,
                     transitions={'Cin':'second_state','Tup':'second_state'},
-                    outputsOn={'CenterWater'})
+                    outputsOn={'centerWater'})
         self.sm.add_state(name='second_state', statetimer=2.1,
                     transitions={'Lin':'first_state','Tup':'ready_next_trial'},
-                    outputsOff={'CenterWater'})
+                    outputsOff={'centerWater'})
         print self.sm
 
         self.dispatcherModel.set_state_matrix(self.sm)
