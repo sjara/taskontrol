@@ -330,7 +330,6 @@ def create_app(paradigmClass):
     app=QtGui.QApplication.instance() # checks if QApplication already exists 
     if not app: # create QApplication if it doesnt exist 
         app = QtGui.QApplication(sys.argv)
-        #app = QtGui.QApplication(sysArgv)
 
     if len(sys.argv)==1:
         paramfile = None
