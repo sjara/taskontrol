@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 '''
-This example shows a simple paradigm organized by trials (using dispatcher)
-and how to use the statematrix module to assemble the matrix easily.
+This example shows how to add parameters to a paradigm.
+The example also shows how to use methods from paramgui to run the application.
 '''
 
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
@@ -14,27 +14,48 @@ from PySide import QtGui
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
+from taskontrol.core import paramgui
 import signal
 
 
 class Paradigm(QtGui.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm, self).__init__(parent)
 
         # -- Read settings --
         smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Create dispatcher --
-        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.3)
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
         self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
+
+        # -- Add parameters --
+        self.params = paramgui.Container()
+        self.params['periodOn'] = paramgui.NumericParam('Period On',value=0.5,
+                                                        group='Timing Parameters')
+        self.params['periodOff'] = paramgui.NumericParam('Period Off',value=1,
+                                                         group='Timing Parameters')
+        timingParams = self.params.layout_group('Timing Parameters')
+        self.params['irrelevant1'] = paramgui.MenuParam('Irrelevant 1',
+                                                        ['one_item','another_item'],
+                                                        value=0,group='Irrelevant')
+        self.params['irrelevant2'] = paramgui.StringParam('Irrelevant 2',value='nothing',
+                                                         group='Irrelevant')
+        irrelevantParams = self.params.layout_group('Irrelevant')
 
         # -- Add graphical widgets to main window --
         centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QVBoxLayout()
+        layoutMain = QtGui.QHBoxLayout()
         layoutMain.addWidget(self.dispatcherView)
+        layoutOneColumn = QtGui.QVBoxLayout()
+        layoutOneColumn.addWidget(timingParams)
+        layoutOneColumn.addWidget(irrelevantParams)
+        layoutMain.addLayout(layoutOneColumn)
         centralWidget.setLayout(layoutMain)
         self.setCentralWidget(centralWidget)
-        self.center_in_screen()
+
+        # -- Center in screen --
+        paramgui.center_in_screen(self)
 
         # --- Create state matrix ---
         self.set_state_matrix()
@@ -43,28 +64,26 @@ class Paradigm(QtGui.QMainWindow):
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
 
-    def center_in_screen(self):
-        '''Position window in center of screen'''
-        qr = self.frameGeometry()
-        cp = QtGui.QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
 
     def set_state_matrix(self):
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
                                           readystate='ready_next_trial')
 
+        timeOn = self.params['periodOn'].get_value()
+        timeOff = self.params['periodOff'].get_value()
+        
         # -- Set state matrix --
-        self.sm.add_state(name='first_state', statetimer=1.0,
+        self.sm.add_state(name='first_state', statetimer=timeOn,
                     transitions={'Cin':'second_state','Tup':'second_state'},
                     outputsOn={'centerLED'})
-        self.sm.add_state(name='second_state', statetimer=2.0,
+        self.sm.add_state(name='second_state', statetimer=timeOff,
                     transitions={'Lin':'first_state','Tup':'ready_next_trial'},
                     outputsOff={'centerLED'})
         print self.sm
 
         self.dispatcherModel.set_state_matrix(self.sm)
+
 
     def prepare_next_trial(self, nextTrial):
         print '\nPrepare trial %d'%nextTrial
@@ -74,10 +93,10 @@ class Paradigm(QtGui.QMainWindow):
             print '%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
         self.dispatcherModel.ready_to_start_trial()
 
-    '''
+
     def start_new_trial(self, currentTrial):
         print '\n======== Started trial %d ======== '%currentTrial
-    '''
+
 
     def timer_tic(self,etime,lastEvents):
         print '.',
@@ -94,10 +113,6 @@ class Paradigm(QtGui.QMainWindow):
         event.accept()
 
 
-if __name__ == "__main__":
-    #QtCore.pyqtRemoveInputHook() # To stop looping if error occurs (for PyQt not PySide)
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app = QtGui.QApplication(sys.argv)
-    paradigm = Paradigm()
-    paradigm.show()
-    app.exec_()
+if __name__ == '__main__':
+    (app,paradigm) = paramgui.create_app(Paradigm)
+
