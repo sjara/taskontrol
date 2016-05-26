@@ -57,11 +57,11 @@ class Paradigm(QtGui.QMainWindow):
 
         # -- Set state matrix --
         self.sm.add_state(name='first_state', statetimer=1.0,
-                    transitions={'Cin':'second_state','Tup':'second_state'},
-                    outputsOn={'centerLED'})
+                          transitions={'Cin':'second_state','Tup':'second_state'},
+                          outputsOn=['centerLED'])
         self.sm.add_state(name='second_state', statetimer=2.0,
-                    transitions={'Lin':'first_state','Tup':'ready_next_trial'},
-                    outputsOff={'centerLED'})
+                          transitions={'Lin':'first_state','Tup':'ready_next_trial'},
+                          outputsOff=['centerLED'])
         print self.sm
 
         self.dispatcherModel.set_state_matrix(self.sm)
