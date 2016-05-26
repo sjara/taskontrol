@@ -57,9 +57,6 @@ class Paradigm(QtGui.QMainWindow):
         # -- Center in screen --
         paramgui.center_in_screen(self)
 
-        # --- Create state matrix ---
-        self.set_state_matrix()
-
         # -- Connect signals from dispatcher --
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
@@ -87,6 +84,8 @@ class Paradigm(QtGui.QMainWindow):
 
     def prepare_next_trial(self, nextTrial):
         print '\nPrepare trial %d'%nextTrial
+        self.set_state_matrix()
+        # -- Show results from previous trial --
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
         print 'Last 10 events:'
         for oneEvent in lastTenEvents:
