@@ -8,9 +8,8 @@ TO DO:
 
 
 '''
+from __future__ import print_function
 
-
-__version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-09-23'
 
@@ -20,6 +19,7 @@ import datetime
 from PySide import QtCore 
 from PySide import QtGui 
 
+
 MAXNEVENTS = 512
 MAXNSTATES = 256
 MAXNEXTRATIMERS = 16
@@ -27,6 +27,7 @@ MAXNINPUTS = 8
 MAXNOUTPUTS = 16
 MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
+VERBOSE = False  ### settings.EMULATOR_VERBOSE
 
 class EmulatorGUI(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -76,10 +77,10 @@ class EmulatorGUI(QtGui.QWidget):
         self.show()
         self.activateWindow()
     def inputOn(self,inputID):
-        #print 'ON: {0}'.format(inputID)
+        #print('ON: {0}'.format(inputID))
         self.inputStatus[inputID] = 1
     def inputOff(self,inputID):
-        #print 'OFF: {0}'.format(inputID)
+        #print('OFF: {0}'.format(inputID))
         self.inputStatus[inputID] = False
     def changeLight(self,lightID,value):
         if value:
@@ -136,12 +137,12 @@ class StateMachineClient(QtCore.QObject):
         ###self.timeOfLastEvents = self.timeOfCreation
         self.runningState = False
         self.eventsTime = np.zeros(MAXNEVENTS)
-        self.eventsCode = np.zeros(MAXNEVENTS)
+        self.eventsCode = np.zeros(MAXNEVENTS,dtype=int)
         self.nEvents = 0
         self.eventsToProcess = 0
         self.currentState = 0
         self.previousState = 0 # NEEDED?
-        self.nextState = np.zeros(MAXNEVENTS)
+        self.nextState = np.zeros(MAXNEVENTS,dtype=int)
 
         self.sizesSetFlag = False;
         # -- The following sizes will be overwritten by this class' methods --
@@ -152,10 +153,11 @@ class StateMachineClient(QtCore.QObject):
         self.stateTimers = np.zeros(MAXNSTATES)
         self.stateOutputs = np.zeros((MAXNSTATES,MAXNOUTPUTS))
         self.extraTimers = np.zeros(MAXNEXTRATIMERS)
-        self.triggerStateEachExtraTimer = np.zeros(MAXNEXTRATIMERS)
+        self.triggerStateEachExtraTimer = np.zeros(MAXNEXTRATIMERS,dtype=int)
         
         self.stateTimerValue = 0;
         self.extraTimersValues = np.zeros(MAXNEXTRATIMERS)
+        self.activeExtraTimers = np.zeros(MAXNEXTRATIMERS,dtype=bool)
         self.currentState = 0;
 
         # -- Variables for Virual Hardware --
@@ -173,13 +175,14 @@ class StateMachineClient(QtCore.QObject):
     def send_reset(self):
         pass
     def connect(self):
-        print 'EMULATOR: Connect.'
+        if VERBOSE:
+            print('EMULATOR: Connect.')
         pass
     def test_connection(self):
         pass
     def get_version(self):
         pass
-    def set_sizes(self,nInputs,nOutputs,nExtraTimers):
+    def set_sizes(self, nInputs, nOutputs, nExtraTimers=MAXNEXTRATIMERS):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
         self.nExtraTimers = nExtraTimers
@@ -196,7 +199,8 @@ class StateMachineClient(QtCore.QObject):
         # FIXME: do the following with signals and slots
         if value in [0,1]:
             self.emuGUI.set_one_output(output,value)
-        print 'EMULATOR: Force output {0} to {1}'.format(output,value)
+        if VERBOSE:
+            print('EMULATOR: Force output {0} to {1}'.format(output,value))
         pass
     def set_state_matrix(self,stateMatrix):
         '''
@@ -205,7 +209,8 @@ class StateMachineClient(QtCore.QObject):
         '''
         # WARNING: We are not checking the validity of this matrix
         self.stateMatrix = np.array(stateMatrix)
-        print 'EMULATOR: Set state matrix.'
+        if VERBOSE:
+            print('EMULATOR: Set state matrix.')
     def send_matrix(self,someMatrix):
         pass
     def report_state_matrix(self):
@@ -213,11 +218,13 @@ class StateMachineClient(QtCore.QObject):
     def run(self):
         self.runningState = True
         self.timer.start(1e3*self.interval) # timer takes interval in ms
-        print 'EMULATOR: Run.'
+        if VERBOSE:
+            print('EMULATOR: Run.')
     def stop(self):
         self.timer.stop()
         self.runningState = False
-        print 'EMULATOR: Stop.'
+        if VERBOSE:
+            print('EMULATOR: Stop.')
     def set_state_timers(self,timerValues):
         self.stateTimers = np.array(timerValues)
         pass
@@ -225,16 +232,15 @@ class StateMachineClient(QtCore.QObject):
         pass
     def set_extra_timers(self,extraTimersValues):
         self.extraTimers = np.array(extraTimersValues)
-        pass
     def set_extra_triggers(self,stateTriggerEachExtraTimer):
         self.triggerStateEachExtraTimer = np.array(stateTriggerEachExtraTimer)
-        pass
     def report_extra_timers(self):
         pass
     def set_state_outputs(self,stateOutputs):
         self.stateOutputs = np.array(stateOutputs)
-        print 'EMULATOR: Set state outputs.'
-        #print self.stateOutputs
+        if VERBOSE:
+            print('EMULATOR: Set state outputs.')
+        #print(self.stateOutputs)
         pass
     def set_serial_outputs(self,serialOutputs):
         self.serialOutputs = np.array(serialOutputs)
@@ -260,7 +266,8 @@ class StateMachineClient(QtCore.QObject):
         self.nextState[self.nEvents] = self.currentState
         self.nEvents += 1
         self.enter_state(self.currentState)
-        print 'EMULATOR: Force state {0}.'.format(stateID)
+        if VERBOSE:
+            print('EMULATOR: Force state {0}.'.format(stateID))
     def write(self,value):
         pass
     def readlines(self):
@@ -268,7 +275,8 @@ class StateMachineClient(QtCore.QObject):
     def read(self):
         pass
     def close(self):
-        print 'EMULATOR: Close.'
+        if VERBOSE:
+            print('EMULATOR: Close.')
         self.emuGUI.close()
 
     def add_event(self,thisEventCode):
@@ -276,7 +284,8 @@ class StateMachineClient(QtCore.QObject):
         self.eventsCode[self.nEvents] = thisEventCode
         self.nEvents += 1
         self.eventsToProcess += 1
-        print 'Added event {0}'.format(thisEventCode)
+        if VERBOSE:
+            print('Added event {0}'.format(thisEventCode))
 
     def execute_cycle(self):
         '''
@@ -290,14 +299,19 @@ class StateMachineClient(QtCore.QObject):
             self.inputValues[indi] = self.emuGUI.inputStatus[indi]
             if self.inputValues[indi]!=previousValue:
                 self.add_event(2*indi + previousValue)
+
+        # -- Check if the state timer finished ---
         currentTime = self.get_time()
-        if (currentTime-self.stateTimerValue) >= self.stateTimers[self.currentState]:
+        if (currentTime - self.stateTimerValue) >= self.stateTimers[self.currentState]:
             self.add_event(2*self.nInputs)
             self.stateTimerValue = currentTime # Restart timer
-            pass
 
-        # TODO: extratimers
-        ###
+        # -- Check if an extra timer has finished --
+        for indt in range(self.nExtraTimers):
+            if self.activeExtraTimers[indt]:
+                if (currentTime - self.extraTimersValues[indt]) >= self.extraTimers[indt]:
+                    self.add_event(2*self.nInputs + 1 + indt)
+                    self.activeExtraTimers[indt] = False
             
         # -- Update state machine given last events --
         # FIXME: this is ugly (in the arduino code).
@@ -307,12 +321,18 @@ class StateMachineClient(QtCore.QObject):
         # -- The following code created problems (see docs), IT IS BEING TESTED --
         if self.currentState != previousState:
             self.enter_state(self.currentState)
-            pass
+
 
     def enter_state(self,currentState):
         self.stateTimerValue = self.get_time()
-        # TODO: Finish extra timers
-        #for indt in range(self.nExtraTimers)
+
+        # -- Start extra timers --
+        for indt in range(self.nExtraTimers):
+            if self.triggerStateEachExtraTimer[indt] == currentState:
+                self.extraTimersValues[indt] = self.get_time()
+                self.activeExtraTimers[indt] = True
+
+        # -- Change outputs according to the current state --
         self.outputs = self.stateOutputs[currentState,:]
         self.emuGUI.set_outputs(self.outputs)
         self.serialout = self.serialOutputs[currentState]

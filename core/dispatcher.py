@@ -114,7 +114,7 @@ class Dispatcher(QtCore.QObject):
         '''Connect to state machine server and initialize it.'''
         self.statemachine.connect()
         ###self.statemachine.initialize()
-        self.statemachine.set_sizes(self.nInputs,self.nOutputs,0)
+        self.statemachine.set_sizes(self.nInputs, self.nOutputs, 0) # No nExtraTimers by default
         self.isConnected = True
 
     def reset_state_matrix(self):
@@ -137,9 +137,12 @@ class Dispatcher(QtCore.QObject):
         self._set_state_matrix(stateMatrix.get_matrix(),
                                stateMatrix.get_outputs(),
                                stateMatrix.get_serial_outputs(),
-                               stateMatrix.get_state_timers())
+                               stateMatrix.get_state_timers(),
+                               stateMatrix.get_extra_timers(),
+                               stateMatrix.get_extra_triggers())
 
-    def _set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,extraTimers=None):
+    def _set_state_matrix(self,stateMatrix,stateOutputs,serialOutputs,stateTimers,
+                          extraTimers=None,extraTriggers=None):
         '''
         Send state transition matrix, outputs and timers to server, given python lists.
 
@@ -149,6 +152,8 @@ class Dispatcher(QtCore.QObject):
                       0 (for low), 1 (for high), other (for no change)
         serialOutputs: [nStates] (where each value is one byte corresponding to 8 outputs)
         stateTimers: [nStates] (in sec)
+        extraTimers: [nExtratimers] duration of each extra-timer in sec.
+        extraTriggers: [nExtratimers] state that triggers each extra-timer.
         '''
         # -- Set prepare next trial states --
         #set_prepare_next_trial_states(self.sm.get_ready_states(),
@@ -156,9 +161,12 @@ class Dispatcher(QtCore.QObject):
         if self.isConnected:
             #if not isinstance(statesmatrix,np.ndarray):
             #    statesmatrix = np.array(statesmatrix)
-            if extraTimers:
-                #self.statemachine.setScheduledWavesDIO(schedwavesmatrix)        
-                raise 'Sending extra-timers is not implemented yet.'
+            if extraTimers is not None:
+                nExtraTimers = len(extraTimers)
+                self.statemachine.set_sizes(self.nInputs,self.nOutputs,nExtraTimers)
+                self.statemachine.set_extra_timers(extraTimers)
+                # FIXME: if the extratimer is not triggered this will send None and it may fail.
+                self.statemachine.set_extra_triggers(extraTriggers)
             self.statemachine.set_state_matrix(stateMatrix)
             self.statemachine.set_state_outputs(stateOutputs)
             if serialOutputs:

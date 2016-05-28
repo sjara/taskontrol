@@ -31,8 +31,9 @@ except ImportError:
 
 SERIAL_BAUD = 115200  # Should be the same in statemachine.ino
 SERIAL_TIMEOUT = 0.1
-NINPUTS = 8
-NOUTPUTS = 16
+N_INPUTS = 8    # For reference (not used)
+N_OUTPUTS = 16  # For reference (not used)
+N_EXTRATIMERS = 16
 
 # -- COMMANDS --
 opcode = {
@@ -129,7 +130,7 @@ class StateMachineClient(object):
         self.ser.write(opcode['GET_SERVER_VERSION'])
         versionString = self.ser.readline()
         return versionString.strip()
-    def set_sizes(self,nInputs,nOutputs,nExtraTimers):
+    def set_sizes(self,nInputs,nOutputs,nExtraTimers=N_NEXTRATIMERS):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
         self.nExtraTimers = nExtraTimers
@@ -226,6 +227,9 @@ class StateMachineClient(object):
     def set_extra_triggers(self,stateTriggerEachExtraTimer):
         '''
         Send the state that will trigger each extra timer.
+
+        Args:
+            stateTriggerEachExtraTimer (list): state that will trigger each timer.
         '''
         self.ser.write(opcode['SET_EXTRA_TRIGGERS'])
         for onestate in stateTriggerEachExtraTimer:

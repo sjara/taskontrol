@@ -231,52 +231,11 @@ class StateMatrix(object):
         else:
             raise Exception('Extra timer ({0}) has already been defined.'.format(name))
         extraTimerEventCol = self.nInputEvents + len(self.extraTimersNameToIndex)-1
-        self.eventsDict['%s_Up'%name] = extraTimerEventCol
+        #self.eventsDict['{0}_Up'.format(name)] = extraTimerEventCol
+        self.eventsDict[name] = extraTimerEventCol
         self._init_mat() # Initialize again with different number of columns
         self.extraTimersDuration.append(duration)
         self.extraTimersTriggers.append(None) # Will be filled by add_state
-
-    def OLD_add_schedule_wave(self, name='',preamble=0, sustain=0, refraction=0, DIOline=-1, soundTrig=0):
-        '''Add a Scheduled Wave to this state machine.
-
-        Example:
-          add_schedule_wave(self, name='mySW',preamble=1.2)
-          self.sm.add_state(name='first_state', statetimer=100,
-                           transitions={'Cin':'second_state'},
-                           actions={'Dout':LeftLED, 'ExtraTimerTrig':'mySW'})
-          self.sm.add_state(name='second_state', statetimer=100,
-                           transitions={'mySW_In':'first_state'})
-
-        Note that as currently configured, you can have up to 32
-        different scheduled waves defined per state machine, no more.
-
-        From ExperPort/Modules/@StateMachineAssembler/add_scheduled_wave.m
-
-        '''
-        print 'NOT IMPLEMENTED YET'
-        return
-
-
-    def OLD_update_events_dict(self,name):
-
-        ######### TEST THIS ########
-
-        '''Add entries to the events dictionary according to the names of
-        extra timers.
-        OBSOLETE: see instead code in add_extratimer
-        '''
-        # FIXME: the length of extraTimersNameToIndex may differ from swID+1 ???
-        extraTimerEventCol = self.nInputEvents + len(self.extraTimersNameToIndex)
-        self.eventsDict['%s_Up'%name] = extraTimerEventCol
-        
-        ###outEventCol = inEventCol + 1
-        #self.eventsDict['%s_In'%name] = inEventCol
-        #self.eventsDict['%s_Out'%name] = outEventCol
-        #self.eventsDict['Tup'] = outEventCol+1
-        #if 'ExtraTimerTrig' not in self.outputNamesDict:
-        #    self.outputNamesDict['ExtraTimerTrig']=2
-        #return (inEventCol,outEventCol)
-
 
     def get_matrix(self):
         # -- Check if there are orphan states or calls to nowhere --
@@ -307,10 +266,11 @@ class StateMatrix(object):
     def get_state_timers(self):
         return self.stateTimers
 
-    def get_sched_waves(self):
-        # FIXME: check if there are orphan SW
-        return self.extraTimersMat
+    def get_extra_timers(self):
+        return self.extraTimersDuration
 
+    def get_extra_triggers(self):
+        return self.extraTimersTriggers
 
     def get_states_dict(self,order='NameToIndex'):
         '''
@@ -328,8 +288,9 @@ class StateMatrix(object):
 
     def __str__(self):
         '''String representation of transition matrix.'''
-        matstr = ''
+        matstr = '\n'
         revEventsDict = {}
+        matstr += self._extratimers_as_str()
         for key in self.eventsDict:
             if key!='Forced':
                 revEventsDict[self.eventsDict[key]] = key
@@ -339,15 +300,28 @@ class StateMatrix(object):
         matstr += '\n'
         for (index,onerow) in enumerate(self.stateMatrix):
             if len(onerow):
-                matstr += '%s [%d] \t'%(self.statesIndexToName[index].ljust(16),index)
+                matstr += '{0} [{1}] \t'.format(self.statesIndexToName[index].ljust(16),index)
                 matstr += '\t'.join(str(e) for e in onerow)
-                matstr += '\t|\t%0.2f'%self.stateTimers[index]
-                matstr += '\t%s'%self._output_as_str(self.stateOutputs[index])
-                matstr += '\t%d'%self.serialOutputs[index]
+                matstr += '\t|\t{0:0.2f}'.format(self.stateTimers[index])
+                matstr += '\t{0}'.format(self._output_as_str(self.stateOutputs[index]))
+                matstr += '\t{0}'.format(self.serialOutputs[index])
             else:
                 matstr += 'EMPTY ROW'
             matstr += '\n'
         return matstr
+
+    def _extratimers_as_str(self):
+        etstr = ''
+        for indt, oneExtratimer in enumerate(self.extraTimersNameToIndex):
+            if self.extraTimersTriggers[indt] is not None:
+                thisTrigger = self.statesIndexToName[self.extraTimersTriggers[indt]]
+            else:
+                thisTrigger = '[nothing]'
+            etstr += '{0}:\t{1:0.2f} triggered by {2}\n'.format(oneExtratimer,
+                                                                self.extraTimersDuration[indt],
+                                                                thisTrigger)
+        return etstr
+
     def _output_as_str(self,outputVec):
         #outputStr = '-'*len(outputVec)
         outputStr = ''
@@ -361,7 +335,7 @@ class StateMatrix(object):
         return outputStr
 
 if __name__ == "__main__":
-    CASE = 1
+    CASE = 3
     if CASE==1:
         sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
                          outputs={'centerWater':0, 'centerLED':1})
@@ -384,12 +358,13 @@ if __name__ == "__main__":
                     outputs={'Dout':5})
         print sm
     elif CASE==3:
-        sm = StateMatrix()
+        sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
+                         outputs={'centerWater':0, 'centerLED':1})
         sm.add_extratimer('mytimer', duration=0.6)
         sm.add_extratimer('secondtimer', duration=0.3)
         sm.add_state(name='wait_for_cpoke', statetimer=12,
-                    transitions={'Cin':'play_target', 'mytimer_Up':'third_state'},
-                    outputsOff=['CenterLED'],  trigger=['mytimer'])
+                     transitions={'Cin':'play_target', 'mytimer':'third_state'},
+                     outputsOff=['centerLED'],  trigger=['mytimer'])
         print sm
     elif CASE==4:
         sm = StateMatrix()
