@@ -107,8 +107,9 @@ pygments_style = 'sphinx'
 # on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if not on_rtd:  # only import and set the theme if we're building docs locally
-    html_theme = 'sphinx_rtd_theme'
-    html_theme_path = ["_themes", ]
+    if os.path.exists('./_themes/sphinx_rtd_theme'):
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = ["_themes", ]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
