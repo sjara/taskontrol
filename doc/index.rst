@@ -4,7 +4,19 @@ TASKontrol
 
 TASKontrol is a framework for developing behavioral experiments.
 
-It consists of modules written in Python and PySide (Qt for Python) that help design behavioral paradigms and provide a graphical user interface to control the experiments.
+It consists of modules written in Python and PySide (Qt for Python) that help design behavioral paradigms and provide a graphical user interface to control the experiments. It is most commonly used with an Arduino interface to detect external events and trigger stimuli.
+
+TASKontrol was originally developed by Santiago Jaramillo and it is maintained by the `Jaramillo Lab`_ at the University of Oregon.
+
+.. _Jaramillo Lab: http://jaralab.uoregon.edu/
+
+Below is an example of a graphical user interface created with TASKontrol.
+
+.. image:: images/taskontrol_screenshot_20160528.png
+   :scale: 50 %
+   :alt: Example of a graphical interface
+   :align: center
+
 
 **This documentation is a work in progress. Many modules are still missing.**
 
