@@ -4,7 +4,7 @@ ___________________________________
 ___________________________________
 
 
-The steps necessary to get started on any operating system are as follows :
+The steps necessary to get started on any operating system are summarized as follows:
 - Install python, PySide (which depends on Qt4), numpy and h5py.
 - For data plots you will also need matplotlib and pyqtgraph.
 - For sounds you will need pyo and serial.
