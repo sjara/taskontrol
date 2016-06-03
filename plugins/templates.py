@@ -30,6 +30,40 @@ class ParadigmTest(QtGui.QMainWindow):
         super(ParadigmTest, self).__init__(parent)
         self.myvar=0
 
+class ParadigmMinimal(QtGui.QMainWindow):
+    def __init__(self, parent=None, paramfile=None, paramdictname=None):
+        super(ParadigmMinimal, self).__init__(parent)
+
+        self.name = 'minimal'
+        smServerType = rigsettings.STATE_MACHINE_TYPE
+
+        # -- Create dispatcher --
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
+        self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
+
+        # -- Add graphical widgets to main window --
+        self.centralWidget = QtGui.QWidget()
+        layoutMain = QtGui.QVBoxLayout()
+        layoutMain.addWidget(self.dispatcherView)
+
+        self.centralWidget.setLayout(layoutMain)
+        self.setCentralWidget(self.centralWidget)
+
+        # -- Connect signals from dispatcher --
+        self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
+
+    def prepare_next_trial(self, nextTrial):
+        pass
+
+    def _timer_tic(self,etime,lastEvents):
+        pass
+
+    def closeEvent(self, event):
+        '''Executed when closing the main window. Inherited from QtGui.QMainWindow.'''
+        self.dispatcherModel.die()
+        event.accept()
+
+
 class Paradigm2AFC(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm2AFC, self).__init__(parent)
