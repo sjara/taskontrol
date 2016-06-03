@@ -343,14 +343,19 @@ def create_app(paradigmClass):
     else:
         raise ValueError('Number of arguments must less than 3')
 
-    print '------------------------------------'
-    print paramfile,paramdictname
+    #print '------------------------------------'
+    #print paramfile,paramdictname
 
-    paradigm = paradigmClass(paramfile=paramfile,paramdictname=paramdictname)
+    if len(sys.argv)>1:
+        paradigm = paradigmClass(paramfile=paramfile,paramdictname=paramdictname)
+    else:
+        paradigm = paradigmClass()
+        
     paradigm.show()
 
     app.exec_()
     return (app,paradigm)
+
 
 def create_app_only():
     '''
@@ -366,6 +371,7 @@ def create_app_only():
     if not app: # create QApplication if it doesnt exist 
         app = QtGui.QApplication(sys.argv)
     return app
+
 
 def center_in_screen(widget):
     qr = widget.frameGeometry()
