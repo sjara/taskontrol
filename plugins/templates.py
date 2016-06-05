@@ -30,12 +30,18 @@ class ParadigmTest(QtGui.QMainWindow):
         super(ParadigmTest, self).__init__(parent)
         self.myvar=0
 
+
 class ParadigmMinimal(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(ParadigmMinimal, self).__init__(parent)
 
         self.name = 'minimal'
         smServerType = rigsettings.STATE_MACHINE_TYPE
+
+        # -- Create an empty statematrix --
+        self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
+                                          outputs=rigsettings.OUTPUTS,
+                                          readystate='ready_next_trial')
 
         # -- Create dispatcher --
         self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
