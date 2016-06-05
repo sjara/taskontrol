@@ -31,8 +31,10 @@ Contents:
    :maxdepth: 2
 
    getting_started
-   statematrix
-   sound
+   state_transitions
+   advanced_topics
+     statematrix
+     sound
    reference
 
 ..   settings
