@@ -63,7 +63,7 @@ class SaveData(QtGui.QGroupBox):
         self.setTitle('Manage Data')
 
 
-    def to_file(self,containers,currentTrial=None,experimenter='experimenter',
+    def to_file(self,containers,currentTrial=None,experimenter='',
                 subject='subject',paradigm='paradigm',date=None,suffix='a',filename=None):
         '''
         Saves the history of parameters, events and results to an HDF5 file.
@@ -73,7 +73,7 @@ class SaveData(QtGui.QGroupBox):
                 Examples of these are: paramgui.Container,
                 dispatcher.Dispatcher, statematrix.StateMatrix
             currentTrial: limits how many elements are stored (up to currentTrial-1)
-            experimenter: string
+            experimenter: string (if empty, no experimenter folder is used)
             subject: string
             paradigm: string
             date: (optional) string. If none given, today's date will be used.
@@ -83,6 +83,8 @@ class SaveData(QtGui.QGroupBox):
 
         The data is saved to:
         ``datadir/experimenter/subject/subject_paradigm_YYMMDDa.h5``
+          or, is experimenter is empty:
+        ``datadir/subject/subject_paradigm_YYMMDDa.h5``
         '''
 
         if filename is not None:

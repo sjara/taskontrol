@@ -180,10 +180,13 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
     def save_to_file(self):
         '''Triggered by button-clicked signal'''
+        '''NOTE: if we want to use folders for each experimenter,
+                 the code would need to have:
+                 experimenter=self.params['experimenter'].get_value()'''
         self.saveData.to_file([self.params, self.dispatcherModel,
                                self.sm, self.results],
                               self.dispatcherModel.currentTrial,
-                              experimenter=self.params['experimenter'].get_value(),
+                              experimenter='',
                               subject=self.params['subject'].get_value(),
                               paradigm=self.name)
 
