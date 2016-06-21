@@ -22,11 +22,11 @@ Note that these step will result in a local installation (not system-wide).
 * Install dependencies:
   * `sudo apt-get install git ipython python-pyside python-numpy python-matplotlib python-h5py python-pyo python-serial`
 
-* For "real-time" sound presentation, you would also need:
-  * `sudo apt-get install linux-lowlatency jackd`
-
 * Some widgets/plots depend on pyqtgraph (faster than matplotlib). Download the .deb file from http://luke.campagnola.me/debian/dev/ and install with the following command (using the appropriate version number):
   * `sudo dpkg -i python-pyqtgraph_0.9.8-1_all.deb`
+
+* For (experimental) "real-time" sound presentation, you would also need:
+  * `sudo apt-get install linux-lowlatency jackd`
 
 * Create and go to the directory where you want the code:
   * `mkdir ~/src`
