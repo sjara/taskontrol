@@ -105,7 +105,7 @@ class StateMachineClient(object):
         self.ser.setTimeout(1)
         #self.ser.flushOutput()  # FIXME: Discard anything in output buffer?
         #self.ser.flushInput()   # FIXME: Discard anything in input buffer?
-        time.sleep(0.2)  # FIXME: why does it need extra time? 0.1 does not work!
+        time.sleep(0.4)  # FIXME: why does it need extra time? 0.1 does not work!
         self.ser.write(opcode['CONNECT'])
         while not fsmReady:
             print 'Establishing connection...'
