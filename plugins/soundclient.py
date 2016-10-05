@@ -209,6 +209,50 @@ class SoundPlayer(threading.Thread):
             soundwaveObj = pyo.Noise(mul=envelope).out()
             return(soundObj,[envelope,soundwaveObj])
             '''
+        elif soundParams['type']=='tone_AM':
+            if isinstance(soundAmp, list):
+                halfAmp = [0.5*x for x in soundAmp]
+            else:
+                halfAmp = 0.5*soundAmp
+            envelope = pyo.Sine(freq=soundParams['modRate'],
+                                mul=halfAmp,
+                                add=halfAmp,phase=0.75)
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=envelope)
+            soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
+                                    mul=soundObj).out()
+            return(soundObj,[envelope,soundwaveObj])
+        elif soundParams['type']=='band':
+            frequency = soundParams['frequency']
+            octaves = soundParams['octaves']
+            freqhigh = frequency * np.power(2, octaves/2)
+            freqlow = frequency / np.power(2, octaves/2)
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=soundAmp)
+            freqcent = (freqhigh + freqlow)/2
+            bandwidth = freqhigh - freqlow
+            n = pyo.Noise(mul=soundObj)
+            soundwaveObj = pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out()
+            return(soundObj,soundwaveObj)
+        elif soundParams['type']=='band_AM':
+            if isinstance(soundAmp, list):
+                halfAmp = [0.5*x for x in soundAmp]
+            else:
+                halfAmp = 0.5*soundAmp
+            frequency = soundParams['frequency']
+            octaves = soundParams['octaves']
+            freqhigh = frequency * np.power(2, octaves/2)
+            freqlow = frequency / np.power(2, octaves/2)
+            envelope = pyo.Sine(freq=soundParams['modRate'],
+                                mul=halfAmp,
+                                add=halfAmp,phase=0.75)
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'], mul=envelope)
+            freqcent = (freqhigh + freqlow)/2
+            bandwidth = freqhigh - freqlow
+            n = pyo.Noise(mul=soundObj)
+            soundwaveObj = pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out()
+            return(soundObj,[envelope,soundwaveObj])
         elif soundParams['type']=='fromfile':
             tableObj = pyo.SndTable(soundParams['filename'])
             samplingFreq = tableObj.getRate()
