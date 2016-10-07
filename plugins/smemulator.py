@@ -136,23 +136,23 @@ class StateMachineClient(QtCore.QObject):
         ###self.timeOfLastEvents = self.timeOfCreation
         self.runningState = False
         self.eventsTime = np.zeros(MAXNEVENTS)
-        self.eventsCode = np.zeros(MAXNEVENTS)
+        self.eventsCode = np.zeros(MAXNEVENTS, dtype=int)
         self.nEvents = 0
         self.eventsToProcess = 0
         self.currentState = 0
         self.previousState = 0 # NEEDED?
-        self.nextState = np.zeros(MAXNEVENTS)
+        self.nextState = np.zeros(MAXNEVENTS, dtype=int)
 
         self.sizesSetFlag = False;
         # -- The following sizes will be overwritten by this class' methods --
         self.previousInputValues = np.zeros(MAXNINPUTS)
         self.inputValues = np.zeros(MAXNINPUTS)
-        self.serialOutputs = np.zeros(MAXNSTATES)
-        self.stateMatrix = np.zeros((MAXNSTATES,MAXNACTIONS))
+        self.serialOutputs = np.zeros(MAXNSTATES,dtype=int)
+        self.stateMatrix = np.zeros((MAXNSTATES,MAXNACTIONS),dtype=int)
         self.stateTimers = np.zeros(MAXNSTATES)
-        self.stateOutputs = np.zeros((MAXNSTATES,MAXNOUTPUTS))
+        self.stateOutputs = np.zeros((MAXNSTATES,MAXNOUTPUTS),dtype=int)
         self.extraTimers = np.zeros(MAXNEXTRATIMERS)
-        self.triggerStateEachExtraTimer = np.zeros(MAXNEXTRATIMERS)
+        self.triggerStateEachExtraTimer = np.zeros(MAXNEXTRATIMERS,dtype=int)
         
         self.stateTimerValue = 0;
         self.extraTimersValues = np.zeros(MAXNEXTRATIMERS)
