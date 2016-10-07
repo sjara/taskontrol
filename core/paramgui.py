@@ -273,7 +273,7 @@ class NumericParam(GenericParam):
 
 class MenuParam(GenericParam):
     def __init__(self, labelText='', menuItems=(), value=0, group=None,
-                 history=True, labelWidth=80, parent=None):
+                 history=True, labelWidth=80, enabled=True, parent=None):
         super(MenuParam, self).__init__(labelText, value, group,
                                         history, labelWidth, parent)
         self._type = 'menu'
@@ -290,6 +290,7 @@ class MenuParam(GenericParam):
         # -- Define value --
         self._items = menuItems
         self.set_value(value)
+        self.set_enabled(enabled)
 
     def set_value(self,value):
         self._value = value
