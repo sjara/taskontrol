@@ -10,11 +10,12 @@ import os
 import numpy as np
 import h5py
 
-DEFAULT_AMPLITUDE = 0.01
+DEFAULT_AMPLITUDE = 0.1
 AMPLITUDE_STEP = 0.0005
 MAX_AMPLITUDE = 0.5
 
-DEFAULT_INTENSITY = 40 # dB-SPL
+DEFAULT_INTENSITY = 60 # white noise overall intensity (dB-SPL)
+DEFAULT_POWER = 40 # white noise spectral power (dB-SPL)
 
 DATADIR = '/var/tmp/'
 
@@ -85,7 +86,7 @@ class SoundControl(QtGui.QGroupBox):
         self.outputButtons = []
         self.amplitudeControl=[]
 
-        self.outputButtons.append(OutputButton(self.soundServer, 'Overall Amp', channel=self.channel))
+        self.outputButtons.append(OutputButton(self.soundServer, 'Noise Intensity', channel=self.channel))
         self.outputButtons.append(OutputButton(self.soundServer, 'Spectral Power', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
@@ -172,6 +173,8 @@ class SaveButton(QtGui.QPushButton):
             # dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
             dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
             dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+            dsetRef = h5file.create_dataset('power',data=DEFAULT_POWER)
+            dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
             dsetRef = h5file.create_dataset('computerSoundLevel',
                                             data=rigsettings.SOUND_VOLUME_LEVEL)
             dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
@@ -203,10 +206,14 @@ class NoiseCalibration(QtGui.QMainWindow):
 
         self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
 
-        soundTargetIntensityLabel = QtGui.QLabel('Target intensity [dB-SPL]')
-        self.soundTargetIntensity = QtGui.QLineEdit()
-        self.soundTargetIntensity.setText(str(DEFAULT_INTENSITY))
-        self.soundTargetIntensity.setEnabled(False)
+        noiseTargetIntensityLabel = QtGui.QLabel('Target noise intensity [dB-SPL]')
+        self.noiseTargetIntensity = QtGui.QLineEdit()
+        self.noiseTargetIntensity.setText(str(DEFAULT_INTENSITY))
+        self.noiseTargetIntensity.setEnabled(False)
+        powerTargetIntensityLabel = QtGui.QLabel('Target spectral power [dB-SPL]')
+        self.powerTargetIntensity = QtGui.QLineEdit()
+        self.powerTargetIntensity.setText(str(DEFAULT_POWER))
+        self.powerTargetIntensity.setEnabled(False)
         computerSoundLevelLabel = QtGui.QLabel('Computer sound level [%]')
         self.computerSoundLevel = QtGui.QLineEdit()
         self.computerSoundLevel.setText(str(rigsettings.SOUND_VOLUME_LEVEL))
@@ -218,8 +225,10 @@ class NoiseCalibration(QtGui.QMainWindow):
 
         layoutRight.addWidget(self.saveButton)
 
-        layoutRight.addWidget(soundTargetIntensityLabel)
-        layoutRight.addWidget(self.soundTargetIntensity)
+        layoutRight.addWidget(noiseTargetIntensityLabel)
+        layoutRight.addWidget(self.noiseTargetIntensity)
+        layoutRight.addWidget(powerTargetIntensityLabel)
+        layoutRight.addWidget(self.powerTargetIntensity)
         layoutRight.addWidget(computerSoundLevelLabel)
         layoutRight.addWidget(self.computerSoundLevel)
 
@@ -302,10 +311,12 @@ class Calibration(object):
             h5file = h5py.File(filename,'r')
             self.amplitude = h5file['amplitude'][...]
             self.intensity = h5file['intensity'][...]
+            self.power = h5file['power'][...]
             h5file.close()
         else:
             self.amplitude = 0.1*np.ones((2,2))
             self.intensity = 60
+            self.power = 40
         self.nChannels = self.amplitude.shape[0]
             
     def find_amplitude(self, type, intensity):
@@ -314,7 +325,10 @@ class Calibration(object):
         Returns an array with the amplitude for each channel.
         '''
         ampAtRef = self.amplitude[:,type]
-        dBdiff = intensity-self.intensity
+        if type == 0:
+            dBdiff = intensity-self.intensity
+        elif type == 1:
+            dBdiff = intensity-self.power
         ampFactor = 10**(dBdiff/20.0)
         return np.array(ampAtRef)*ampFactor
 
