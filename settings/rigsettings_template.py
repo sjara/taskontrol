@@ -30,6 +30,10 @@ SOUND_TRIGGER_PORT = '/dev/ttyACM1'
 SPEAKER_CALIBRATION = None
 #SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5'
 
+#: File that defines noise calibration of the speakers
+#NOISE_CALIBRATION = None
+NOISE_CALIBRATION = '/home/jarauser/src/jaratest/anna/noise_calibration_20160927153022.h5'
+
 #: Computer volume level [0-100%]
 SOUND_VOLUME_LEVEL = 82
 

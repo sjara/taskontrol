@@ -30,6 +30,46 @@ class ParadigmTest(QtGui.QMainWindow):
         super(ParadigmTest, self).__init__(parent)
         self.myvar=0
 
+
+class ParadigmMinimal(QtGui.QMainWindow):
+    def __init__(self, parent=None, paramfile=None, paramdictname=None):
+        super(ParadigmMinimal, self).__init__(parent)
+
+        self.name = 'minimal'
+        smServerType = rigsettings.STATE_MACHINE_TYPE
+
+        # -- Create an empty statematrix --
+        self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
+                                          outputs=rigsettings.OUTPUTS,
+                                          readystate='ready_next_trial')
+
+        # -- Create dispatcher --
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
+        self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
+
+        # -- Add graphical widgets to main window --
+        self.centralWidget = QtGui.QWidget()
+        layoutMain = QtGui.QVBoxLayout()
+        layoutMain.addWidget(self.dispatcherView)
+
+        self.centralWidget.setLayout(layoutMain)
+        self.setCentralWidget(self.centralWidget)
+
+        # -- Connect signals from dispatcher --
+        self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
+
+    def prepare_next_trial(self, nextTrial):
+        pass
+
+    def _timer_tic(self,etime,lastEvents):
+        pass
+
+    def closeEvent(self, event):
+        '''Executed when closing the main window. Inherited from QtGui.QMainWindow.'''
+        self.dispatcherModel.die()
+        event.accept()
+
+
 class Paradigm2AFC(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm2AFC, self).__init__(parent)
@@ -140,10 +180,13 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
     def save_to_file(self):
         '''Triggered by button-clicked signal'''
+        '''NOTE: if we want to use folders for each experimenter,
+                 the code would need to have:
+                 experimenter=self.params['experimenter'].get_value()'''
         self.saveData.to_file([self.params, self.dispatcherModel,
                                self.sm, self.results],
                               self.dispatcherModel.currentTrial,
-                              experimenter=self.params['experimenter'].get_value(),
+                              experimenter='',
                               subject=self.params['subject'].get_value(),
                               paradigm=self.name)
 
