@@ -204,6 +204,12 @@ class StateMachineClient(QtCore.QObject):
         See smclient.py
         '''
         # WARNING: We are not checking the validity of this matrix
+        for onerow in stateMatrix:
+            if len(onerow)!=self.nActions:
+                raise ValueError('The states transition matrix does not have the '+\
+                                 'correct number of columns.\n'+\
+                                 'It should be {0} not {1}'.format(self.nActions,
+                                                                   len(onerow)))
         self.stateMatrix = np.array(stateMatrix)
         print 'EMULATOR: Set state matrix.'
     def send_matrix(self,someMatrix):
