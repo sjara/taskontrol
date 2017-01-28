@@ -167,7 +167,7 @@ class SoundPlayer(threading.Thread):
         if soundParams['type']=='tone':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'], mul=soundAmp)
-            soundwaveObj = pyo.Sine(freq=soundParams['frequency'],
+            soundwaveObj = pyo.Sine(freq=float(soundParams['frequency']),
                                     mul=soundObj).out()
             return(soundObj,soundwaveObj)
         elif soundParams['type']=='chord':
@@ -181,7 +181,7 @@ class SoundPlayer(threading.Thread):
             for indcomp in range(nTones):
                 #soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
                 #                              mul=soundObj).mix(2).out())
-                soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
+                soundwaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
                                               mul=soundObj).out())
             return(soundObj,soundwaveObjs)
         elif soundParams['type']=='noise':
