@@ -18,7 +18,7 @@ import numpy as np
 import datetime
 from PySide import QtCore 
 from PySide import QtGui 
-
+from ..settings import rigsettings 
 
 MAXNEVENTS = 512
 MAXNSTATES = 256
@@ -27,7 +27,7 @@ MAXNINPUTS = 8
 MAXNOUTPUTS = 16
 MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
-VERBOSE = False  ### settings.EMULATOR_VERBOSE
+VERBOSE = rigsettings.EMULATOR_VERBOSE
 
 class EmulatorGUI(QtGui.QWidget):
     def __init__(self, parent=None):

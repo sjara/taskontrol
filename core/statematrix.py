@@ -230,7 +230,10 @@ class StateMatrix(object):
         self.eventsDict[name] = extraTimerEventCol
         #self._init_mat() # Initialize again with different number of columns
         self.extraTimersDuration.append(duration)
-        self.extraTimersTriggers.append(None) # This will be filled by add_state
+        #self.extraTimersTriggers.append(None) # This will be filled by add_state
+        # The default trigger for extratimers is state 0. The state machine requires a trigger.
+        self.extraTimersTriggers.append(0) # This will be updated by add_state
+        
 
     def set_extratimer(self, name, duration):
         '''

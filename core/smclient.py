@@ -9,6 +9,8 @@ TO DO:
   but when arduino is reset manually it sends only the right thing.
 - Send time (for a schedule wave)
 - Send actions
+- Use MAXNINPUTS, MAXNOUTPUTS and MAXNEXTRATIMERS variables
+  to make sure a larger matrix is being created.
 
 '''
 
@@ -22,18 +24,18 @@ import os
 import sys
 import time
 import struct
+from ..settings import rigsettings
 
-try:
-    from taskontrol.settings import rigsettings
-    SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
-except ImportError:
-    SERIAL_PORT_PATH = '/dev/ttyACM0'
+SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
+#SERIAL_PORT_PATH = '/dev/ttyACM0'
 
 SERIAL_BAUD = 115200  # Should be the same in statemachine.ino
 SERIAL_TIMEOUT = 0.1
-N_INPUTS = 8    # For reference (not used)
-N_OUTPUTS = 16  # For reference (not used)
-N_EXTRATIMERS = 16
+
+# The following should match the statemachine code (statemachine.ino)
+MAXNINPUTS = 8
+MAXNOUTPUTS = 16
+MAXNEXTRATIMERS = 16
 
 # -- COMMANDS --
 opcode = {
@@ -103,7 +105,10 @@ class StateMachineClient(object):
             except serial.SerialException:
                 print 'Waiting for Arduino to be ready...'
                 time.sleep(1)
-        self.ser.setTimeout(1)
+        if rigsettings.OS=='ubuntu1404':
+            self.ser.setTimeout(1.0)
+        else:
+            self.ser.timeout = 1.0
         #self.ser.flushOutput()  # FIXME: Discard anything in output buffer?
         #self.ser.flushInput()   # FIXME: Discard anything in input buffer?
         time.sleep(0.4)  # FIXME: why does it need extra time? 0.1 does not work!
@@ -112,7 +117,10 @@ class StateMachineClient(object):
             print 'Establishing connection...'
             sys.stdout.flush()
             fsmReady = (self.ser.read(1)==opcode['OK'])
-        self.ser.setTimeout(SERIAL_TIMEOUT)
+        if rigsettings.OS=='ubuntu1404':
+            self.ser.setTimeout(SERIAL_TIMEOUT)
+        else:
+            self.ser.timeout = SERIAL_TIMEOUT
         print 'Connected!'
         #self.ser.flushOutput()
     def test_connection(self):
@@ -130,7 +138,7 @@ class StateMachineClient(object):
         self.ser.write(opcode['GET_SERVER_VERSION'])
         versionString = self.ser.readline()
         return versionString.strip()
-    def set_sizes(self,nInputs,nOutputs,nExtraTimers=N_NEXTRATIMERS):
+    def set_sizes(self,nInputs,nOutputs,nExtraTimers):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
         self.nExtraTimers = nExtraTimers

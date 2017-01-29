@@ -10,10 +10,13 @@ appropriate settings for the rig.
 
 '''
 
-__version__ = '0.2'
+__version__ = '0.3'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-03-18'
 
+
+#: Operating system
+OS = 'ubuntu1404'
 
 #: Type of state machine. Either 'arduino_due' or 'dummy'
 #STATE_MACHINE_TYPE = 'arduino_due'
@@ -61,4 +64,7 @@ OUTPUTS = {
     'stim1'      :6,
     'stim2'      :7,
 }
+
+#: Make the emulator print details
+EMULATOR_VERBOSE = True
 

@@ -65,11 +65,12 @@ class Paradigm(QtGui.QMainWindow):
                                           outputs=rigsettings.OUTPUTS,
                                           readystate='ready_next_trial',
                                           extratimers=['mytimer','anothertimer'])
+        #                                  extratimers=['mytimer'])
 
 
     def set_state_matrix(self, nextTrial):
         self.sm.set_extratimer('mytimer', duration=0.2*float(nextTrial))
-        #self.sm.set_extratimer('anothertimer', duration=0.1)
+        self.sm.set_extratimer('anothertimer', duration=0)
 
         timeOn = self.params['periodOn'].get_value()
         timeOff = self.params['periodOff'].get_value()
