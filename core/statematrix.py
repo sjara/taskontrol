@@ -62,17 +62,19 @@ class StateMatrix(object):
     
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
-    def __init__(self,inputs={},outputs={},readystate='readyForNextTrial'):
+    def __init__(self,inputs={},outputs={},readystate='readyForNextTrial',extratimers=[]):
         '''
         Args:
             inputs (dict): Labels for inputs. Elements should be of type str:int.
             outputs (dict): Labels for outputs. Elements should be of type str:int.
             readystate (str): name of ready-for-next-trial state.
+            extratimers (list): names of extratimers.
         
         A common use is:
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='readyForNextTrial')
+                                          readystate='readyForNextTrial'
+                                          extratimers=['mytimer'])
         '''
         self.inputsDict = inputs
         self.outputsDict = outputs
@@ -87,9 +89,10 @@ class StateMatrix(object):
 
         self._nextStateInd = 0
 
-        self.extraTimersIndexToName = {}
-        self.extraTimersNameToIndex = {}
-        self._nextExtraTimerInd = 0
+        #self.extraTimersIndexToName = {}
+        #self.extraTimersNameToIndex = {}
+        self.extraTimersNames = []
+        #self._nextExtraTimerInd = 0
         self.extraTimersDuration = []
         self.extraTimersTriggers = []
 
@@ -104,6 +107,9 @@ class StateMatrix(object):
         self.eventsDict['Forced'] = -1
         self.nOutputs = len(self.outputsDict)
 
+        for onetimer in extratimers:
+            self._add_extratimer(onetimer)
+        
         #self.readyForNextTrialStateName = readystate[0]
         #self.readyForNextTrialStateInd = readystate[1]
         self.readyForNextTrialStateName = readystate
@@ -116,11 +122,14 @@ class StateMatrix(object):
         utils.append_dict_to_HDF5(statematGroup,'eventsNames',self.eventsDict)
         utils.append_dict_to_HDF5(statematGroup,'outputsNames',self.outputsDict)
         utils.append_dict_to_HDF5(statematGroup,'statesNames',self.statesNameToIndex)
-        utils.append_dict_to_HDF5(statematGroup,'extraTimersNames',self.extraTimersNameToIndex)
+
+        #TODO: save names of extratimers and index corresponding to the event for each.
+        #      note that you have to add nInputEvents to the index of each timer.
+        #utils.append_dict_to_HDF5(statematGroup,'extraTimersNames',self.extraTimersNameToIndex)
 
     def _make_default_row(self,stateInd):
         '''Create a transition row for a state.'''
-        nExtraTimers = len(self.extraTimersNameToIndex)
+        nExtraTimers = len(self.extraTimersNames)
         newrow = (self.nInputEvents+nExtraTimers)*[stateInd]    # Input events
         return newrow
 
@@ -149,25 +158,12 @@ class StateMatrix(object):
         self.statesIndexToName[stateInd] = stateName
 
 
-    #def _updateExtraTimerDict(self,stateName,stateInd):
-    #    '''Add name and index of a schedule wave to the dicts keeping the waves list.'''
-    #    self.extraTimersNameToIndex[schedWaveName] = self._nextExtraTimerInd
-    #    self.extraTimersIndexToName[self._nextExtraTimerInd] = schedWaveName
-
-
     def _append_state_to_list(self,stateName):
         '''Add state to the list of available states.'''        
         #if self._nextStateInd==self.readyForNextTrialStateInd:
         #    self._nextStateInd += 1  # Skip readyForNextTrialState
         self._update_state_dict(stateName,self._nextStateInd)
         self._nextStateInd += 1
-        
-
-    def _append_extratimer_to_list(self,extraTimerName):
-        '''Add schedule wave to the list of available schedule waves.'''
-        self.extraTimersNameToIndex[extraTimerName] = self._nextExtraTimerInd
-        self.extraTimersIndexToName[self._nextExtraTimerInd] = extraTimerName
-        self._nextExtraTimerInd += 1
         
 
     def add_state(self, name='', statetimer=VERYLONGTIME, transitions={},
@@ -180,7 +176,7 @@ class StateMatrix(object):
                       state. A value of zero means no serial output.
         '''
         
-        nExtraTimers = len(self.extraTimersNameToIndex)
+        nExtraTimers = len(self.extraTimersNames)
 
         # -- Find index for this state (create if necessary) --
         if name not in self.statesNameToIndex:
@@ -216,27 +212,34 @@ class StateMatrix(object):
 
         # -- Add this state to the list of triggers for extra timers --
         for oneExtraTimer in trigger:
-            extraTimerInd = self.extraTimersNameToIndex[oneExtraTimer]
+            extraTimerInd = self.extraTimersNames.index(oneExtraTimer)
             self.extraTimersTriggers[extraTimerInd] = thisStateInd
         pass
     
     
-    def add_extratimer(self, name='', duration=0):
+    def _add_extratimer(self, name, duration=0):
         '''
         Add an extra timer that will be trigger when entering a defined state,
         but can continue after state transitions.
         '''
-        if name not in self.extraTimersNameToIndex:
-            self._append_extratimer_to_list(name)
+        if name not in self.extraTimersNames:
+            self.extraTimersNames.append(name)
         else:
             raise Exception('Extra timer ({0}) has already been defined.'.format(name))
-        extraTimerEventCol = self.nInputEvents + len(self.extraTimersNameToIndex)-1
-        #self.eventsDict['{0}_Up'.format(name)] = extraTimerEventCol
+        extraTimerEventCol = self.nInputEvents + len(self.extraTimersNames)-1
         self.eventsDict[name] = extraTimerEventCol
-        self._init_mat() # Initialize again with different number of columns
+        #self._init_mat() # Initialize again with different number of columns
         self.extraTimersDuration.append(duration)
-        self.extraTimersTriggers.append(None) # Will be filled by add_state
+        self.extraTimersTriggers.append(None) # This will be filled by add_state
 
+    def set_extratimer(self, name, duration):
+        '''
+        Set the duration of an extratimer.
+        '''
+        if name not in self.extraTimersNames:
+            raise Exception('The state matrix has no extratimer called {0}.'.format(name))
+        self.extraTimersDuration[self.extraTimersNames.index(name)] = duration
+        
     def get_matrix(self):
         # -- Check if there are orphan states or calls to nowhere --
         maxStateIDdefined = len(self.stateMatrix)-1
@@ -312,7 +315,7 @@ class StateMatrix(object):
 
     def _extratimers_as_str(self):
         etstr = ''
-        for indt, oneExtratimer in enumerate(self.extraTimersNameToIndex):
+        for indt, oneExtratimer in enumerate(self.extraTimersNames):
             if self.extraTimersTriggers[indt] is not None:
                 thisTrigger = self.statesIndexToName[self.extraTimersTriggers[indt]]
             else:
@@ -359,6 +362,16 @@ if __name__ == "__main__":
         print sm
     elif CASE==3:
         sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
+                         outputs={'centerWater':0, 'centerLED':1},
+                         extratimers=['mytimer','secondtimer'])
+        sm.set_extratimer('mytimer', 0.6)
+        sm.set_extratimer('secondtimer', 0.3)
+        sm.add_state(name='wait_for_cpoke', statetimer=12,
+                     transitions={'Cin':'play_target', 'mytimer':'third_state'},
+                     outputsOff=['centerLED'],  trigger=['mytimer'])
+        print sm
+    elif CASE==3.5:
+        sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
                          outputs={'centerWater':0, 'centerLED':1})
         sm.add_extratimer('mytimer', duration=0.6)
         sm.add_extratimer('secondtimer', duration=0.3)
@@ -395,38 +408,3 @@ if __name__ == "__main__":
                     outputsOn=['CenterLED'], serialOut=1)
         print sm
        
-    '''
-    sm.add_state(name='wait_for_apoke', statetimer=0.5,
-                transitions={'Lout':'wait_for_cpoke','Rout':'wait_for_cpoke'})
-
-    sm.add_state(name='wait_for_cpoke', statetimer=10,
-                    transitions={'Cin':'play_target'})
-    print sm.stateMatrix
-    sm.add_state(name='play_target', statetimer=1,
-                    transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
-                    outputs={'Dout':1})
-    sm.add_state(name='wait_for_apoke', statetimer=1,
-                    transitions={'Lin':'reward','Rin':'punish','Tup':'end_of_trial'})
-    sm.add_state(name='reward', statetimer=1,
-                    transitions={'Tup':'end_of_trial'},
-                    outputs={'Dout':2})
-    sm.add_state(name='punish', statetimer=1,
-                    transitions={'Tup':'end_of_trial'},
-                    outputs={'Dout':4})
-    sm.add_state(name='end_of_trial')
-
-
-    print(sm)
-    '''
-
-    ############# FIX THIS ##########
-
-    # TO DO: make sure there are (empty) states until JumpState
-
-'''
-
-I have to add states to the list first, and then look for their
-indices to fill up the matrix.
-
-
-'''

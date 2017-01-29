@@ -114,7 +114,7 @@ class Dispatcher(QtCore.QObject):
         '''Connect to state machine server and initialize it.'''
         self.statemachine.connect()
         ###self.statemachine.initialize()
-        self.statemachine.set_sizes(self.nInputs, self.nOutputs, 0) # No nExtraTimers by default
+        self.statemachine.set_sizes(self.nInputs, self.nOutputs, 0) # No extraTimers by default
         self.isConnected = True
 
     def reset_state_matrix(self):

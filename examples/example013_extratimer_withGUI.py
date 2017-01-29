@@ -61,24 +61,34 @@ class Paradigm(QtGui.QMainWindow):
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
 
-
-    def set_state_matrix(self):
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='ready_next_trial')
-        self.sm.add_extratimer('mytimer', duration=0.2)
+                                          readystate='ready_next_trial',
+                                          extratimers=['mytimer','anothertimer'])
+
+
+    def set_state_matrix(self, nextTrial):
+        self.sm.set_extratimer('mytimer', duration=0.2*float(nextTrial))
+        #self.sm.set_extratimer('anothertimer', duration=0.1)
 
         timeOn = self.params['periodOn'].get_value()
         timeOff = self.params['periodOff'].get_value()
         
         # -- Set state matrix --
         self.sm.add_state(name='first_state', statetimer=timeOn,
-                          transitions={'mytimer_Up':'second_state'},
-                          outputsOn=['centerLED'],
+                          transitions={'mytimer':'third_state'},
+                          outputsOn=['leftLED','rightLED'],
+                          outputsOff=['centerLED'],
                           trigger=['mytimer'])
         self.sm.add_state(name='second_state', statetimer=timeOff,
                           transitions={'Tup':'ready_next_trial'},
-                          outputsOff=['centerLED'])
+                          outputsOff=['leftLED','rightLED'])
+        self.sm.add_state(name='third_state', statetimer=0.2,
+                          transitions={'Tup':'ready_next_trial'},
+                          outputsOn=['centerLED'],
+                          outputsOff=['leftLED','rightLED'])
+
+        
         '''self.sm.add_state(name='first_state', statetimer=timeOn,
                           transitions={'Cin':'third_state','Tup':'second_state','mytimer_Up':'fourth_state'},
                           outputsOn=['centerLED'])
@@ -98,7 +108,7 @@ class Paradigm(QtGui.QMainWindow):
 
     def prepare_next_trial(self, nextTrial):
         print '\nPrepare trial %d'%nextTrial
-        self.set_state_matrix()
+        self.set_state_matrix(nextTrial)
         # -- Show results from previous trial --
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
         print 'Last 10 events:'

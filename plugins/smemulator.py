@@ -182,7 +182,7 @@ class StateMachineClient(QtCore.QObject):
         pass
     def get_version(self):
         pass
-    def set_sizes(self, nInputs, nOutputs, nExtraTimers=MAXNEXTRATIMERS):
+    def set_sizes(self, nInputs, nOutputs, nExtraTimers):
         self.nInputs = nInputs
         self.nOutputs = nOutputs
         self.nExtraTimers = nExtraTimers
