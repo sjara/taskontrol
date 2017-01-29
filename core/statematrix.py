@@ -185,8 +185,6 @@ class StateMatrix(object):
 
         # -- Add target states from specified events --
         newRow = self._make_default_row(thisStateInd)
-        colTimer = self.nInputEvents+2*nExtraTimers+1
-        #NewRow[colTimer] = statetimer
         for (eventName,targetStateName) in transitions.iteritems():
             if targetStateName not in self.statesNameToIndex:
                 self._append_state_to_list(targetStateName)
@@ -252,9 +250,9 @@ class StateMatrix(object):
         return self.stateMatrix
 
     def reset_transitions(self):
-        defaultTransitions = self.nInputEvents*[0] # Default row of the matrix
+        #defaultTransitions = self._make_default_row(0) # Default row of the matrix
         for stateind in self.statesIndexToName.keys():
-            self.stateMatrix[stateind] = defaultTransitions
+            self.stateMatrix[stateind] = self._make_default_row(stateind)
             self.stateTimers[stateind] = VERYLONGTIME
             self.stateOutputs[stateind] = self.nOutputs*[SAMEOUTPUT]
 
