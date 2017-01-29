@@ -64,11 +64,12 @@ class Paradigm(QtGui.QMainWindow):
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
                                           readystate='ready_next_trial',
-                                          extratimers=['mytimer','anothertimer'])
+                                          extratimers=['mytimer','anothertimer','c','d','e'])
         #                                  extratimers=['mytimer'])
 
 
     def set_state_matrix(self, nextTrial):
+        self.sm.reset_transitions()
         self.sm.set_extratimer('mytimer', duration=0.2*float(nextTrial))
         self.sm.set_extratimer('anothertimer', duration=0)
 

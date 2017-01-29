@@ -40,7 +40,7 @@ class Paradigm(QtGui.QMainWindow):
                                                          group='Timing Parameters')
         self.params['trainOn'] = paramgui.NumericParam('Train On',value=2,
                                                          group='Timing Parameters')
-        self.params['trainOff'] = paramgui.NumericParam('Train Off',value=2,
+        self.params['trainOff'] = paramgui.NumericParam('Train Off',value=1,
                                                          group='Timing Parameters')
         timingParams = self.params.layout_group('Timing Parameters')
 
@@ -62,11 +62,13 @@ class Paradigm(QtGui.QMainWindow):
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
 
-
-    def set_state_matrix(self):
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='ready_next_trial')
+                                          readystate='ready_next_trial',
+                                          extratimers=['trainTimer'])
+
+    def set_state_matrix(self):
+        self.sm.reset_transitions()
 
         pulseTimeOn = self.params['periodOn'].get_value()
         pulseTimeOff = self.params['periodOff'].get_value()
@@ -74,7 +76,7 @@ class Paradigm(QtGui.QMainWindow):
         trainOff = self.params['trainOff'].get_value()
 
         # -- Set extra timers --
-        self.sm.add_extratimer('trainTimer', duration=trainOn)
+        self.sm.set_extratimer('trainTimer', duration=trainOn)
         
         # -- Set state matrix --
         self.sm.add_state(name='start', statetimer=0,
