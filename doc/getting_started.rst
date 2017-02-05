@@ -47,10 +47,10 @@ Interacting with the paradigm
 What is the code doing?
 -----------------------
 
-* **Line 1** imports a module that contains paradigm templates. This module will in turn import all necessary modules from PySide (such as QtGui for graphical interface) and taskontrol (rigsettings, dispatchers, etc for defining the logic of the paradigm).
-* **Line 3** is the class definition of our paradigm, which we call ``Paradigm``, which will be a subclass of the simplest template called ``ParadigmMinimal``.
+* **Line 1** imports a module that contains paradigm templates. This module will in turn import all necessary modules from PySide (such as QtGui for graphical interface) and taskontrol (rigsettings, dispatcher, etc).
+* **Line 3** is where we define the class for our paradigm, which we call ``Paradigm``. In this example, our class is a subclass of the simplest template called ``ParadigmMinimal``. To see what is being inherited, look at `plugins/templates.py`_.
 * **Line 4-5** are part of the constructor of the class. These lines will appear in any paradigm we create.
-* **Line 7** is a standard Python way of checking if the file is run as a whole (as opposed to imported by another file).
+* **Line 7** is a standard Python way of checking if the file is run directly (as opposed to being imported by another file).
 * **Line 8** will call the ``create_app()`` method, which will return:
 
   * An instance of the ``QtGui.QApplication`` class (the main class for running Qt applications).
@@ -67,3 +67,4 @@ What is the code doing?
 
 
 .. _download and install TASKontrol: https://github.com/sjara/taskontrol/blob/master/INSTALL.md
+.. _plugins/templates.py: https://github.com/sjara/taskontrol/blob/master/plugins/templates.py

@@ -5,7 +5,7 @@ Let's look at how we can detect events and produce outputs. To do this, we need 
 
 * The system is in only one state at a time.
 * When an event occurs, the system transitions from one state to another.
-* Events can be externally triggered (a button press) or internally triggered (a timer).
+* Events can be triggered externally (*e.g.*, by a button press) or internally (*e.g.*, by a timer).
 * Changes in outputs occur when the system enters a state.
 
 .. _finite-state machine (FSM): https://en.wikipedia.org/wiki/Finite-state_machine
@@ -17,7 +17,7 @@ Let's look at how we can detect events and produce outputs. To do this, we need 
 Adding state transitions and outputs to the paradigm
 ----------------------------------------------------
 
-The following code shows how we can add states, transitions and outputs to our paradigm. To do this, we override the method ``prepare_next_trial()`` inherited from out template class. Inside this method, which will be called at the each of each trial, we define states (with corresponding outputs) and transitions for each event.
+The following code shows how we can add states, transitions and outputs to our paradigm. To do this, we override the method ``prepare_next_trial()`` inherited from our template class. Inside this method, which will be called at the each of each trial, we define states (with corresponding outputs) and transitions for each event.
 
 .. code-block:: python
     :linenos:
@@ -27,7 +27,8 @@ The following code shows how we can add states, transitions and outputs to our p
     class Paradigm(templates.ParadigmMinimal):
         def __init__(self,parent=None):
             super(Paradigm, self).__init__(parent)
-
+            # The parent class defines self.sm and self.dispatcherModel used below.
+        
         def prepare_next_trial(self, nextTrial):
             # -- Set state matrix --
             self.sm.add_state(name='wait_for_event', statetimer=100,
@@ -46,5 +47,5 @@ The following code shows how we can add states, transitions and outputs to our p
         (app,paradigm) = templates.paramgui.create_app(Paradigm)
 
 
- 
+.. note:: In our implementation of the state machine, outputs have *memory* across states. That is, if an output has been turned on in one state, it will remain on until the system reaches a state that sets this output off.
 

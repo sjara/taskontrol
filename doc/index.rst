@@ -2,7 +2,7 @@
 TASKontrol
 ==========
 
-TASKontrol is an open source framework for developing behavioral experiments.
+TASKontrol is an open source framework for developing behavioral experiments for neuroscience research.
 
 It consists of modules written in `Python`_ and `PySide`_ (Qt for Python) for designing behavioral paradigms and providing a graphical user interface to control the experiments. It also includes software that runs in an `Arduino Due`_ to provide an interface for detecting external events and triggering stimuli.
 
@@ -23,7 +23,8 @@ Below is an example of a graphical user interface created with TASKontrol.
    :align: center
 
 
-**NOTE:** This documentation is a work in progress. Many modules are still missing.
+**NOTE:** This documentation is a work in progress and pages for some modules are not yet available. However, these documents should be sufficient to get you started with TASKontrol.
+
 
 Contents:
 ^^^^^^^^^
@@ -32,6 +33,7 @@ Contents:
 
    getting_started
    state_transitions
+   extratimers
    advanced_topics
      statematrix
      sound
