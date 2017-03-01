@@ -68,3 +68,8 @@ OUTPUTS = {
 #: Make the emulator print details
 EMULATOR_VERBOSE = True
 
+#: Settings for sending sync signals through one channel of the sound card
+SOUND_SYNC_CHANNEL=None
+SYNC_SIGNAL_AMPLITUDE=0.1
+SYNC_SIGNAL_FREQUENCY=500
+
