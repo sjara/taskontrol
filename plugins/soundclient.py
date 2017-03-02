@@ -176,33 +176,29 @@ class SoundPlayer(threading.Thread):
         if syncChan is not None:
             #Add the sync signal to the list of soundWaveObjs
             soundAmp[syncChan]=0 #Silence all other sounds in the sync channel
-            syncAmp = [0,0]
-            syncAmp[syncChan]=rigsettings.SYNC_SIGNAL_AMPLITUDE #Only set the sync signal to play in the sync channel
-            syncFreq = rigsettings.SYNC_SIGNAL_FREQUENCY
-            soundWaveObjs.append(pyo.Sine(float(syncFreq), mul=syncAmp).out())
         # -- Define sound according to type --
         if soundParams['type']=='tone':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=soundAmp)
+                                 dur=soundParams['duration'])
             soundWaveObjs.append(pyo.Sine(freq=float(soundParams['frequency']),
-                                    mul=soundObj).out())
+                                    mul=soundObj*soundAmp).out())
         elif soundParams['type']=='chord':
             nTones = soundParams['ntones']  # Number of components in chord
             factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
             centerFreq = soundParams['frequency']
             freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=soundAmp)
+                                 dur=soundParams['duration'])
             for indcomp in range(nTones):
                 #soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
                 #                              mul=soundObj).mix(2).out())
                 soundWaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
-                                              mul=soundObj).out())
+                                              mul=soundObj*soundAmp).out())
         elif soundParams['type']=='noise':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=soundAmp)
+                                 dur=soundParams['duration'])
             #soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
-            soundWaveObjs.append(pyo.Noise(mul=soundObj).out())
+            soundWaveObjs.append(pyo.Noise(mul=soundAmp*soundObj).out())
         elif soundParams['type']=='AM':
             if isinstance(soundAmp, list):
                 halfAmp = [0.5*x for x in soundAmp]
@@ -212,9 +208,9 @@ class SoundPlayer(threading.Thread):
                                 mul=halfAmp,
                                 add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=envelope)
+                                 dur=soundParams['duration'])
             soundWaveObjs.append(envelope)
-            soundWaveObjs.append(pyo.Noise(mul=soundObj).out())
+            soundWaveObjs.append(pyo.Noise(mul=soundObj*envelope).out())
             '''
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'], mul=soundAmp)
@@ -231,20 +227,20 @@ class SoundPlayer(threading.Thread):
                                 mul=halfAmp,
                                 add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=envelope)
+                                 dur=soundParams['duration'])
             soundWaveObjs.append(envelope)
             soundWaveObjs.append(pyo.Sine(freq=soundParams['frequency'],
-                                    mul=soundObj).out())
+                                    mul=soundObj*envelope).out())
         elif soundParams['type']=='band':
             frequency = soundParams['frequency']
             octaves = soundParams['octaves']
             freqhigh = frequency * np.power(2, octaves/2)
             freqlow = frequency / np.power(2, octaves/2)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=soundAmp)
+                                 dur=soundParams['duration'])
             freqcent = (freqhigh + freqlow)/2
             bandwidth = freqhigh - freqlow
-            n = pyo.Noise(mul=soundObj)
+            n = pyo.Noise(mul=soundObj*soundAmp)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
         elif soundParams['type']=='band_AM':
             if isinstance(soundAmp, list):
@@ -259,10 +255,10 @@ class SoundPlayer(threading.Thread):
                                 mul=halfAmp,
                                 add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=envelope)
+                                 dur=soundParams['duration'])
             freqcent = (freqhigh + freqlow)/2
             bandwidth = freqhigh - freqlow
-            n = pyo.Noise(mul=soundObj)
+            n = pyo.Noise(mul=soundObj*envelope)
             soundWaveObjs.append(envelope)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
         elif soundParams['type']=='fromfile':
@@ -279,13 +275,18 @@ class SoundPlayer(threading.Thread):
             else:
                 fs = 2*[samplingFreq]
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=duration, mul=soundAmp)
+                                 dur=duration)
             print duration
             print fs
-            soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj).out())
+            soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj*soundAmp).out())
         else:
             raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
             #return(None,None)
+        if syncChan is not None:
+            syncAmp = [0,0]
+            syncAmp[syncChan]=rigsettings.SYNC_SIGNAL_AMPLITUDE #Only set the sync signal to play in the sync channel
+            syncFreq = rigsettings.SYNC_SIGNAL_FREQUENCY
+            soundWaveObjs.append(pyo.Sine(float(syncFreq), mul=syncAmp*soundObj, phase=0.5).out())
         return(soundObj, soundWaveObjs)
 
     def play_sound(self,soundID):
