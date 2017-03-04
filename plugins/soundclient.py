@@ -61,6 +61,8 @@ REALTIME = rigsettings.SOUND_SERVER['realtime']
 
 MAX_NSOUNDS = 128 # According to the serial protocol.
 
+SYNC_SIGNAL_FREQUENCY=500.0
+
 if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
     USEJACK = True
     SERIALTRIGGER = True
@@ -178,8 +180,7 @@ class SoundPlayer(threading.Thread):
             soundAmp[syncChan]=0 #Silence all other sounds in the sync channel
             syncAmp = [0,0]
             syncAmp[syncChan]=rigsettings.SYNC_SIGNAL_AMPLITUDE #Only set the sync signal to play in the sync channel
-            syncFreq = rigsettings.SYNC_SIGNAL_FREQUENCY
-            soundWaveObjs.append(pyo.Sine(float(syncFreq), mul=syncAmp).out())
+            soundWaveObjs.append(pyo.Sine(float(SYNC_SIGNAL_FREQUENCY), mul=syncAmp).out())
         # -- Define sound according to type --
         if soundParams['type']=='tone':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
