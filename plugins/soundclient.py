@@ -178,9 +178,6 @@ class SoundPlayer(threading.Thread):
         if syncChan is not None:
             #Add the sync signal to the list of soundWaveObjs
             soundAmp[syncChan]=0 #Silence all other sounds in the sync channel
-            syncAmp = [0,0]
-            syncAmp[syncChan]=rigsettings.SYNC_SIGNAL_AMPLITUDE #Only set the sync signal to play in the sync channel
-            soundWaveObjs.append(pyo.Sine(float(SYNC_SIGNAL_FREQUENCY), mul=syncAmp).out())
         # -- Define sound according to type --
         if soundParams['type']=='tone':
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
