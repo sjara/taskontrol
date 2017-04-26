@@ -46,6 +46,7 @@ The following code shows how we can add states, transitions and outputs to our p
     if __name__ == "__main__":
         (app,paradigm) = templates.paramgui.create_app(Paradigm)
 
+In this example, an empty state transition matrix ``self.sm`` is created by the parent class ``templates.ParadigmMinimal`` (line 5). One special state is created at this point (``ready_next_trial``), which should be the final state reached at the end of each trial.
 
 .. note:: In our implementation of the state machine, outputs have *memory* across states. That is, if an output has been turned on in one state, it will remain on until the system reaches a state that sets this output off.
 
