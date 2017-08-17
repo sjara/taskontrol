@@ -474,15 +474,18 @@ class NoiseCalibration(object):
             self.power = 40
         self.nChannels = self.amplitude.shape[0]
             
-    def find_amplitude(self, type, intensity):
+    def find_amplitude(self, intensity, type='rms'):
         '''
-        Type: 0 for dB SPL, 1 for spectral power
+        type:
+          'rms': intensity corresponds to RMS power in time domain.
+          'narrowband': intensity corresponds to power at one frequency (in the audible range).
         Returns an array with the amplitude for each channel.
         '''
-        ampAtRef = self.amplitude[:,type]
-        if type == 0:
+        if type == 'rms':
+            ampAtRef = self.amplitude[:,0]
             dBdiff = intensity-self.intensity
-        elif type == 1:
+        elif type == 'narrowband':
+            ampAtRef = self.amplitude[:,1]
             dBdiff = intensity-self.power
         ampFactor = 10**(dBdiff/20.0)
         return np.array(ampAtRef)*ampFactor

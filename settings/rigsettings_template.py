@@ -32,15 +32,13 @@ SOUND_TRIGGER_PORT = '/dev/ttyACM1'
 #: File that defines the calibration of speakers
 SPEAKER_CALIBRATION = None
 #SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5'
-
-#: File that defines noise calibration of the speakers
-#NOISE_CALIBRATION = None
-NOISE_CALIBRATION = '/home/jarauser/src/jaratest/anna/noise_calibration_20160927153022.h5'
+SPEAKER_NOISE_CALIBRATION = None
+#SPEAKER_NOISE_CALIBRATION = '/home/sjara/src/taskontrol/settings/speaker_noise_calibration.h5'
 
 #: Computer volume level [0-100%]
 SOUND_VOLUME_LEVEL = 82
 
-DATA_DIR = '/var/tmp/data/'
+DATA_DIR = '/data/behavior/'
 REMOTE_DIR = '/mnt/jarahubdata/'
 
 DEFAULT_PARAMSFILE = './params.py'
