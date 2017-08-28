@@ -38,7 +38,7 @@ DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
 MAX_AMPLITUDE = 0.5
 
-DEFAULT_INTENSITY = 50 # dB-SPL
+DEFAULT_INTENSITY = 50 # intensity used for tone and chord calibration (dB-SPL)
 DEFAULT_POWER_RMS = 60 # RMS power in time domain (dB-SPL)
 DEFAULT_POWER_NARROWBAND = 40 # average power of narrowband sound (dB-SPL)
 
@@ -73,17 +73,17 @@ def create_sound(soundParams):
 
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
-    def __init__(self, soundServer, title, channel=1, parent=None):
+    def __init__(self, soundServer, title, soundType='sine',channel=1, parent=None):
         super(OutputButton, self).__init__(title, parent)
 
         self.soundServer = soundServer
-        self.soundFreq = soundFreq
+        self.soundTitle = title
         self.soundAmplitude = DEFAULT_AMPLITUDE
         self.channel = channel
-        self.soundType = 'sine'
+        self.soundType = soundType
         self.setCheckable(True)
         self.clicked.connect(self.toggleOutput)
-        self.create_sound(soundType='sine')
+        self.create_sound(soundType=soundType)
         '''
         self.soundObj = pyo.Sine(freq=self.soundFreq,mul=DEFAULT_AMPLITUDE)
         if soundFreq<40000:
@@ -93,10 +93,10 @@ class OutputButton(QtGui.QPushButton):
         '''
     def create_sound(self,soundType):
         if soundType=='sine':
-            soundParams = {'type':'sine', 'frequency':self.soundFreq,
+            soundParams = {'type':'sine', 'frequency':int(self.soundTitle),
                            'amplitude':self.soundAmplitude}
         elif soundType=='chord':
-            soundParams = {'type':'chord', 'frequency':self.soundFreq, 'ntones':12, 'factor':1.2,
+            soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2,
                            'amplitude':self.soundAmplitude}
         elif soundType=='noise':
             soundParams = {'type':'noise', 'amplitude':self.soundAmplitude}
@@ -170,7 +170,7 @@ class SoundControlGUI(QtGui.QGroupBox):
         playAllButton.clicked.connect(self.play_all)
 
         for indf,onefreq in enumerate(self.soundFreqs):
-            self.outputButtons[indf] = OutputButton(self.soundServer,str(int(np.round(onefreq)),
+            self.outputButtons[indf] = OutputButton(self.soundServer,str(int(np.round(onefreq))),
                                                     channel=self.channel)
             self.amplitudeControl[indf] = AmplitudeControl(self.outputButtons[indf])
             layout.addWidget(self.outputButtons[indf], indf+1, 0)
@@ -204,8 +204,8 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
         self.outputButtons = []
         self.amplitudeControl=[]
 
-        self.outputButtons.append(OutputButton(self.soundServer, 'RMS Power', channel=self.channel))
-        self.outputButtons.append(OutputButton(self.soundServer, 'Narrowband Power', channel=self.channel))
+        self.outputButtons.append(OutputButton(self.soundServer, 'RMS Power', soundType='noise', channel=self.channel))
+        self.outputButtons.append(OutputButton(self.soundServer, 'Narrowband Power', soundType='noise', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
             self.amplitudeControl.append(AmplitudeControl(outputButton))
@@ -286,13 +286,13 @@ class SaveButton(QtGui.QPushButton):
         else:
             if date is None:
                 date = time.strftime('%Y%m%d%H%M%S',time.localtime())
-            type = self.soundControlArray[0].outputbuttons[0].soundtype
+            soundType = self.soundControlArray[0].outputButtons[0].soundType
             dataRootDir = self.datadir
             fileExt = 'h5'
             dataDir = dataRootDir #os.path.join(dataRootDir)
             if not os.path.exists(dataDir):
                 os.makedirs(dataDir)
-            fileNameOnly = 'speaker_calibration_{0}_{1}.{2}'.format(type,date,fileExt)
+            fileNameOnly = 'speaker_calibration_{0}_{1}.{2}'.format(soundType,date,fileExt)
             defaultFileName = os.path.join(dataDir,fileNameOnly)
 
         self.logMessage.emit('Saving data...')
@@ -320,16 +320,31 @@ class SaveButton(QtGui.QPushButton):
         h5file = h5py.File(fname,'w')
 
         try:
-            dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
-            dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-            dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
-            dsetFreq = h5file.create_dataset('frequency',data=SOUND_FREQUENCIES)
-            dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
-            dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
-            dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
-            dsetRef = h5file.create_dataset('computerSoundLevel',
-                                            data=rigsettings.SOUND_VOLUME_LEVEL)
-            dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
+            if soundType=='noise':
+                dsetAmp = h5file.create_dataset('amplitudeRMS',data=amplitudeData[:,0]) # FIXME: hardcoded method of separating amplitudes
+            	dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
+            	dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+		dsetAmp = h5file.create_dataset('amplitudeNarrowband',data=amplitudeData[:,1])
+            	dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
+            	dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+            	dsetRef = h5file.create_dataset('powerRMS',data=DEFAULT_POWER_RMS)
+            	dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+            	dsetRef = h5file.create_dataset('powerNarrowband',data=DEFAULT_POWER_NARROWBAND)
+            	dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+            	dsetRef = h5file.create_dataset('computerSoundLevel',
+                                          	data=rigsettings.SOUND_VOLUME_LEVEL)
+            	dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
+            else:
+                dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
+                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                dsetFreq = h5file.create_dataset('frequency',data=SOUND_FREQUENCIES)
+                dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
+                dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
+                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef = h5file.create_dataset('computerSoundLevel',
+                                                data=rigsettings.SOUND_VOLUME_LEVEL)
+                dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
         except UserWarning as uwarn:
             self.logMessage.emit(uwarn.message)
             print uwarn.message
@@ -532,7 +547,7 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
         #TODO: enable saving and uncomment below
         self.saveButton.logMessage.connect(self.messagebar.collect)
         
-        def initialize_sound(self):
+    def initialize_sound(self):
         s = pyo.Server(audio='jack').boot()
         #s = pyo.Server().boot()
         s.start()
@@ -638,7 +653,12 @@ if __name__ == "__main__":
     app=QtGui.QApplication.instance() # checks if QApplication already exists 
     if not app: # create QApplication if it doesnt exist 
         app = QtGui.QApplication(sys.argv)
-    spkcal = SpeakerCalibrationGUI()
+    args = sys.argv[1:]
+    if len(args):
+        if args[0]=='noise':
+            spkcal = NoiseSpeakerCalibrationGUI()
+    else:
+        spkcal = SpeakerCalibrationGUI()
     spkcal.show()
     sys.exit(app.exec_())
     '''
