@@ -12,6 +12,12 @@ What I want:
   . a button to save results
 
 [0.03,0.014,0.013,0.004,0.005,0.006,0.01,0.01,0.03,0.017,0.03,0.028,0.03,0.03,0.03,0.03]
+
+TO DO:
+- Add SpeakerNoiseCalibration class (GUI to calibrate)
+- Fix NoiseCalibration.find_amplitude types (it should not be just a number)
+
+
 '''
 
 import sys
@@ -445,6 +451,42 @@ class Calibration(object):
             ampAtRef.append(thisAmp)
         # Find factor from ref intensity
         dBdiff = intensity-self.intensity
+        ampFactor = 10**(dBdiff/20.0)
+        return np.array(ampAtRef)*ampFactor
+
+    
+class NoiseCalibration(object):
+    '''
+    Reads data from file and finds appropriate amplitude for a desired
+    white noise power.
+    This class assumes two channels (left,right)
+    '''
+    def __init__(self,filename=None):
+        if filename is not None:
+            h5file = h5py.File(filename,'r')
+            self.amplitude = h5file['amplitude'][...]
+            self.intensity = h5file['intensity'][...]
+            self.power = h5file['power'][...]
+            h5file.close()
+        else:
+            self.amplitude = 0.1*np.ones((2,2))
+            self.intensity = 60
+            self.power = 40
+        self.nChannels = self.amplitude.shape[0]
+            
+    def find_amplitude(self, intensity, type='rms'):
+        '''
+        type:
+          'rms': intensity corresponds to RMS power in time domain.
+          'narrowband': intensity corresponds to power at one frequency (in the audible range).
+        Returns an array with the amplitude for each channel.
+        '''
+        if type == 'rms':
+            ampAtRef = self.amplitude[:,0]
+            dBdiff = intensity-self.intensity
+        elif type == 'narrowband':
+            ampAtRef = self.amplitude[:,1]
+            dBdiff = intensity-self.power
         ampFactor = 10**(dBdiff/20.0)
         return np.array(ampAtRef)*ampFactor
 
