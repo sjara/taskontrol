@@ -41,7 +41,7 @@ Here is an example on how you implement the pulse train using extratimers:
                                               outputs=rigsettings.OUTPUTS,
                                               readystate='ready_next_trial',
                                               extratimers=['trainTimer'])
-            # The parent class self.dispatcherModel used below.
+            # The parent class defines self.dispatcherModel used below.
 
         def prepare_next_trial(self, nextTrial):
             # -- Set extra timers --

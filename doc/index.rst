@@ -33,10 +33,12 @@ Contents:
 
    getting_started
    state_transitions
+   inputs_outputs
    extratimers
    advanced_topics
-     statematrix
-     sound
+     state_machine
+..     statematrix
+..     sound
    reference
 
 ..   settings
