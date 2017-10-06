@@ -225,14 +225,19 @@ class SoundPlayer(threading.Thread):
                 halfAmp = [0.5*x for x in soundAmp]
             else:
                 halfAmp = 0.5*soundAmp
+            nTones = soundParams['ntones']  # Number of components in harmonic
+            factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
+            centerFreq = soundParams['frequency']
+            freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones) if nTones>1 else [centerFreq]
             envelope = pyo.Sine(freq=soundParams['modRate'],
                                 mul=halfAmp,
                                 add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'])
             soundWaveObjs.append(envelope)
-            soundWaveObjs.append(pyo.Sine(freq=soundParams['frequency'],
-                                    mul=soundObj*envelope).out())
+            for indcomp in range(nTones):
+                soundwaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
+                                              mul=soundObj*envelope).out())
         elif soundParams['type']=='band':
             frequency = soundParams['frequency']
             octaves = soundParams['octaves']
