@@ -236,7 +236,7 @@ class SoundPlayer(threading.Thread):
                                  dur=soundParams['duration'])
             soundWaveObjs.append(envelope)
             for indcomp in range(nTones):
-                soundwaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
+                soundWaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
                                               mul=soundObj*envelope).out())
         elif soundParams['type']=='band':
             frequency = soundParams['frequency']
