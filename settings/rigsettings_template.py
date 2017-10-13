@@ -10,7 +10,7 @@ appropriate settings for the rig.
 
 '''
 
-__version__ = '0.3'
+__version__ = '0.2'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-03-18'
 
@@ -30,10 +30,12 @@ STATE_MACHINE_PORT = '/dev/ttyACM0'
 SOUND_TRIGGER_PORT = '/dev/ttyACM1'
 
 #: File that defines the calibration of speakers
-SPEAKER_CALIBRATION = None
-#SPEAKER_CALIBRATION = '/home/jarauser/src/taskontrol/settings/speaker_calibration.h5'
-SPEAKER_NOISE_CALIBRATION = None
-#SPEAKER_NOISE_CALIBRATION = '/home/sjara/src/taskontrol/settings/speaker_noise_calibration.h5'
+SPEAKER_CALIBRATION_SINE = None
+#SPEAKER_CALIBRATION_SINE = '/home/jarauser/src/taskontrol/settings/speaker_calibration_sine.h5'
+SPEAKER_CALIBRATION_CHORD = None
+#SPEAKER_CALIBRATION_CHORD = '/home/jarauser/src/taskontrol/settings/speaker_calibration_chord.h5'
+SPEAKER_CALIBRATION_NOISE = None
+#SPEAKER_CALIBRATION_NOISE = '/home/jarauser/src/taskontrol/settings/speaker_calibration_noise.h5'
 
 #: Computer volume level [0-100%]
 SOUND_VOLUME_LEVEL = 82
@@ -66,3 +68,8 @@ OUTPUTS = {
 #: Make the emulator print details
 EMULATOR_VERBOSE = True
 
+#: Settings for sending sync signals through one channel of the sound card
+SOUND_SYNC_CHANNEL = None
+#SOUND_SYNC_CHANNEL = 0
+SYNC_SIGNAL_AMPLITUDE = 0.1
+SYNC_SIGNAL_FREQUENCY = 500
