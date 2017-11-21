@@ -93,12 +93,13 @@ class SoundPlayer(threading.Thread):
         if self.serialtrigger:
             self.init_serial()
         
-        self.sounds = MAX_NSOUNDS*[None]
-        self.soundwaves = MAX_NSOUNDS*[None]
- 
+        self.sounds = MAX_NSOUNDS*[None]     # List of objects like pyo.Fader()
+        self.soundwaves = MAX_NSOUNDS*[None] # List of objects like pyo.Sine()
+        
         self.risetime = 0.002
         self.falltime = 0.002
 
+        # Dictionary with sound parameters. Each key is one soundID.
         self.soundsParamsDict = {}
 
     def run(self):
@@ -108,7 +109,10 @@ class SoundPlayer(threading.Thread):
                 onechar = self.ser.read(1)
                 if onechar:
                     soundID = ord(onechar)
-                    self.play_sound(soundID)
+                    if soundID==0:
+                        self.stop_all()
+                    else:
+                        self.play_sound(soundID)
         else:
             '''Emulated mode'''
             while not self.stopped():
@@ -117,7 +121,10 @@ class SoundPlayer(threading.Thread):
                     oneval = f.read()
                     if len(oneval):
                         soundID = int(oneval)
-                    self.play_sound(soundID)
+                    if soundID==0:
+                        self.stop_all()
+                    else:
+                        self.play_sound(soundID)
                 except:
                     pass
         self._done.set()
@@ -319,6 +326,11 @@ class SoundPlayer(threading.Thread):
             self.pyoServer.start()
             os.system('aplay {0}'.format(soundfile))
 
+    def stop_all(self):
+        # We loop only through the sounds that have been defined
+        for soundID in self.soundsParamsDict.keys():
+            self.sounds[soundID].stop()
+        
     def stopped(self):
         return self._stop.isSet()
 
