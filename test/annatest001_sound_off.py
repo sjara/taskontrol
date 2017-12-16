@@ -121,7 +121,7 @@ class Paradigm(templates.Paradigm2AFC):
                           outputsOn=['centerLED'],serialOut=1)
         self.sm.add_state(name='stopStimulus', statetimer=0,
                           transitions={'Tup':'waitForSidePoke'},
-                          outputsOff=['centerLED'],serialOut=0)
+                          outputsOff=['centerLED'],serialOut=soundclient.STOP_ALL_SOUNDS)
         self.sm.add_state(name='waitForSidePoke', statetimer=LONGTIME,
                           transitions={'Lin':'readyForNextTrial', 'Rin':'readyForNextTrial'})
 

@@ -70,6 +70,8 @@ else:
     USEJACK = False
     SERIALTRIGGER = False
 
+STOP_ALL_SOUNDS = 128
+    
 # -- Set computer's sound level --
 if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
@@ -109,7 +111,7 @@ class SoundPlayer(threading.Thread):
                 onechar = self.ser.read(1)
                 if onechar:
                     soundID = ord(onechar)
-                    if soundID==0:
+                    if soundID==STOP_ALL_SOUNDS:
                         self.stop_all()
                     else:
                         self.play_sound(soundID)
@@ -121,7 +123,7 @@ class SoundPlayer(threading.Thread):
                     oneval = f.read()
                     if len(oneval):
                         soundID = int(oneval)
-                    if soundID==0:
+                    if soundID==STOP_ALL_SOUNDS:
                         self.stop_all()
                     else:
                         self.play_sound(soundID)
@@ -370,7 +372,7 @@ class SoundClient(object):
         self.soundPlayerThread.play_sound(soundID)
 
     def stop_all(self):
-        pass
+        self.soundPlayerThread.stop_all()
 
     def shutdown(self):
         # FIXME: disconnect serial
