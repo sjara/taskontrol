@@ -215,7 +215,7 @@ class ParadigmGoNoGo(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(ParadigmGoNoGo, self).__init__(parent)
 
-        self.name = 'go-nogo'
+        self.name = 'gonogo'
         smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Sides plot --
