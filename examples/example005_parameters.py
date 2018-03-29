@@ -5,20 +5,23 @@ This example shows how to add parameters to a paradigm.
 The example also shows how to use methods from paramgui to run the application.
 '''
 
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-__created__ = '2013-03-18'
-
+from __future__ import print_function
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
+sys.path.append('/home/sjara/src')
+
+from qtpy import QtCore
+from qtpy import QtWidgets
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
 from taskontrol.core import paramgui
 import signal
 
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+__created__ = '2013-03-18'
 
-class Paradigm(QtGui.QMainWindow):
+
+class Paradigm(QtWidgets.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm, self).__init__(parent)
 
@@ -44,10 +47,10 @@ class Paradigm(QtGui.QMainWindow):
         irrelevantParams = self.params.layout_group('Irrelevant')
 
         # -- Add graphical widgets to main window --
-        centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QHBoxLayout()
+        centralWidget = QtWidgets.QWidget()
+        layoutMain = QtWidgets.QHBoxLayout()
         layoutMain.addWidget(self.dispatcherView)
-        layoutOneColumn = QtGui.QVBoxLayout()
+        layoutOneColumn = QtWidgets.QVBoxLayout()
         layoutOneColumn.addWidget(timingParams)
         layoutOneColumn.addWidget(irrelevantParams)
         layoutMain.addLayout(layoutOneColumn)
@@ -69,7 +72,7 @@ class Paradigm(QtGui.QMainWindow):
 
         timeOn = self.params['periodOn'].get_value()
         timeOff = self.params['periodOff'].get_value()
-        
+
         # -- Set state matrix --
         self.sm.add_state(name='first_state', statetimer=timeOn,
                           transitions={'Cin':'second_state','Tup':'second_state'},
@@ -77,35 +80,36 @@ class Paradigm(QtGui.QMainWindow):
         self.sm.add_state(name='second_state', statetimer=timeOff,
                           transitions={'Lin':'first_state','Tup':'ready_next_trial'},
                           outputsOff=['centerLED'])
-        print self.sm
+        print(self.sm)
 
         self.dispatcherModel.set_state_matrix(self.sm)
 
 
     def prepare_next_trial(self, nextTrial):
-        print '\nPrepare trial %d'%nextTrial
+        print('\nPrepare trial {}'.format(nextTrial))
         self.set_state_matrix()
         # -- Show results from previous trial --
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
-        print 'Last 10 events:'
+        print('Last 10 events:')
         for oneEvent in lastTenEvents:
-            print '%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
+            #print'%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
+            print('{0:0.3f}\t {1}\t {2}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
         self.dispatcherModel.ready_to_start_trial()
 
 
     def start_new_trial(self, currentTrial):
-        print '\n======== Started trial %d ======== '%currentTrial
+        print('\n======== Started trial {} ======== '.format(currentTrial))
 
 
     def timer_tic(self,etime,lastEvents):
-        print '.',
+        print('.', end='')
         sys.stdout.flush() # Force printing on the screen at this point
 
 
     def closeEvent(self, event):
         '''
         Executed when closing the main window.
-        This method is inherited from QtGui.QMainWindow, which explains
+        This method is inherited from QtWidgets.QMainWindow, which explains
         its camelCase naming.
         '''
         self.dispatcherModel.die()

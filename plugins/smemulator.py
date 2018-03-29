@@ -16,8 +16,9 @@ __created__ = '2013-09-23'
 import time
 import numpy as np
 import datetime
-from PySide import QtCore
-from PySide import QtGui
+from qtpy import QtCore
+#from qtpy import QtGui
+from qtpy import QtWidgets
 from ..settings import rigsettings
 
 MAXNEVENTS = 512
@@ -29,12 +30,12 @@ MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
 VERBOSE = rigsettings.EMULATOR_VERBOSE
 
-class EmulatorGUI(QtGui.QWidget):
+class EmulatorGUI(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(EmulatorGUI, self).__init__(parent)
         '''
-        self.window = QtGui.QMainWindow()
-        #self.window = QtGui.QWidget()
+        self.window = QtWidgets.QMainWindow()
+        #self.window = QtWidgets.QWidget()
         self.window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.window.setGeometry(100, 600, 500, 300)
@@ -52,17 +53,17 @@ class EmulatorGUI(QtGui.QWidget):
         self.water = nButtons*[0]
         buttonsStrings = ['C','L','R','W']
         buttonsPos = [1,0,2,3]
-        layoutMain = QtGui.QGridLayout()
+        layoutMain = QtWidgets.QGridLayout()
         for indbut in range(nButtons):
-            self.button[indbut] = QtGui.QPushButton(buttonsStrings[indbut])
+            self.button[indbut] = QtWidgets.QPushButton(buttonsStrings[indbut])
             self.button[indbut].setMinimumSize(100,100)
             layoutMain.addWidget(self.button[indbut],2,buttonsPos[indbut])
-            self.light[indbut] = QtGui.QPushButton()
+            self.light[indbut] = QtWidgets.QPushButton()
             self.light[indbut].setMinimumSize(100,25)
             self.light[indbut].setEnabled(False)
             self.changeLight(indbut,0)
             layoutMain.addWidget(self.light[indbut],1,buttonsPos[indbut])
-            self.water[indbut] = QtGui.QPushButton()
+            self.water[indbut] = QtWidgets.QPushButton()
             self.water[indbut].setMinimumSize(100,25)
             self.water[indbut].setEnabled(False)
             layoutMain.addWidget(self.water[indbut],0,buttonsPos[indbut])

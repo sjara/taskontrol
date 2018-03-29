@@ -23,25 +23,28 @@ TODO:
 '''
 
 
-__version__ = '0.2'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
-
+from __future__ import print_function
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
+from qtpy import QtCore
+from qtpy import QtGui
+from qtpy import QtWidgets
 import numpy as np
 from taskontrol.settings import rigsettings
 #from taskontrol.core import messenger
 #from taskontrol.core import smclient
-
 #reload(smclient)
+
+__version__ = '0.2'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+
+
 
 DEFAULT_PREPARE_NEXT = 0 # State to prepare next trial
 N_INPUTS = len(rigsettings.INPUTS)
 N_OUTPUTS = len(rigsettings.OUTPUTS)
 
 class Dispatcher(QtCore.QObject):
+    #class Dispatcher(QtWidgets.QWidget):
     '''
     Dispatcher is the trial controller. It is an interface between a
     trial-structured paradigm and the state machine.
@@ -74,7 +77,7 @@ class Dispatcher(QtCore.QObject):
             from taskontrol.plugins import smemulator as smclient
         else:
             pass
-        
+
         # -- Set trial structure variables --
         self.prepareNextTrialStates = [0]    # Default state to prepare next trial
         self.preparingNextTrial = False      # True while preparing next trial
@@ -174,7 +177,7 @@ class Dispatcher(QtCore.QObject):
             self.statemachine.set_state_timers(stateTimers)
             #self._stateMatrixStatus = True
         else:
-            print 'Call to setStateMatrix, but the client is not connected.\n'
+            print('Call to setStateMatrix, but the client is not connected.\n')
 
     def _set_prepare_next_trial_states(self,prepareNextTrialStatesAsStrings,statesDict):
         '''Defines the list of states from which the state machine returns control
@@ -240,7 +243,7 @@ class Dispatcher(QtCore.QObject):
             else:
                 raise Exception('A state matrix has not been set')
         else:
-            print 'The dispatcher is not connected to the state machine server.'
+            print('The dispatcher is not connected to the state machine server.')
 
     #@QtCore.Slot()
     def pause(self):
@@ -254,7 +257,7 @@ class Dispatcher(QtCore.QObject):
                 self.statemachine.force_output(indout,0)
             self.logMessage.emit('Stopped')
         else:
-            print 'The dispatcher is not connected to the state machine server.'
+            print('The dispatcher is not connected to the state machine server.')
 
     def query_state_machine(self):
         '''Request events information to the state machine'''
@@ -276,7 +279,7 @@ class Dispatcher(QtCore.QObject):
         The first event of all is also state zero, but this one is ignored.'''
         # FIXME: slow way to find end of trial
         if self.currentTrial>=0: # & self.eventCount>0:
-            for inde in xrange(self.eventCount-1,-1,-1): # This will count from n to 0
+            for inde in range(self.eventCount-1,-1,-1): # This will count from n to 0
                 #if self.eventsMat[inde][2] in self.prepareNextTrialStates:
                 if self.eventsMat[inde][2]==DEFAULT_PREPARE_NEXT:
                     self.indexLastEventEachTrial.append(inde)
@@ -326,8 +329,8 @@ class Dispatcher(QtCore.QObject):
         #eventsGroup.create_dataset('rawEventsColumnsLabels', dtype=dtstr,
         #                           data=rawEventsColumnsLabels)
         #return True
-        
-        
+
+
     def die(self):
         '''Make sure timer stops when user closes the dispatcher.'''
         self.pause()
@@ -341,7 +344,7 @@ class Dispatcher(QtCore.QObject):
 
 BUTTON_COLORS = {'start':'limegreen','stop':'red'}
 
-class DispatcherGUI(QtGui.QGroupBox):
+class DispatcherGUI(QtWidgets.QGroupBox):
     resumeSM = QtCore.Signal()
     pauseSM = QtCore.Signal()
     def __init__(self, parent=None, minwidth=220, dummy=False, model=None):
@@ -356,11 +359,11 @@ class DispatcherGUI(QtGui.QGroupBox):
         self._currentTrialFormat = 'Trial: {0}'
 
         # -- Create graphical objects --
-        self.stateLabel = QtGui.QLabel()
-        self.timeLabel = QtGui.QLabel()
-        self.eventCountLabel = QtGui.QLabel()
-        self.currentTrialLabel = QtGui.QLabel()
-        self.buttonStartStop = QtGui.QPushButton('')
+        self.stateLabel = QtWidgets.QLabel()
+        self.timeLabel = QtWidgets.QLabel()
+        self.eventCountLabel = QtWidgets.QLabel()
+        self.currentTrialLabel = QtWidgets.QLabel()
+        self.buttonStartStop = QtWidgets.QPushButton('')
         self.buttonStartStop.setCheckable(False)
         self.buttonStartStop.setMinimumHeight(100)
         #self.buttonStartStop.setMinimumWidth(160)
@@ -369,7 +372,7 @@ class DispatcherGUI(QtGui.QGroupBox):
         self.buttonStartStop.setFont(buttonFont)
         self.setMinimumWidth(minwidth)
 
-        self.update(0.0, 0, 0, '')
+        self.update(0.0, 0, 0, 0)
 
         '''
         # -- To have a reference for StyleSheets ? --
@@ -380,7 +383,7 @@ class DispatcherGUI(QtGui.QGroupBox):
         '''
 
         # -- Create layouts --
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         layout.addWidget(self.stateLabel,0,0)
         layout.addWidget(self.eventCountLabel,0,1)
         layout.addWidget(self.timeLabel,1,0)
@@ -439,7 +442,7 @@ class DispatcherGUI(QtGui.QGroupBox):
 
 def center(guiObj):
     '''Place in the center of the screen (NOT TESTED YET)'''
-    screen = QtGui.QDesktopWidget().screenGeometry()
+    screen = QtWidgets.QDesktopWidget().screenGeometry()
     size =  guiObj.geometry()
     guiObj.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
 
@@ -449,7 +452,7 @@ if __name__ == "__main__":
     TESTCASE = 2
     if TESTCASE==1:
         import signal
-        # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\ 
+        # -- Needed for Ctrl-C (otherwise you need to kill with Ctrl-\
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         app = QtCore.QCoreApplication(sys.argv)
         d = Dispatcher(parent=None,serverType='dummy', connectnow=False, interval=1)
@@ -458,12 +461,12 @@ if __name__ == "__main__":
     elif TESTCASE==2:
         import signal
         signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-        app=QtGui.QApplication.instance() # checks if QApplication already exists 
-        if not app: # create QApplication if it doesnt exist 
-            app = QtGui.QApplication(sys.argv)
-        form = QtGui.QDialog()
-        form.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        #form.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+        app=QtWidgets.QApplication.instance() # checks if QApplication already exists
+        if not app: # create QApplication if it doesnt exist
+            app = QtWidgets.QApplication(sys.argv)
+        form = QtWidgets.QDialog()
+        form.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #form.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         dispatcherModel = Dispatcher(parent=form,serverType='dummy',connectnow=True, interval=0.5)
         dispatcherView = DispatcherGUI(parent=form)
         dispatcherModel.timerTic.connect(dispatcherView.update)
@@ -476,10 +479,10 @@ if __name__ == "__main__":
 '''
     TESTCASE = 1
 
-    app = QtGui.QApplication(sys.argv)
-    form = QtGui.QDialog()
+    app = QtWidgets.QApplication(sys.argv)
+    form = QtWidgets.QDialog()
     form.setFixedSize(180,200)
-    #form.setSizePolicy(QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Expanding)
+    #form.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Expanding)
 
     if TESTCASE==100:
         dispatcherwidget = Dispatcher(parent=form,connectnow=False)
@@ -495,7 +498,7 @@ if __name__ == "__main__":
 
     form.show()
     app.exec_()
-    
+
     # FIXME: maybe this way is better
     #sys.exit(app.exec_())
 '''

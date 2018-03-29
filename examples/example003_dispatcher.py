@@ -6,20 +6,23 @@ It uses the module 'dispatcher' to provide an interface for starting
 and stopping the state machine.
 '''
 
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2013-03-17'
-
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
+sys.path.append('/home/sjara/src')
+
+from qtpy import QtCore
+from qtpy import QtWidgets
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
 import signal
 
+__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
+__created__ = '2013-03-17'
+
+
 # -- Create main window --
 signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C (to close window)
-app = QtGui.QApplication(sys.argv)
-form = QtGui.QDialog()
+app = QtWidgets.QApplication(sys.argv)
+form = QtWidgets.QDialog()
 
 # -- Create dispatcher and upload state transition matrix --
 dispatcherModel = dispatcher.Dispatcher(parent=form,
@@ -42,7 +45,7 @@ dispatcherModel._set_state_matrix(stateMatrix, stateOutputs, serialOutputs, stat
 dispatcherView = dispatcher.DispatcherGUI(model=dispatcherModel)
 
 # -- Create layout and run --
-layout = QtGui.QVBoxLayout()
+layout = QtWidgets.QVBoxLayout()
 layout.addWidget(dispatcherView)
 form.setLayout(layout)
 form.show()

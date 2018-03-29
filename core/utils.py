@@ -2,11 +2,12 @@
 Extra functions useful at different stages of the paradigm design.
 '''
 
+from __future__ import print_function
+import numpy as np
+
 __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
-
-import numpy as np
 
 def find_state_sequence(states,stateSequence):
     '''
@@ -47,7 +48,7 @@ def find_event(events,states,eventID,currentStateID):
     currentStateInds = (np.r_[0,states[:-1]]==currentStateID)
     eventInds = np.flatnonzero(eventInds & currentStateInds)
     return eventInds
-    
+
 
 def append_dict_to_HDF5(h5fileGroup,dictName,dictData,compression=None):
     '''Append a python dictionary to a location/group in an HDF5 file
@@ -55,7 +56,7 @@ def append_dict_to_HDF5(h5fileGroup,dictName,dictData,compression=None):
 
     It creates one scalar dataset for each key in the dictionary,
     and it only works for scalar values.
-    
+
     NOTE: An alternative would be use the special dtype 'enum'
     http://www.h5py.org/docs/topics/special.html
     '''
@@ -79,4 +80,4 @@ def dict_from_HDF5(dictGroup):
 if __name__=='__main__':
     states = np.arange(0,20,2)
     stateSequence = [4,6,8]
-    print find_state_sequence(states,stateSequence)
+    print(find_state_sequence(states,stateSequence))

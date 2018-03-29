@@ -13,13 +13,10 @@ TODO:
 
 '''
 
-
-__version__ = '0.1.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
-
-from PySide import QtCore 
-from PySide import QtGui 
+from __future__ import print_function
+from qtpy import QtCore
+#from qtpy import QtGui
+from qtpy import QtWidgets
 import imp
 import numpy as np # To be able to save strings with np.string_()
 import signal
@@ -29,12 +26,17 @@ import time
 from taskontrol.core import utils
 from taskontrol.settings import rigsettings
 
+__version__ = '0.1.1'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+
+
+
 # FIXME: Add validation of numbers
-#NUMERIC_REGEXP = 
+#NUMERIC_REGEXP =
 
 class Container(dict):
     def __init__(self):
-        super(Container, self).__init__()        
+        super(Container, self).__init__()
         self._groups = {}
         self._paramsToKeepHistory = []
         self.history = {}
@@ -42,14 +44,14 @@ class Container(dict):
     def __setitem__(self, paramName, paramInstance):
         # -- Check if there is already a parameter with that name --
         if paramName in self:
-            print 'There is already a parameter named %s'%paramName
+            print('There is already a parameter named {}'.format(paramName))
             raise ValueError
         # -- Check if paramInstance is of valid type and has a group --
         try:
             groupName = paramInstance.get_group()
             historyEnabled = paramInstance.history_enabled()
         except AttributeError:
-            print 'Container cannot hold items of type %s'%type(paramInstance)
+            print('Container cannot hold items of type {}'.format(type(paramInstance)))
             raise
         # -- Append name of parameter to group list --
         try:
@@ -62,17 +64,18 @@ class Container(dict):
                 self._paramsToKeepHistory.append(paramName)
             except KeyError:  # If group does not exist yet
                 self._paramsToKeepHistory = [paramName]
-             
+
         # -- Add paramInstance to Container --
         dict.__setitem__(self, paramName, paramInstance)
 
     def print_items(self):
         for key,item in self.iteritems():
-            print '[%s] %s : %s'%(type(item),key,str(item.get_value()))
+            #print '[%s] %s : %s'%(type(item),key,str(item.get_value()))
+            print('[{0}] {1}} : {2}}'.format(type(item),key,str(item.get_value())))
 
     def layout_group(self,groupName):
         '''Create box and layout with all parameters of a given group'''
-        groupBox = QtGui.QGroupBox(groupName)
+        groupBox = QtWidgets.QGroupBox(groupName)
         self.layoutForm = ParamGroupLayout()
         for paramkey in self._groups[groupName]:
             self.layoutForm.add_row(self[paramkey].labelWidget,self[paramkey].editWidget)
@@ -100,7 +103,7 @@ class Container(dict):
                 else:
                     self[key].set_value(val)
             else:
-                print 'Warning! {0} is not a valid parameter.'.format(key)
+                print('Warning! {0} is not a valid parameter.'.format(key))
 
     def from_file(self,filename,dictname='default'):
         '''
@@ -114,7 +117,7 @@ class Container(dict):
             try:
                 self.set_values(getattr(paramsmodule,dictname))
             except AttributeError:
-                print "There is no '{0}' in {1}".format(dictname, filename)
+                print("There is no '{0}' in {1}".format(dictname, filename))
                 raise
 
     def append_to_file(self, h5file,currentTrial):
@@ -129,12 +132,12 @@ class Container(dict):
         trialDataGroup = h5file.require_group(dataParent)
         menuItemsGroup = h5file.require_group(itemsParent)
         sessionDataGroup = h5file.require_group(sessionParent)
-        
+
         # -- Append date/time and hostname --
         dset = sessionDataGroup.create_dataset('hostname', data=socket.gethostname())
         dateAndTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
         dset = sessionDataGroup.create_dataset('date', data=dateAndTime)
-        
+
         # -- Append all other parameters --
         for key,item in self.iteritems():
             # -- Store parameters with history --
@@ -164,7 +167,7 @@ class Container(dict):
                     dset = trialDataGroup.create_dataset(key, data=item.get_value())
                 dset.attrs['Description'] = item.get_label()
 
-class ParamGroupLayout(QtGui.QGridLayout):
+class ParamGroupLayout(QtWidgets.QGridLayout):
     def __init__(self,parent=None):
         super(ParamGroupLayout, self).__init__(parent)
         self.setVerticalSpacing(0)
@@ -174,7 +177,7 @@ class ParamGroupLayout(QtGui.QGridLayout):
         self.addWidget(editWidget,currentRow,1,QtCore.Qt.AlignLeft)
 
 
-class GenericParam(QtGui.QWidget):
+class GenericParam(QtWidgets.QWidget):
     def __init__(self, labelText='', value=0, group=None,
                  history=True, labelWidth=80, parent=None):
         super(GenericParam, self).__init__(parent)
@@ -182,7 +185,7 @@ class GenericParam(QtGui.QWidget):
         self._historyEnabled = history
         self._type = None
         self._value = None
-        self.labelWidget = QtGui.QLabel(labelText)
+        self.labelWidget = QtWidgets.QLabel(labelText)
         self.labelWidget.setObjectName('ParamLabel')
         self.editWidget = None
 
@@ -217,7 +220,7 @@ class StringParam(GenericParam):
                              +'When creating the instance use: history=False')
 
         # -- Define graphical interface --
-        self.editWidget = QtGui.QLineEdit()
+        self.editWidget = QtWidgets.QLineEdit()
         self.editWidget.setObjectName('ParamEdit')
 
         # -- Define value --
@@ -240,7 +243,7 @@ class NumericParam(GenericParam):
         self.decimals=decimals
 
         # -- Define graphical interface --
-        self.editWidget = QtGui.QLineEdit()
+        self.editWidget = QtWidgets.QLineEdit()
         #self.editWidget.setToolTip('[{0}]'.format(units))
         self.editWidget.setToolTip('{0}'.format(units))
         self.editWidget.setObjectName('ParamEdit')
@@ -283,7 +286,7 @@ class MenuParam(GenericParam):
             raise ValueError('MenuParam items cannot contain spaces')
 
         # -- Define graphical interface --
-        self.editWidget = QtGui.QComboBox()
+        self.editWidget = QtWidgets.QComboBox()
         self.editWidget.addItems(menuItems)
         self.editWidget.setObjectName('ParamMenu')
 
@@ -301,7 +304,7 @@ class MenuParam(GenericParam):
         try:
             value = self._items.index(newstring)
         except ValueError:
-            print "'{0}' is not a valid menu item".format(newstring)
+            print("'{0}' is not a valid menu item".format(newstring))
             raise
         self._value = value
         self.editWidget.setCurrentIndex(value)
@@ -328,9 +331,9 @@ def create_app(paradigmClass):
     (app,paradigm) = templates.create_app(Paradigm)
     '''
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
+    app=QtWidgets.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
+        app = QtWidgets.QApplication(sys.argv)
 
     if len(sys.argv)==1:
         paramfile = None
@@ -351,7 +354,7 @@ def create_app(paradigmClass):
         paradigm = paradigmClass(paramfile=paramfile,paramdictname=paramdictname)
     else:
         paradigm = paradigmClass()
-        
+
     paradigm.show()
 
     app.exec_()
@@ -368,15 +371,15 @@ def create_app_only():
         app.exec_()
     '''
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
+    app=QtWidgets.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
+        app = QtWidgets.QApplication(sys.argv)
     return app
 
 
 def center_in_screen(widget):
     qr = widget.frameGeometry()
-    cp = QtGui.QDesktopWidget().availableGeometry().center()
+    cp = QtWidgets.QDesktopWidget().availableGeometry().center()
     qr.moveCenter(cp)
     widget.move(qr.topLeft())
 
@@ -392,10 +395,10 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     import sys
     try:
-      app = QtGui.QApplication(sys.argv)
+      app = QtWidgets.QApplication(sys.argv)
     except RuntimeError:
       app = QtCore.QCoreApplication.instance()
-    form = QtGui.QDialog()
+    form = QtWidgets.QDialog()
     params = Container()
     params['value1'] = NumericParam('OneParam',value=2,group='First group')
     params['value2'] = NumericParam('AnotherParam',value=3,group='First group')
@@ -427,7 +430,7 @@ if __name__ == "__main__":
             h5file.close()
             raise
         h5file.close()
-            
+
     form.show()
     app.exec_()
 
