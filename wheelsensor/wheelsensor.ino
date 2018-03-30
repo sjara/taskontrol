@@ -187,7 +187,7 @@ void setup() {
     }
   }
   timerPeriod = samplingPeriodFactor * 65600;
-  Serial.println("STARTING!");
+  Serial.println("--- Wheel sensor ---");
   Serial.print("THRESHOLD MOVE: ");
   Serial.println(thresholdMove);
   Serial.print("THRESHOLD STOP: ");
@@ -196,6 +196,7 @@ void setup() {
   Serial.println(periodsStop);
   Serial.print("SAMPLING PERIOD FACTOR: ");
   Serial.println(samplingPeriodFactor);
+  Serial.println("STARTING!");
   enable_timer_interrupt();
 }
 
