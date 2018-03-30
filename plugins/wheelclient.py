@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-SERIAL_PORT_PATH = '/dev/ttyACM0'
+SERIAL_PORT_PATH = '/dev/ttyACM2'
 SERIAL_BAUD = 115200
 SERIAL_TIMEOUT = 0.2 #None
 
@@ -44,7 +44,7 @@ class WheelClient(object):
         '''Wheel sensor client for the Arduino Due.'''
         self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD, timeout=SERIAL_TIMEOUT)
         #self.tickTimes = np.array([],dtype=int)
-        
+
     def test_connection(self):
         self.ser.write(opcode['TEST_CONNECTION'])
         connectionStatus = self.ser.read()
@@ -58,7 +58,7 @@ class WheelClient(object):
         while oneline:
             oneline = self.ser.readline()
             print oneline,
-            
+
     def set_threshold_move(self, value):
         self.ser.write(opcode['SET_THRESHOLD_MOVE'])
         packedValue = struct.pack('<B',value)
@@ -90,17 +90,17 @@ class WheelClient(object):
 
     def run(self):
         self.ser.write(opcode['RUN'])
-        
+
     def close(self):
         self.ser.close()
-        
+
 
 if __name__ == '__main__':
     #samplingPeriod = 20   # In milliseconds
     #nPeriods = 5          # WINDOW = samplingPeriod*nPeriods
     #thresholdMove = int(0.15 * nPeriods*samplingPeriod)
     #print('thresholdMove = {}'.format(thresholdMove))
-    
+
     wheelclient = WheelClient()
     #wheelclient.print_serial()
     time.sleep(0.4)
@@ -114,3 +114,17 @@ if __name__ == '__main__':
         oneline = wheelclient.ser.readline()
         if oneline:
             print oneline,
+            if oneline.strip()=='STARTING!':
+                break
+    while(1):
+        oneline = wheelclient.ser.readline()
+        if oneline.strip():
+            val = int(oneline)
+            onechar = '+' if val>0 else '-'
+            meterStr = abs(val)*onechar
+            meterList = list(meterStr)
+            for ind in range(9,abs(val),10):
+                meterList[ind] = str((ind+1)//10)
+            meterStr = ''.join(meterList)
+            print(meterStr)
+
