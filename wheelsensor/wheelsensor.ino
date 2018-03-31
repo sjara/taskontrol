@@ -109,8 +109,8 @@ void TC7_Handler() {
     periodsSoFar = 0;
   }
 
-  if(debugMode)
-    Serial.println("..Stopped.."); // DEBUG
+  if(debugMode) {}
+    //Serial.println("..Stopped.."); // DEBUG
 }
 
 

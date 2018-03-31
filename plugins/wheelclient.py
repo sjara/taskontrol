@@ -7,7 +7,6 @@ import sys
 import serial
 import struct
 import time
-import matplotlib.pyplot as plt
 import numpy as np
 
 SERIAL_PORT_PATH = '/dev/ttyACM2'
@@ -104,11 +103,11 @@ if __name__ == '__main__':
     wheelclient = WheelClient()
     #wheelclient.print_serial()
     time.sleep(0.4)
-    wheelclient.set_threshold_move(10)
+    wheelclient.set_threshold_move(50)
     wheelclient.set_threshold_stop(2)
-    wheelclient.set_n_periods(1)
+    wheelclient.set_n_periods(3)
     wheelclient.set_sampling_factor(2)
-    wheelclient.set_debug_mode(0)
+    wheelclient.set_debug_mode(1)
     wheelclient.run()
     while(1):
         oneline = wheelclient.ser.readline()
