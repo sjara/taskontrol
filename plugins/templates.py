@@ -12,8 +12,12 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import sys
-from PySide import QtCore
-from PySide import QtGui
+if sys.platform=='darwin':
+    from qtpy import QtWidgets as QtGui
+    from qtpy import QtCore
+else:
+    from PySide import QtGui
+    from PySide import QtCore
 from taskontrol.settings import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
@@ -167,7 +171,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
     def _show_message(self,msg):
         self.statusBar().showMessage(str(msg))
-        print msg
+        print(msg)
 
     def _center_in_screen(self):
         qr = self.frameGeometry()
@@ -305,7 +309,7 @@ class ParadigmGoNoGo(QtGui.QMainWindow):
 
     def _show_message(self,msg):
         self.statusBar().showMessage(str(msg))
-        print msg
+        print(msg)
 
     def _center_in_screen(self):
         qr = self.frameGeometry()

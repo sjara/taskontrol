@@ -10,8 +10,15 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 import os
 import time
 import h5py
-from PySide import QtCore 
-from PySide import QtGui 
+import sys
+if sys.platform=='darwin':
+    from qtpy import QtWidgets
+    from qtpy import QtGui
+    from qtpy import QtCore
+else:
+    from PySide import QtGui as QtWidgets
+    from PySide import QtGui
+    from PySide import QtCore
 import subprocess
 #from taskontrol.settings import rigsettings
 
@@ -19,7 +26,7 @@ import subprocess
 REMOTEDIR_VERIFICATION = 'REMOTEDIR.txt'
 
 
-class SaveData(QtGui.QGroupBox):
+class SaveData(QtWidgets.QGroupBox):
     '''
     A widget to save data, transfer it to a remote repository, and update the database.
     '''
@@ -41,20 +48,20 @@ class SaveData(QtGui.QGroupBox):
         self.filename = None
 
         # -- Create graphical objects --
-        self.buttonSaveData = QtGui.QPushButton("Save data")
+        self.buttonSaveData = QtWidgets.QPushButton("Save data")
         self.buttonSaveData.setMinimumHeight(50)
         buttonFont = QtGui.QFont(self.buttonSaveData.font())
         buttonFont.setBold(True)
         self.buttonSaveData.setFont(buttonFont)
-        self.checkInteractive = QtGui.QCheckBox('Interactive')
+        self.checkInteractive = QtWidgets.QCheckBox('Interactive')
         self.checkInteractive.setChecked(False)
-        self.checkOverwrite = QtGui.QCheckBox('Overwrite')
+        self.checkOverwrite = QtWidgets.QCheckBox('Overwrite')
         self.checkOverwrite.setChecked(False)
-        self.checkSendToRepo = QtGui.QCheckBox('Send to repository')
+        self.checkSendToRepo = QtWidgets.QCheckBox('Send to repository')
         self.checkSendToRepo.setChecked(False)
 
         # -- Create layouts --
-        layout = QtGui.QGridLayout()
+        layout = QtWidgets.QGridLayout()
         layout.addWidget(self.buttonSaveData, 0,0, 1,2)
         layout.addWidget(self.checkInteractive, 1,0)
         layout.addWidget(self.checkOverwrite, 1,1)
@@ -104,8 +111,8 @@ class SaveData(QtGui.QGroupBox):
         self.logMessage.emit('Saving data...')
 
         if self.checkInteractive.checkState():
-            #fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
-            fname,ffilter = QtGui.QFileDialog.getSaveFileName(self,'Save to file',defaultFileName,'*.*')
+            #fname,ffilter = QtWidgets.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
+            fname,ffilter = QtWidgets.QFileDialog.getSaveFileName(self,'Save to file',defaultFileName,'*.*')
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
@@ -114,14 +121,14 @@ class SaveData(QtGui.QGroupBox):
                 fname = defaultFileName
                 self.logMessage.emit('File exists. I will overwrite {0}'.format(fname))
             else:
-                msgBox = QtGui.QMessageBox()
-                msgBox.setIcon(QtGui.QMessageBox.Warning)
+                msgBox = QtWidgets.QMessageBox()
+                msgBox.setIcon(QtWidgets.QMessageBox.Warning)
                 msgBox.setText('File exists: <br>{0} <br>Use <b>Interactive</b> or <b>Overwrite</b> modes.'.format(defaultFileName))
                 msgBox.exec_()
                 return
         else:
             fname = defaultFileName
-        
+
         # -- Create data file --
         # FIXME: check that the file opened correctly
         h5file = h5py.File(fname,'w')
@@ -131,12 +138,12 @@ class SaveData(QtGui.QGroupBox):
                 container.append_to_file(h5file,currentTrial)
             except UserWarning as uwarn:
                 self.logMessage.emit(uwarn.message)
-                print uwarn.message
+                print(uwarn.message)
             except:
                 h5file.close()
                 raise
         h5file.close()
- 
+
         self.filename = fname
         self.logMessage.emit('Saved data to {0}'.format(fname))
 
@@ -167,7 +174,7 @@ class SaveData(QtGui.QGroupBox):
             stdout, stderr = p.communicate()
             if stderr:
                 raise IOError(stderr)
-            self.logMessage.emit('Sent data to {0}'.format(fullRemoteDir))            
+            self.logMessage.emit('Sent data to {0}'.format(fullRemoteDir))
         else:
             self.logMessage.emit('Remote verification file not found. Nothing was sent.')
 
@@ -193,12 +200,12 @@ if __name__ == "__main__":
     import sys
     from taskontrol.settings import rigsettings
     # -- A workaround to enable re-running the app in ipython after closing --
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
-    form = QtGui.QDialog()
+    app=QtWidgets.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
+        app = QtWidgets.QApplication(sys.argv)
+    form = QtWidgets.QDialog()
     saveData = SaveData(rigsettings.DATA_DIR)
-    layoutMain = QtGui.QHBoxLayout()
+    layoutMain = QtWidgets.QHBoxLayout()
     layoutMain.addWidget(saveData)
     form.setLayout(layoutMain)
     def onbutton():

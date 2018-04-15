@@ -16,7 +16,7 @@ def find_state_sequence(states,stateSequence):
     stateSequence is a 1D array containing some sequence of states.
     '''
     sequenceStartInd = []
-    for ind in xrange(len(states)-len(stateSequence)+1):
+    for ind in range(len(states)-len(stateSequence)+1):
         val = np.all(states[ind:ind+len(stateSequence)]==stateSequence)
         sequenceStartInd.append(val)
     return np.array(sequenceStartInd)

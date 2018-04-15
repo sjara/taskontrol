@@ -9,15 +9,25 @@ __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-07-21'
 
-from PySide import QtCore 
-from PySide import QtGui 
+import sys
+if sys.platform=='darwin':
+    from qtpy import QtWidgets
+    from qtpy import QtGui
+    from qtpy import QtCore
+else:
+    from PySide import QtGui as QtWidgets
+    from PySide import QtGui
+    from PySide import QtCore
+
 import numpy as np
 import pyqtgraph as pg
 
 def set_pg_colors(form):
     '''Set default BG and FG color for pyqtgraph plots.'''
-    bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window)
-    fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText)
+    #bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window) ### OLD
+    #fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText) ### OLD
+    bgColorRGBA = form.palette().color(QtGui.QPalette.Window)
+    fgColorRGBA = form.palette().color(QtGui.QPalette.WindowText)
     pg.setConfigOption('background', bgColorRGBA)
     pg.setConfigOption('foreground', fgColorRGBA)
     pg.setConfigOptions(antialias=True)  ## this will be expensive for the local plot
@@ -57,7 +67,7 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
         self.addItem(self.perfRightPlot)
 
         self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,
-                           'nochoice':4,'aftererror':5,'aborted':6} 
+                           'nochoice':4,'aftererror':5,'aborted':6}
         # FIXME: This should come from somewhere else (to be consisten with the rest)
 
         # -- Graphical adjustments --
@@ -98,7 +108,7 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
 
         nValid = np.sum(validTrials) #Maybe just add one every this is called
         #nValidLeft = np.sum(validLeft) #Maybe just add one every this is called
-        correct = outcome==self.outcomeIDs['correct'] # SIZE:nTrials
+        correct = outcome[:len(validTrials)]==self.outcomeIDs['correct'] # SIZE:nTrials
         # FIXME: the following should not be hardcoded but use sidesLabels
         #leftCorrect = ((sides==0) & correct)[:currentTrial][validTrials]
         #rightCorrect = ((sides==1) & correct)[:currentTrial][validTrials]
@@ -166,8 +176,8 @@ if __name__ == "__main__":
     import sys
 
     # -- A workaround to enable re-running the app in ipython after closing --
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
+    app=QtGui.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
     form = QtGui.QDialog()
     form.resize(600,140)

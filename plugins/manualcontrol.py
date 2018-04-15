@@ -15,8 +15,13 @@ __version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2012-08-27'
 
-from PySide import QtCore 
-from PySide import QtGui 
+import sys
+if sys.platform=='darwin':
+    from qtpy import QtWidgets as QtGui
+    from qtpy import QtCore
+else:
+    from PySide import QtGui
+    from PySide import QtCore
 from taskontrol.settings import rigsettings
 
 BUTTON_COLORS = {'on':'red','off':'black'}
@@ -34,7 +39,8 @@ class ManualControl(QtGui.QGroupBox):
         self.outputButtons = {}
         nButtons = 0
         nCols = 2
-        dictIterator = iter(sorted(rigsettings.OUTPUTS.iteritems()))
+        #dictIterator = iter(sorted(rigsettings.OUTPUTS.iteritems()))
+        dictIterator = rigsettings.OUTPUTS.items()
         for key,value in dictIterator:
             self.outputButtons[key] = OutputButton(statemachine, key,value)
             self.outputButtons[key].setObjectName('ManualControlButton')
@@ -47,7 +53,7 @@ class ManualControl(QtGui.QGroupBox):
         self.setLayout(layout)
         self.setTitle('Manual control')
 
- 
+
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
     def __init__(self, statemachine, buttonText, outputIndex, parent=None):
@@ -57,7 +63,8 @@ class OutputButton(QtGui.QPushButton):
         self.statemachine = statemachine
         self.outputIndex = outputIndex
         self.setCheckable(True)
-        self.connect(self,QtCore.SIGNAL('clicked()'),self.toggleOutput)
+        #self.connect(self,QtCore.SIGNAL('clicked()'),self.toggleOutput) ### OOLD
+        self.clicked.connect(self.toggleOutput)
 
         #stylestr = 'QPushButton {font: 10pt}'
         #self.setStyleSheet(stylestr)

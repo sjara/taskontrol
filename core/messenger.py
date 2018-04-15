@@ -10,7 +10,12 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import time
-from PySide import QtCore 
+import sys
+if sys.platform=='darwin':
+    from qtpy import QtCore
+else:
+    from PySide import QtCore
+
 
 class Message(object):
     '''
@@ -52,13 +57,13 @@ class Messenger(QtCore.QObject):
 
     def __str__(self):
         return '\n'.join(self.stringlist())
-            
+
 
 if __name__ == "__main__":
 
     onemsg = Message('My short message')
-    print onemsg
- 
+    print(onemsg)
+
     mess1 = Messenger()
     mess1.send('One message')
 

@@ -28,13 +28,17 @@ time.sleep(1)
 __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
-#from PySide import QtCore 
-#from PySide import QtGui 
+#from PySide import QtCore
+#from PySide import QtGui
 from taskontrol.settings import rigsettings
 
 import pyo
 import threading
-import serial
+import sys
+if sys.platform=='darwin':
+    pass
+else:
+    import serial
 import time
 import os
 from taskontrol.settings import rigsettings
@@ -71,7 +75,7 @@ else:
     SERIALTRIGGER = False
 
 STOP_ALL_SOUNDS = 128
-    
+
 # -- Set computer's sound level --
 if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
@@ -80,8 +84,8 @@ if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
         # Change volume of the first two sound-cards
         #os.system('amixer -c 0 set Master {0}% > /dev/null'.format(baseVol))
         #os.system('amixer -c 1 set Master {0}% > /dev/null'.format(baseVol))
-        print 'Set sound volume to {0}%'.format(baseVol)
-        
+        print('Set sound volume to {0}%'.format(baseVol))
+
 class SoundPlayer(threading.Thread):
     def __init__(self,serialtrigger=True):
         threading.Thread.__init__(self)
@@ -94,10 +98,10 @@ class SoundPlayer(threading.Thread):
         self.init_pyo()
         if self.serialtrigger:
             self.init_serial()
-        
+
         self.sounds = MAX_NSOUNDS*[None]     # List of objects like pyo.Fader()
         self.soundwaves = MAX_NSOUNDS*[None] # List of objects like pyo.Sine()
-        
+
         self.risetime = 0.002
         self.falltime = 0.002
 
@@ -133,7 +137,7 @@ class SoundPlayer(threading.Thread):
 
     def init_pyo(self):
         # -- Initialize sound generator (pyo) --
-        print 'Creating pyo server.'
+        print('Creating pyo server.')
         if USEJACK:
             self.pyoServer = pyo.Server(audio='jack').boot()
         else:
@@ -146,12 +150,12 @@ class SoundPlayer(threading.Thread):
                                     duplex=0, audio='jack').boot()
         '''
         self.pyoServer.start()
-        print 'Pyo server ready'
+        print('Pyo server ready')
 
     def init_serial(self):
-        print 'Connecting to serial port'
+        print('Connecting to serial port')
         self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD_RATE, timeout=SERIAL_TIMEOUT)
- 
+
     def set_sound(self,soundID,soundParams):
         '''
         soundParams is a dictionary that defines a sound, for example
@@ -292,8 +296,8 @@ class SoundPlayer(threading.Thread):
                 fs = 2*[samplingFreq]
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=duration)
-            print duration
-            print fs
+            print(duration)
+            print(fs)
             soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj*soundAmp).out())
         else:
             raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
@@ -315,7 +319,7 @@ class SoundPlayer(threading.Thread):
                 else:
                     self.soundwaves[soundID].reset()
             except:
-                #print 'Warning! Sound #{0} cannot be reset.'.format(soundID)
+                #print('Warning! Sound #{0} cannot be reset.'.format(soundID))
                 pass
                 #raise
             self.sounds[soundID].play()
@@ -326,13 +330,16 @@ class SoundPlayer(threading.Thread):
                                          fileformat=0, sampletype=0)
             self.sounds[soundID].play()
             self.pyoServer.start()
-            os.system('aplay {0}'.format(soundfile))
+            if sys.platform=='darwin':
+                pass
+            else:
+                os.system('aplay {0}'.format(soundfile))
 
     def stop_all(self):
         # We loop only through the sounds that have been defined
         for soundID in self.soundsParamsDict.keys():
             self.sounds[soundID].stop()
-        
+
     def stopped(self):
         return self._stop.isSet()
 
@@ -414,13 +421,13 @@ if __name__ == "__main__":
         import time
         TicTime = time.time()
         sc.set_sound(1,s1)
-        print 'Elapsed Time: ' + str(time.time()-TicTime)
+        print('Elapsed Time: ' + str(time.time()-TicTime))
         TicTime = time.time()
         sc.set_sound(2,s4)
-        print 'Elapsed Time: ' + str(time.time()-TicTime)
+        print('Elapsed Time: ' + str(time.time()-TicTime))
         TicTime = time.time()
         sc.set_sound(3,s5)
-        print 'Elapsed Time: ' + str(time.time()-TicTime)
+        print('Elapsed Time: ' + str(time.time()-TicTime))
         sc.start()
         #sc.define_sounds()
         sc.play_sound(1)
