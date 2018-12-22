@@ -294,8 +294,8 @@ class SoundPlayer(threading.Thread):
                 fs = 2*[samplingFreq]
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=duration)
-            print duration
-            print fs
+            ###print duration
+            ###print fs
             soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj*soundAmp).out())
         else:
             raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
