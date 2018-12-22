@@ -57,7 +57,7 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
         self.addItem(self.perfRightPlot)
 
         self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,
-                           'nochoice':4,'aftererror':5,'aborted':6} 
+                           'nochoice':4,'aftererror':5,'aborted':6}
         # FIXME: This should come from somewhere else (to be consisten with the rest)
 
         # -- Graphical adjustments --
@@ -98,7 +98,7 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
 
         nValid = np.sum(validTrials) #Maybe just add one every this is called
         #nValidLeft = np.sum(validLeft) #Maybe just add one every this is called
-        correct = outcome==self.outcomeIDs['correct'] # SIZE:nTrials
+        correct = outcome[:currentTrial]==self.outcomeIDs['correct'] # SIZE:nTrials
         # FIXME: the following should not be hardcoded but use sidesLabels
         #leftCorrect = ((sides==0) & correct)[:currentTrial][validTrials]
         #rightCorrect = ((sides==1) & correct)[:currentTrial][validTrials]
@@ -166,8 +166,8 @@ if __name__ == "__main__":
     import sys
 
     # -- A workaround to enable re-running the app in ipython after closing --
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
+    app=QtGui.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
     form = QtGui.QDialog()
     form.resize(600,140)
