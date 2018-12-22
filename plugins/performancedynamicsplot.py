@@ -108,7 +108,7 @@ class PerformanceDynamicsPlot(pg.PlotWidget):
 
         nValid = np.sum(validTrials) #Maybe just add one every this is called
         #nValidLeft = np.sum(validLeft) #Maybe just add one every this is called
-        correct = outcome[:len(validTrials)]==self.outcomeIDs['correct'] # SIZE:nTrials
+        correct = outcome[:currentTrial]==self.outcomeIDs['correct'] # SIZE:nTrials
         # FIXME: the following should not be hardcoded but use sidesLabels
         #leftCorrect = ((sides==0) & correct)[:currentTrial][validTrials]
         #rightCorrect = ((sides==1) & correct)[:currentTrial][validTrials]
