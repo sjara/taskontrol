@@ -182,10 +182,12 @@ class StateMachineClient(object):
         self.ser.write(opcode['SET_STATE_MATRIX'])
         self.send_matrix(stateMatrix)
     def send_matrix(self,someMatrix):
-        # --- DEBUG ---
-        print(someMatrix) ############## DEBUG ############
         nRows = len(someMatrix)
         nCols = len(someMatrix[0])
+        # --- DEBUG ---
+        print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
+        for oneRow in someMatrix:
+            print(oneRow) ############## DEBUG ############
         self.ser.write(chr(nRows))
         self.ser.write(chr(nCols))
         #print repr(chr(nRows)) ### DEBUG
