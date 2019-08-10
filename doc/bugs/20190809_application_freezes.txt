@@ -1,0 +1,74 @@
+In the middle of a behavioral session, the application freezes.
+
+We have added print statements to try to figure out what's going on.
+
+One way to make it stop is to disconnect the usb cables, but that may create problems for the next session.
+
+Another way is to run: screen /dev/ttyACM0 (and exit)
+
+
+Here is an example of a session of adaptive_freq_discrim.py (on Cody's computer: jarastation4) that failed in the middle of sending a state matrix:
+
+-------- State matrix [6,8] --------
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x01''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x01''\x00''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x00''\x07''\x07''\x07''\x07''\x07'
+
+-------- State matrix [6,7] --------
+'\x00''\x00''\x00''\x00''\x00''\x00''\x00'
+'\x01''\x01''\x01''\x01''\x01''\x01''\x02'
+'\x02''\x02''\x02''\x02''\x02''\x02''\x03'
+'\x03''\x03''\x03''\x03''\x03''\x03''\x04'
+'\x04''\x04''\x04''\x04''\x04''\x04''\x05'
+'\x05''\x05''\x05''\x05''\x05''\x05''\x00'
+
+-------- State matrix [6,8] --------
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x07''\x07''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x07''\x01''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x01''\x00''\x07''\x07'
+'\x07''\x07''\x07''\x07''\x00' 
+'\x07''\x07''\x07'
+
+Traceback (most recent call last):
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 199, in timeout
+    self.query_state_machine()
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 263, in query_state_machine
+    self.serverTime = self.statemachine.get_time()
+  File "/home/jarauser/src/taskontrol/core/smclient.py", line 160, in get_time
+    return 1e-3*float(serverTime.strip())
+ValueError: could not convert string to float: �
+Traceback (most recent call last):
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 199, in timeout
+    self.query_state_machine()
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 263, in query_state_machine
+    self.serverTime = self.statemachine.get_time()
+  File "/home/jarauser/src/taskontrol/core/smclient.py", line 160, in get_time
+    return 1e-3*float(serverTime.strip())
+ValueError: could not convert string to float: 
+Traceback (most recent call last):
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 199, in timeout
+    self.query_state_machine()
+  File "/home/jarauser/src/taskontrol/core/dispatcher.py", line 263, in query_state_machine
+    self.serverTime = self.statemachine.get_time()
+  File "/home/jarauser/src/taskontrol/core/smclient.py", line 160, in get_time
+    return 1e-3*float(serverTime.strip())
+
+
+
+socat /dev/ttyACM0,raw,echo=0 SYSTEM:'tee /tmp/in.txt |socat - "PTY,link=/tmp/ttyV0,raw,echo=0,waitslave" |tee /tmp/out.txt'
+
+
+git clone https://github.com/geoffmeyers/interceptty.git
+./configure
+make
+sudo checkinstall
+(write 0.6 for version)
+
+(point rigsettings.py to /dev/tmpS and run interceptty)
+sudo interceptty /dev/ttyACM0 /dev/tmpS
+
