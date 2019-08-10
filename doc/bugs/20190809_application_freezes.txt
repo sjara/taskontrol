@@ -4,8 +4,25 @@ We have added print statements to try to figure out what's going on.
 
 One way to make it stop is to disconnect the usb cables, but that may create problems for the next session.
 
-Another way is to run: screen /dev/ttyACM0 (and exit)
+Another way is to run: screen /dev/ttyACM0 and exit using "Ctrl-A \"
 
+=== How to sniff serial port  (use interceptty) ===
+git clone https://github.com/geoffmeyers/interceptty.git
+./configure
+make
+sudo checkinstall
+(write 0.6 for version)
+
+(point rigsettings.py to /dev/tmpS and run interceptty)
+sudo interceptty /dev/ttyACM0 /dev/tmpS
+
+=== Replicating this issue ===
+1. One way to replicate this issue is to have a while(True) statement in smclient.py when sending data.
+- Alternatives, such as sending one extra character (or skip one character) do not results in the same issue, but instead produce an error like "ValueError: could not convert string to float"
+2. Another way is to send 4000 char via serial port in the middle of the session. The application hangs.
+
+
+=== Example of failure ===
 
 Here is an example of a session of adaptive_freq_discrim.py (on Cody's computer: jarastation4) that failed in the middle of sending a state matrix:
 
@@ -59,16 +76,4 @@ Traceback (most recent call last):
     return 1e-3*float(serverTime.strip())
 
 
-
-socat /dev/ttyACM0,raw,echo=0 SYSTEM:'tee /tmp/in.txt |socat - "PTY,link=/tmp/ttyV0,raw,echo=0,waitslave" |tee /tmp/out.txt'
-
-
-git clone https://github.com/geoffmeyers/interceptty.git
-./configure
-make
-sudo checkinstall
-(write 0.6 for version)
-
-(point rigsettings.py to /dev/tmpS and run interceptty)
-sudo interceptty /dev/ttyACM0 /dev/tmpS
 
