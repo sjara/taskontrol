@@ -31,7 +31,7 @@ SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
 #SERIAL_PORT_PATH = '/dev/ttyACM0'
 
 SERIAL_BAUD = 115200  # Should be the same in statemachine.ino
-SERIAL_TIMEOUT = 0.5   # It used to be 0.1. Also, 0.0042 is around the threshold
+SERIAL_TIMEOUT = 0.1   # It used to be 0.1. Also, 0.0042 is around the threshold
 
 # The following should match the statemachine code (statemachine.ino)
 MAXNINPUTS = 8
@@ -112,6 +112,7 @@ class StateMachineClient(object):
             self.ser.setTimeout(1.0)
         else:
             self.ser.timeout = 1.0
+            self.ser.write_timeout = 0 #1.001
         #self.ser.flushOutput()  # FIXME: Discard anything in output buffer?
         #self.ser.flushInput()   # FIXME: Discard anything in input buffer?
         time.sleep(0.4)  # FIXME: why does it need extra time? 0.1 does not work!
@@ -188,26 +189,34 @@ class StateMachineClient(object):
         nRows = len(someMatrix)
         nCols = len(someMatrix[0])
         # --- DEBUG ---
-        print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
+        #print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
         #for oneRow in someMatrix:
-        #    print(oneRow) ############## DEBUG ############
+        #    print(oneRow)
         self.ser.write(chr(nRows))
         self.ser.write(chr(nCols))
         #print(repr(chr(nRows))) ### DEBUG
         #print(repr(chr(nCols))) ### DEBUG
-        '''
-        if self.DEBUGcounter > 5:
-            self.ser.write(chr(0))
-        else:
-            self.DEBUGcounter += 1
-        '''
-        for oneRow in someMatrix:
-            for oneItem in oneRow:
+
+        self.DEBUGcounter += 1
+        tempcount = 0
+        for indrow,oneRow in enumerate(someMatrix):
+            for inditem,oneItem in enumerate(oneRow):
+                '''
+                if indrow==1 and inditem==1 and self.DEBUGcounter==8:
+                    #raise serial.serialutil.SerialException()
+                    #while(True): pass; continue
+                    longData = ''.join(6000*[chr(33)]); print(longData)
+                    self.ser.write(longData)
+                    #for ind in range(6000): # 4000 hangs
+                    #    self.ser.write(chr(255))
+                    #    tempcount+=1
+                    #    print(tempcount)
+                '''
                 self.ser.write(chr(oneItem))
-                print(repr(chr(oneItem)), end='') ### DEBUG
-                sys.stdout.flush()
-            print('')
-        print('')
+                #print(repr(chr(oneItem)), end='') ### DEBUG
+                #sys.stdout.flush()
+            #print('')
+        #print('')
     def report_state_matrix(self):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
