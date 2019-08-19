@@ -254,8 +254,8 @@ class SoundPlayer(threading.Thread):
             freqlow = frequency / np.power(2, octaves/2)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'])
-            freqcent = (freqhigh + freqlow)/2
-            bandwidth = freqhigh - freqlow
+            freqcent = float((freqhigh + freqlow)/2)
+            bandwidth = float(freqhigh - freqlow)
             n = pyo.Noise(mul=soundObj*soundAmp)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
         elif soundParams['type']=='band_AM':
@@ -272,8 +272,8 @@ class SoundPlayer(threading.Thread):
                                 add=halfAmp,phase=0.75)
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'])
-            freqcent = (freqhigh + freqlow)/2
-            bandwidth = freqhigh - freqlow
+            freqcent = float((freqhigh + freqlow)/2)
+            bandwidth = float(freqhigh - freqlow)
             n = pyo.Noise(mul=soundObj*envelope)
             soundWaveObjs.append(envelope)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
