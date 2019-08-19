@@ -14,9 +14,10 @@ TO DO:
 
 '''
 
+from __future__ import print_function
+
 __version__ = '0.2'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
 
 import serial
 import glob
@@ -30,7 +31,7 @@ SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
 #SERIAL_PORT_PATH = '/dev/ttyACM0'
 
 SERIAL_BAUD = 115200  # Should be the same in statemachine.ino
-SERIAL_TIMEOUT = 0.1
+SERIAL_TIMEOUT = 0.1   # It used to be 0.1. Also, 0.0042 is around the threshold
 
 # The following should match the statemachine code (statemachine.ino)
 MAXNINPUTS = 8
@@ -86,6 +87,8 @@ class StateMachineClient(object):
         self.nExtraTimers = 0
         self.nActions = 1
 
+        self.DEBUGcounter = 0
+        
         self.port = SERIAL_PORT_PATH
         self.ser = None  # To be created on self.connect()
         if connectnow:
@@ -103,25 +106,26 @@ class StateMachineClient(object):
                                          timeout=SERIAL_TIMEOUT)
                 portReady = True
             except serial.SerialException:
-                print 'Waiting for Arduino to be ready...'
+                print('Waiting for Arduino to be ready...')
                 time.sleep(1)
         if rigsettings.OS=='ubuntu1404':
             self.ser.setTimeout(1.0)
         else:
             self.ser.timeout = 1.0
+            self.ser.write_timeout = 0 #1.001
         #self.ser.flushOutput()  # FIXME: Discard anything in output buffer?
         #self.ser.flushInput()   # FIXME: Discard anything in input buffer?
         time.sleep(0.4)  # FIXME: why does it need extra time? 0.1 does not work!
         self.ser.write(opcode['CONNECT'])
         while not fsmReady:
-            print 'Establishing connection...'
+            print('Establishing connection...')
             sys.stdout.flush()
             fsmReady = (self.ser.read(1)==opcode['OK'])
         if rigsettings.OS=='ubuntu1404':
             self.ser.setTimeout(SERIAL_TIMEOUT)
         else:
             self.ser.timeout = SERIAL_TIMEOUT
-        print 'Connected!'
+        print('Connected!')
         #self.ser.flushOutput()
     def test_connection(self):
         self.ser.write(opcode['TEST_CONNECTION'])
@@ -130,7 +134,7 @@ class StateMachineClient(object):
             return 'OK'
         else:
             raise IOError('Connection to state machine was lost.')
-            #print 'Connection lost'
+            #print('Connection lost')
     def get_version(self):
         '''Request version number from server.
         Returns: string
@@ -184,19 +188,40 @@ class StateMachineClient(object):
     def send_matrix(self,someMatrix):
         nRows = len(someMatrix)
         nCols = len(someMatrix[0])
+        # --- DEBUG ---
+        #print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
+        #for oneRow in someMatrix:
+        #    print(oneRow)
         self.ser.write(chr(nRows))
         self.ser.write(chr(nCols))
-        #print repr(chr(nRows)) ### DEBUG
-        #print repr(chr(nCols)) ### DEBUG
-        for oneRow in someMatrix:
-            for oneItem in oneRow:
-                #print repr(chr(oneItem)) ### DEBUG
+        #print(repr(chr(nRows))) ### DEBUG
+        #print(repr(chr(nCols))) ### DEBUG
+
+        self.DEBUGcounter += 1
+        tempcount = 0
+        for indrow,oneRow in enumerate(someMatrix):
+            for inditem,oneItem in enumerate(oneRow):
+                '''
+                if indrow==1 and inditem==1 and self.DEBUGcounter==8:
+                    #raise serial.serialutil.SerialException()
+                    #while(True): pass; continue
+                    longData = ''.join(6000*[chr(33)]); print(longData)
+                    self.ser.write(longData)
+                    #for ind in range(6000): # 4000 hangs
+                    #    self.ser.write(chr(255))
+                    #    tempcount+=1
+                    #    print(tempcount)
+                '''
                 self.ser.write(chr(oneItem))
+                #print(repr(chr(oneItem)), end='') ### DEBUG
+                #sys.stdout.flush()
+            #print('')
+        #print('')
     def report_state_matrix(self):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
         for line in sm:
-            print line,
+            print(line, end='')
     def run(self):
         self.ser.write(opcode['RUN'])
     def stop(self):
@@ -304,8 +329,8 @@ class StateMachineClient(object):
         return self.ser.readlines()
     def read(self):
         oneline = self.ser.readlines()
-        #print ''.join(oneline)
-        print oneline
+        #print(''.join(oneline))
+        print(oneline)
     def error_check(self):
         # FIXME: is this implemented correctly? It has not been tested
         status = self.ser.read()
@@ -393,7 +418,7 @@ if __name__ == "__main__":
         #time.sleep(0.1)
         unwantedData = c.readlines()
         if unwantedData:
-            print unwantedData
+            print(unwantedData)
         c.run()
         '''
         '''

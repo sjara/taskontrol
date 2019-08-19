@@ -170,7 +170,7 @@ class Paradigm(QtGui.QMainWindow):
 
     def show_message(self,msg):
         self.statusBar().showMessage(str(msg))
-        print msg
+        print(msg)
 
     def center_in_screen(self):
         qr = self.frameGeometry()
@@ -185,15 +185,15 @@ class Paradigm(QtGui.QMainWindow):
         rewardDuration = self.params['rewardDuration'].get_value()
 
         if nextCorrectChoice==self.results.labels['rewardSide']['left']:
-            stimOutput = 'LeftLED'
+            stimOutput = 'leftLED'
             fromChoiceL = 'reward'
             fromChoiceR = 'punish'
-            rewardOutput = 'LeftWater'
+            rewardOutput = 'leftWater'
         elif nextCorrectChoice==self.results.labels['rewardSide']['right']:
-            stimOutput = 'RightLED'
+            stimOutput = 'rightLED'
             fromChoiceL = 'punish'
             fromChoiceR = 'reward'
-            rewardOutput = 'RightWater'
+            rewardOutput = 'rightWater'
         else:
             raise ValueError('Value of nextCorrectChoice is not appropriate')
 
@@ -225,7 +225,7 @@ class Paradigm(QtGui.QMainWindow):
                     transitions={'Tup':'ready_next_trial'},
                     outputsOff=[rewardOutput])
 
-        print self.sm ### DEBUG
+        print(self.sm) ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm)
         
         '''
@@ -234,7 +234,7 @@ class Paradigm(QtGui.QMainWindow):
         self.dispatcherModel.set_prepare_next_trial_states(prepareNextTrialStates,
                                                   self.sm.get_states_dict())
 
-        print self.sm ### DEBUG
+        print(self.sm) ### DEBUG
         self.dispatcherModel.set_state_matrix(self.sm.get_matrix(),
                                               self.sm.get_outputs(),
                                               self.sm.get_serial_outputs(),
@@ -243,18 +243,18 @@ class Paradigm(QtGui.QMainWindow):
 
     def prepare_next_trial(self, nextTrial):
         self.params.update_history()
-        print '\nPreparing trial %d'%nextTrial
+        print('\nPreparing trial %d'%nextTrial)
         '''
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
-        print 'Last 10 events:'
+        print('Last 10 events:')
         for oneEvent in lastTenEvents:
-            print '%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
+            print('%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2]))
         '''
         # -- Prepare next trial --
         nextCorrectChoice = self.results['rewardSide'][nextTrial]
-        #print '\nNext choice = {0}'.format(nextCorrectChoice) ### DEBUG
+        #print('\nNext choice = {0}'.format(nextCorrectChoice)) ### DEBUG
         self.set_state_matrix(nextCorrectChoice)
-        #print self.sm ### DEBUG
+        #print(self.sm) ### DEBUG
         self.dispatcherModel.ready_to_start_trial()
 
         # -- Calculate results from last trial (update outcome, choice, etc) --
@@ -284,7 +284,7 @@ class Paradigm(QtGui.QMainWindow):
             self.results['timeCenterIn'][trialIndex] = eventsThisTrial[centerInInds[0],0]
         else:
             self.results['timeCenterIn'][trialIndex] = np.nan
-        #print self.results['timeCenterIn'][:trialIndex+1] ### DEBUG
+        #print(self.results['timeCenterIn'][:trialIndex+1]) ### DEBUG
 
         # -- Find center-port-out time --
         waitForSidePokeStateID = self.sm.statesNameToIndex['wait_for_sidepoke']
@@ -299,8 +299,8 @@ class Paradigm(QtGui.QMainWindow):
         else:
             self.results['timeCenterOut'][trialIndex] = np.nan
 
-        #print centerOutInds ### DEBUG
-        # print eventsThisTrial ### DEBUG
+        # print(centerOutInds) ### DEBUG
+        # print(eventsThisTrial) ### DEBUG
 
         # -- Find side-port-in time --
         LinID = self.sm.eventsDict['Lin']
@@ -331,11 +331,11 @@ class Paradigm(QtGui.QMainWindow):
 
     def start_new_trial(self, currentTrial):
         '''OBSOLETE'''
-        print '\n======== Started trial %d ======== '%currentTrial
+        print('\n======== Started trial %d ======== '%currentTrial)
 
 
     def timer_tic(self,etime,lastEvents):
-        print '.',
+        print('.'),
         sys.stdout.flush() # Force printing on the screen at this point
 
 

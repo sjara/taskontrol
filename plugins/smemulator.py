@@ -16,9 +16,9 @@ __created__ = '2013-09-23'
 import time
 import numpy as np
 import datetime
-from PySide import QtCore 
-from PySide import QtGui 
-from ..settings import rigsettings 
+from PySide import QtCore
+from PySide import QtGui
+from ..settings import rigsettings
 
 MAXNEVENTS = 512
 MAXNSTATES = 256
@@ -46,12 +46,12 @@ class EmulatorGUI(QtGui.QWidget):
         self.setGeometry(600, 600, 300, 200)
         self.setWindowTitle('State Machine Emulator')
 
-        nButtons = 3
+        nButtons = len(rigsettings.INPUTS)
         self.button = nButtons*[0]
         self.light = nButtons*[0]
         self.water = nButtons*[0]
-        buttonsStrings = ['C','L','R']
-        buttonsPos = [1,0,2]
+        buttonsStrings = ['C','L','R','W']
+        buttonsPos = [1,0,2,3]
         layoutMain = QtGui.QGridLayout()
         for indbut in range(nButtons):
             self.button[indbut] = QtGui.QPushButton(buttonsStrings[indbut])
@@ -154,7 +154,7 @@ class StateMachineClient(QtCore.QObject):
         self.stateOutputs = np.zeros((MAXNSTATES,MAXNOUTPUTS),dtype=int)
         self.extraTimers = np.zeros(MAXNEXTRATIMERS)
         self.triggerStateEachExtraTimer = np.zeros(MAXNEXTRATIMERS,dtype=int)
-        
+
         self.stateTimerValue = 0;
         self.extraTimersValues = np.zeros(MAXNEXTRATIMERS)
         self.activeExtraTimers = np.zeros(MAXNEXTRATIMERS,dtype=bool)
@@ -171,7 +171,7 @@ class StateMachineClient(QtCore.QObject):
         self.timer.timeout.connect(self.execute_cycle)
 
         self.emuGUI = EmulatorGUI()
-        
+
     def send_reset(self):
         pass
     def connect(self):
@@ -318,7 +318,7 @@ class StateMachineClient(QtCore.QObject):
                 if (currentTime - self.extraTimersValues[indt]) >= self.extraTimers[indt]:
                     self.add_event(2*self.nInputs + 1 + indt)
                     self.activeExtraTimers[indt] = False
-            
+
         # -- Update state machine given last events --
         # FIXME: this is ugly (in the arduino code).
         #        update_state_machine sneakily changes a value (currentState)

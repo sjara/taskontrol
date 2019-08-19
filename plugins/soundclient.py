@@ -278,6 +278,8 @@ class SoundPlayer(threading.Thread):
             soundWaveObjs.append(envelope)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
         elif soundParams['type']=='fromfile':
+            if not os.path.isfile(soundParams['filename']):
+                raise IOError('File {} does not exist.'.format(soundParams['filename']))
             tableObj = pyo.SndTable(soundParams['filename'])
             samplingFreq = tableObj.getRate()
             if soundParams.get('duration'):
@@ -292,8 +294,8 @@ class SoundPlayer(threading.Thread):
                 fs = 2*[samplingFreq]
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=duration)
-            print duration
-            print fs
+            ###print duration
+            ###print fs
             soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj*soundAmp).out())
         else:
             raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
