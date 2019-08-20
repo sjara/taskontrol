@@ -38,7 +38,7 @@ DEFAULT_AMPLITUDE = 0.01
 AMPLITUDE_STEP = 0.0005
 MAX_AMPLITUDE = 0.5
 
-DEFAULT_INTENSITY = 50 # intensity used for tone and chord calibration (dB-SPL)
+DEFAULT_INTENSITY = 60 # intensity used for tone and chord calibration (dB-SPL)
 DEFAULT_POWER_RMS = 60 # RMS power in time domain (dB-SPL)
 DEFAULT_POWER_NARROWBAND = 40 # average power of narrowband sound (dB-SPL)
 
