@@ -66,7 +66,7 @@ def create_sound(soundParams):
         freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
         soundObjList = []
         for indcomp in range(nTones):
-            soundObjList.append(pyo.Sine(freq=freqEachComp[indcomp],mul=amplitude))
+            soundObjList.append(pyo.Sine(freq=float(freqEachComp[indcomp]),mul=amplitude))
     if soundParams['type']=='noise':
         soundObjList = [pyo.Noise(mul=amplitude)]
     return soundObjList
