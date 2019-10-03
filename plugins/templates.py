@@ -41,7 +41,7 @@ class ParadigmMinimal(QtGui.QMainWindow):
         # -- Create an empty statematrix --
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='ready_next_trial')
+                                          readystate='readyForNextTrial')
 
         # -- Create dispatcher --
         self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
