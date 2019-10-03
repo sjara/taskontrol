@@ -29,6 +29,15 @@ MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
 VERBOSE = rigsettings.EMULATOR_VERBOSE
 
+#buttonsStrings = ['C','L','R','W']
+buttonsStrings = len(rigsettings.INPUTS)*[None]
+for key,item in rigsettings.INPUTS.items(): buttonsStrings[item]=key
+
+if hasattr(rigsettings, 'EMULATOR_GUI_ORDER'):
+    buttonsPos = rigsettings.EMULATOR_GUI_ORDER
+else:
+    buttonsPos = [1,0,2,3]
+
 class EmulatorGUI(QtGui.QWidget):
     def __init__(self, parent=None):
         super(EmulatorGUI, self).__init__(parent)
@@ -50,8 +59,6 @@ class EmulatorGUI(QtGui.QWidget):
         self.button = nButtons*[0]
         self.light = nButtons*[0]
         self.water = nButtons*[0]
-        buttonsStrings = ['C','L','R','W']
-        buttonsPos = [1,0,2,3]
         layoutMain = QtGui.QGridLayout()
         for indbut in range(nButtons):
             self.button[indbut] = QtGui.QPushButton(buttonsStrings[indbut])
@@ -94,7 +101,7 @@ class EmulatorGUI(QtGui.QWidget):
         else:
             stylestrWater = ''
         self.water[waterID].setStyleSheet(stylestrWater)
-    def set_one_output(self,outputID,value):
+    def _OLD_set_one_output(self,outputID,value):
         # FIXME: this should be written more clearly (with less hardcoded assumptions)
         if outputID=='':
             pass
@@ -110,6 +117,13 @@ class EmulatorGUI(QtGui.QWidget):
             self.changeWater(1,value)
         elif outputID==4:
             self.changeWater(2,value)
+    def set_one_output(self,outputID,value):
+        if outputID=='' or outputID//2>=len(rigsettings.INPUTS):
+            return
+        if outputID % 2:  # Odd is LED
+            self.changeLight(outputID//2,value)
+        else:             # Even is Water
+            self.changeWater(outputID//2,value)
     def set_outputs(self,outputValues):
         for ind,val in enumerate(outputValues):
             if val in [0,1]:
