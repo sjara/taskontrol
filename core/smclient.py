@@ -87,8 +87,6 @@ class StateMachineClient(object):
         self.nExtraTimers = 0
         self.nActions = 1
 
-        self.DEBUGcounter = 0
-        
         self.port = SERIAL_PORT_PATH
         self.ser = None  # To be created on self.connect()
         if connectnow:
@@ -188,35 +186,11 @@ class StateMachineClient(object):
     def send_matrix(self,someMatrix):
         nRows = len(someMatrix)
         nCols = len(someMatrix[0])
-        # --- DEBUG ---
-        #print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
-        #for oneRow in someMatrix:
-        #    print(oneRow)
         self.ser.write(chr(nRows))
         self.ser.write(chr(nCols))
-        #print(repr(chr(nRows))) ### DEBUG
-        #print(repr(chr(nCols))) ### DEBUG
-
-        self.DEBUGcounter += 1
-        tempcount = 0
         for indrow,oneRow in enumerate(someMatrix):
             for inditem,oneItem in enumerate(oneRow):
-                '''
-                if indrow==1 and inditem==1 and self.DEBUGcounter==8:
-                    #raise serial.serialutil.SerialException()
-                    #while(True): pass; continue
-                    longData = ''.join(6000*[chr(33)]); print(longData)
-                    self.ser.write(longData)
-                    #for ind in range(6000): # 4000 hangs
-                    #    self.ser.write(chr(255))
-                    #    tempcount+=1
-                    #    print(tempcount)
-                '''
                 self.ser.write(chr(oneItem))
-                #print(repr(chr(oneItem)), end='') ### DEBUG
-                #sys.stdout.flush()
-            #print('')
-        #print('')
     def report_state_matrix(self):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
