@@ -1,10 +1,23 @@
+In summer of 2019, after updating computers to Ubuntu 18.04 the following was reported:
 In the middle of a behavioral session, the application freezes.
 
-We have added print statements to try to figure out what's going on.
+Later it was identified that the issue resulted from the serial port being blocked
+possible because the buffer was full.
 
-One way to make it stop is to disconnect the usb cables, but that may create problems for the next session.
+One way to make it stop is to disconnect the usb cables (but that may create issues for the next session).
 
 Another way is to run: screen /dev/ttyACM0 and exit using "Ctrl-A \"
+
+=== SOLUTION (2019-08-12) ===
+Adding the line: self.ser.write_timeout = 0
+to smclient.py seems to have solved the problem.
+
+
+=== Replicating this issue ===
+1. One way to replicate this issue is to have a while(True) statement in smclient.py when sending data.
+- Alternatives, such as sending one extra character (or skip one character) do not results in the same issue, but instead produce an error like "ValueError: could not convert string to float"
+2. Another way is to send 4000 char via serial port in the middle of the session. The application hangs.
+
 
 === How to sniff serial port  (use interceptty) ===
 git clone https://github.com/geoffmeyers/interceptty.git
@@ -16,10 +29,41 @@ sudo checkinstall
 (point rigsettings.py to /dev/tmpS and run interceptty)
 sudo interceptty /dev/ttyACM0 /dev/tmpS
 
-=== Replicating this issue ===
-1. One way to replicate this issue is to have a while(True) statement in smclient.py when sending data.
-- Alternatives, such as sending one extra character (or skip one character) do not results in the same issue, but instead produce an error like "ValueError: could not convert string to float"
-2. Another way is to send 4000 char via serial port in the middle of the session. The application hangs.
+
+=== Code for testing ===
+
+    def send_matrix(self,someMatrix):
+        nRows = len(someMatrix)
+        nCols = len(someMatrix[0])
+        # --- DEBUG ---
+        #print('-------- State matrix [{},{}] --------'.format(nRows,nCols))
+        #for oneRow in someMatrix:
+        #    print(oneRow)
+        self.ser.write(chr(nRows))
+        self.ser.write(chr(nCols))
+        #print(repr(chr(nRows))) ### DEBUG
+        #print(repr(chr(nCols))) ### DEBUG
+
+        self.DEBUGcounter += 1
+        tempcount = 0
+        for indrow,oneRow in enumerate(someMatrix):
+            for inditem,oneItem in enumerate(oneRow):
+                '''
+                if indrow==1 and inditem==1 and self.DEBUGcounter==8:
+                    #raise serial.serialutil.SerialException()
+                    #while(True): pass; continue
+                    longData = ''.join(6000*[chr(33)]); print(longData)
+                    self.ser.write(longData)
+                    #for ind in range(6000): # 4000 hangs
+                    #    self.ser.write(chr(255))
+                    #    tempcount+=1
+                    #    print(tempcount)
+                '''
+                self.ser.write(chr(oneItem))
+                #print(repr(chr(oneItem)), end='') ### DEBUG
+                #sys.stdout.flush()
+            #print('')
+        #print('')
 
 
 === Example of failure ===
