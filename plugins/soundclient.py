@@ -277,6 +277,14 @@ class SoundPlayer(threading.Thread):
             n = pyo.Noise(mul=soundObj*envelope)
             soundWaveObjs.append(envelope)
             soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
+        elif soundParams['type']=='FM':
+            #fm1 = FM(carrier=250, ratio=[1.5,1.49], index=10, mul=0.3)
+            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+                                 dur=soundParams['duration'])
+            #soundWave = pyo.FM(carrier=soundParams['frequency'], ratio=[1.5,1.49], index=10, mul=soundObj*soundAmp)
+            #soundWaveObjs.append(soundWave)
+            soundWaveObjs.append(pyo.FM(carrier=soundParams['frequency'], ratio=0.005, index=4, mul=soundObj*soundAmp).out())
+            ###soundWaveObjs.append(pyo.Sine(freq=float(soundParams['frequency']), mul=soundObj*soundAmp).out())
         elif soundParams['type']=='fromfile':
             if not os.path.isfile(soundParams['filename']):
                 raise IOError('File {} does not exist.'.format(soundParams['filename']))
