@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 
-'''
+"""
 Plugin for controlling outputs manually.
 
 
 TO DO:
 - The sorting of the buttons is currently alphabetical. Bad idea.
   I will need to sort by the value of OUTPUTS.
-
-
-'''
+"""
 
 __version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2012-08-27'
 
 import sys
-if sys.platform=='darwin':
-    from qtpy import QtWidgets as QtGui
-    from qtpy import QtCore
-else:
-    from PySide import QtGui
-    from PySide import QtCore
+from qtpy import QtWidgets as QtGui
+from qtpy import QtCore
 from taskontrol.settings import rigsettings
 
 BUTTON_COLORS = {'on':'red','off':'black'}

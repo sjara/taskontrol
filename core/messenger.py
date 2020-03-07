@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-'''
+"""
 Class for routing messages between modules.
-'''
+"""
 
 
 __version__ = '0.1.1'
@@ -11,11 +11,13 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 import time
 import sys
+from qtpy import QtCore
+'''
 if sys.platform=='darwin':
     from qtpy import QtCore
 else:
     from PySide import QtCore
-
+'''
 
 class Message(object):
     '''

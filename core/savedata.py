@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-'''
+"""
 Widget to save data.
-'''
+"""
 
 __version__ = '0.2'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
@@ -11,6 +11,10 @@ import os
 import time
 import h5py
 import sys
+from qtpy import QtWidgets
+from qtpy import QtGui
+from qtpy import QtCore
+'''
 if sys.platform=='darwin':
     from qtpy import QtWidgets
     from qtpy import QtGui
@@ -19,6 +23,7 @@ else:
     from PySide import QtGui as QtWidgets
     from PySide import QtGui
     from PySide import QtCore
+'''
 import subprocess
 #from taskontrol.settings import rigsettings
 

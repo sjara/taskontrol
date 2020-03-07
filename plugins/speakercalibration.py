@@ -1,4 +1,4 @@
-'''
+"""
 Generate sounds at different frequencies to calibrate speakers.
 
 What I want:
@@ -16,18 +16,20 @@ What I want:
 TO DO:
 - Add SpeakerNoiseCalibration class (GUI to calibrate)
 - Fix NoiseCalibration.find_amplitude types (it should not be just a number)
+"""
 
-
-'''
 
 import sys
+from qtpy import QtWidgets as QtGui
+from qtpy import QtCore
+'''
 if sys.platform=='darwin':
     from qtpy import QtWidgets as QtGui
     from qtpy import QtCore
 else:
     from PySide import QtGui
     from PySide import QtCore
-
+'''
 from taskontrol.core import messenger
 from taskontrol.settings import rigsettings
 import pyo
