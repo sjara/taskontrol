@@ -182,6 +182,10 @@ class SoundPlayer(threading.Thread):
             soundAmp = list(soundParams['amplitude'])
         else:
             soundAmp = 2*[soundParams['amplitude']]
+            
+        risetime = soundParams.setdefault('fadein',self.risetime)
+        falltime = soundParams.setdefault('fadeout',self.falltime)
+        
         # -- Setup sound synchronization signal ---
         syncChan = rigsettings.SOUND_SYNC_CHANNEL
         if syncChan is not None:
@@ -198,7 +202,7 @@ class SoundPlayer(threading.Thread):
             factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
             centerFreq = soundParams['frequency']
             freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
+            soundObj = pyo.Fader(fadein=risetime, fadeout=falltime,
                                  dur=soundParams['duration'])
             for indcomp in range(nTones):
                 #soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
