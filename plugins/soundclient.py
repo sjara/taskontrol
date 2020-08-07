@@ -215,6 +215,23 @@ class SoundPlayer(threading.Thread):
             #soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
             soundWaveObjs.append(pyo.Noise(mul=soundAmp*soundObj).out())
         elif soundParams['type']=='AM':
+            if 'modDepth' in soundParams:
+                modFactor = soundParams['modDepth']/100.0
+            else:
+                modFactor = 1.0
+            if isinstance(soundAmp, list):
+                multTerm = [(modFactor*0.5)*x for x in soundAmp]
+                addTerm = [(1-modFactor*0.5)*x for x in soundAmp]
+            else:
+                multTerm = (modFactor*0.5) * soundAmp
+                addTerm = (1-modFactor*0.5) * soundAmp
+            envelope = pyo.Sine(freq=soundParams['modFrequency'],
+                                mul=multTerm,
+                                add=addTerm, phase=0.75)
+            # -- Test code --
+            # y = np.sin(0.1*np.arange(200))
+            #  m=.2; plot(3*m*0.5*y + 3*(1-(m*0.5))); ylim([-4,4]); grid(1)
+            '''
             if isinstance(soundAmp, list):
                 halfAmp = [0.5*x for x in soundAmp]
             else:
@@ -222,6 +239,7 @@ class SoundPlayer(threading.Thread):
             envelope = pyo.Sine(freq=soundParams['modFrequency'],
                                 mul=halfAmp,
                                 add=halfAmp,phase=0.75)
+            '''
             soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
                                  dur=soundParams['duration'])
             soundWaveObjs.append(envelope)
@@ -452,7 +470,10 @@ if __name__ == "__main__":
         sc.shutdown()
     if CASE==5:
         sc = SoundClient() #(serialtrigger=False)
-        s1 = {'type':'AM', 'modFrequency':10, 'duration':1, 'amplitude':0.1*np.array([1,1])}
+        s1 = {'type':'AM', 'modFrequency':3, 'duration':1, 'modDepth':50,
+              'amplitude':0.1*np.array([1,1])}
+        #s1 = {'type':'AM', 'modFrequency':10, 'duration':1, 'amplitude':0.1*np.array([1,1])}
+        #s1 = {'type':'AM', 'modFrequency':10, 'duration':1, 'amplitude':0.1}
         sc.set_sound(1,s1)
         sc.start()
         sc.play_sound(1)
