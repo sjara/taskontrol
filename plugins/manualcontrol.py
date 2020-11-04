@@ -3,7 +3,6 @@
 """
 Plugin for controlling outputs manually.
 
-
 TO DO:
 - The sorting of the buttons is currently alphabetical. Bad idea.
   I will need to sort by the value of OUTPUTS.
@@ -21,10 +20,9 @@ from taskontrol.settings import rigsettings
 BUTTON_COLORS = {'on':'red','off':'black'}
 
 class ManualControl(QtGui.QGroupBox):
-    '''
-    Manual control of outputs
-    '''
-
+    """
+    Manual control of outputs.
+    """
     def __init__(self, statemachine, parent=None):
         super(ManualControl, self).__init__(parent)
 
@@ -49,7 +47,9 @@ class ManualControl(QtGui.QGroupBox):
 
 
 class OutputButton(QtGui.QPushButton):
-    '''Single button for manual output'''
+    """
+    Single button for manual output.
+    """
     def __init__(self, statemachine, buttonText, outputIndex, parent=None):
         super(OutputButton, self).__init__(buttonText, parent)
 
@@ -82,9 +82,9 @@ class OutputButton(QtGui.QPushButton):
         self.statemachine.force_output(self.outputIndex,0)
 
 class WaterControl(QtGui.QGroupBox):
-    '''
+    """
     Manual control of water valves
-    '''
+    """
     def __init__(self, statemachine, parent=None):
         super(WaterControl, self).__init__(parent)
         # -- Create graphical objects --
@@ -92,13 +92,56 @@ class WaterControl(QtGui.QGroupBox):
         self.outputButtons = {}
         outputsDict = {'Left':rigsettings.OUTPUTS['leftWater'],
                        'Right':rigsettings.OUTPUTS['rightWater']}
-        for key,value in iter(sorted(outputsDict.iteritems())):
+        for key,value in sorted(outputsDict.items()):
             self.outputButtons[key] = OutputButton(statemachine, key,value)
             self.outputButtons[key].setObjectName('ManualControlButton')
             self.outputButtons[key].setMinimumHeight(80)
             layout.addWidget(self.outputButtons[key])
         self.setLayout(layout)
         self.setTitle('Water control')
+
+
+class TimedButton(QtGui.QPushButton):
+    """
+    Single button for timed activation of output.
+    """
+    def __init__(self, statemachine, buttonText, outputIndex, toggleTime=0.03, parent=None):
+        super(TimedButton, self).__init__(buttonText, parent)
+        self.statemachine = statemachine
+        self.outputIndex = outputIndex
+        self.toggleTime = toggleTime
+        self.clicked.connect(self.start)
+        self.timer = QtCore.QTimer(self)
+
+    def start(self):
+        stylestr = 'QPushButton {{color: {0}; font: bold}}'.format(BUTTON_COLORS['on'])
+        self.setStyleSheet(stylestr)
+        self.statemachine.force_output(self.outputIndex,1)
+        self.timer.singleShot(1e3*self.toggleTime, self.stop) # timer takes interval in ms
+
+    def stop(self):
+        stylestr = ''
+        self.setStyleSheet(stylestr)
+        self.statemachine.force_output(self.outputIndex,0)
+
+class SingleDrop(QtGui.QGroupBox):
+    """
+    Buttons to deliver a small drop of water.
+    """
+    def __init__(self, statemachine, toggleTime=0.03, parent=None):
+        super(SingleDrop, self).__init__(parent)
+        # -- Create graphical objects --
+        layout = QtGui.QHBoxLayout()
+        self.outputButtons = {}
+        outputsDict = {'Left':rigsettings.OUTPUTS['leftWater'],
+                       'Right':rigsettings.OUTPUTS['rightWater']}
+        for key,value in sorted(outputsDict.items()):
+            self.outputButtons[key] = TimedButton(statemachine, key, value, toggleTime=toggleTime)
+            self.outputButtons[key].setObjectName('SingleDropButton')
+            self.outputButtons[key].setMinimumHeight(40)
+            layout.addWidget(self.outputButtons[key])
+        self.setLayout(layout)
+        self.setTitle('Single drop')
 
 
 if __name__ == "__main__":
