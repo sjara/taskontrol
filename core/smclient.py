@@ -65,7 +65,7 @@ opcode = {
     'REPORT_SERIAL_OUTPUTS': 0x1e,
     'ERROR'              : 0xff,
 }
-for k,v in opcode.iteritems():
+for k,v in opcode.items():
     opcode[k]=chr(v)
 
 class StateMachineClient(object):

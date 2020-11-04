@@ -69,7 +69,7 @@ class Container(dict):
         dict.__setitem__(self, paramName, paramInstance)
 
     def print_items(self):
-        for key,item in self.iteritems():
+        for key,item in self.items():
             #print '[%s] %s : %s'%(type(item),key,str(item.get_value()))
             print('[{0}] {1}} : {2}}'.format(type(item),key,str(item.get_value())))
 
@@ -96,7 +96,7 @@ class Container(dict):
         valuesDict is a dictionary of parameters and their values.
         for example: {param1:val1, param2:val2}
         '''
-        for key,val in valuesdict.iteritems():
+        for key,val in valuesdict.items():
             if key in self:
                 if isinstance(self[key],MenuParam):
                     self[key].set_string(val)
@@ -139,7 +139,7 @@ class Container(dict):
         dset = sessionDataGroup.create_dataset('date', data=dateAndTime)
 
         # -- Append all other parameters --
-        for key,item in self.iteritems():
+        for key,item in self.items():
             # -- Store parameters with history --
             if item.history_enabled():
                 #h5file.createDataset(trialDataGroup, key, self.history[key], paramLabel)

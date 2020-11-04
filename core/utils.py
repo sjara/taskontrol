@@ -61,7 +61,7 @@ def append_dict_to_HDF5(h5fileGroup,dictName,dictData,compression=None):
     http://www.h5py.org/docs/topics/special.html
     '''
     dictGroup = h5fileGroup.create_group(dictName)
-    for key,val in dictData.iteritems():
+    for key,val in dictData.items():
         ### if isinstance(val,np.array): dtype = val.dtype
         ### else: dtype = type(val)
         dtype = type(val)
@@ -71,7 +71,7 @@ def append_dict_to_HDF5(h5fileGroup,dictName,dictData,compression=None):
 
 def dict_from_HDF5(dictGroup):
     newDict={}
-    for k,v in dictGroup.iteritems():
+    for k,v in dictGroup.items():
         newDict[k]=v[()]
         newDict[v[()]]=k
     return newDict

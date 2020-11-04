@@ -23,9 +23,9 @@ class Container(dict):
             raise UserWarning('WARNING: No trials have been completed or currentTrial not updated.')
         resultsDataGroup = h5file.require_group('resultsData')
         resultsLabelsGroup = h5file.require_group('resultsLabels')
-        for key,item in self.iteritems():
+        for key,item in self.items():
             dset = resultsDataGroup.create_dataset(key, data=item[:currentTrial])
-        for key,item in self.labels.iteritems():
+        for key,item in self.labels.items():
             # FIXME: Make sure items of self.labels are dictionaries
             utils.append_dict_to_HDF5(resultsLabelsGroup,key,item)
 
