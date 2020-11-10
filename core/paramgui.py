@@ -13,9 +13,7 @@ TODO:
 
 '''
 
-from __future__ import print_function
 from qtpy import QtCore
-#from qtpy import QtGui
 from qtpy import QtWidgets
 import imp
 import numpy as np # To be able to save strings with np.string_()
@@ -70,7 +68,6 @@ class Container(dict):
 
     def print_items(self):
         for key,item in self.items():
-            #print '[%s] %s : %s'%(type(item),key,str(item.get_value()))
             print('[{0}] {1}} : {2}}'.format(type(item),key,str(item.get_value())))
 
     def layout_group(self,groupName):

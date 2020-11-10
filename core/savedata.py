@@ -14,16 +14,6 @@ import sys
 from qtpy import QtWidgets
 from qtpy import QtGui
 from qtpy import QtCore
-'''
-if sys.platform=='darwin':
-    from qtpy import QtWidgets
-    from qtpy import QtGui
-    from qtpy import QtCore
-else:
-    from PySide import QtGui as QtWidgets
-    from PySide import QtGui
-    from PySide import QtCore
-'''
 import subprocess
 #from taskontrol.settings import rigsettings
 

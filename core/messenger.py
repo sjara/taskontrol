@@ -10,14 +10,8 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
 import time
-import sys
 from qtpy import QtCore
-'''
-if sys.platform=='darwin':
-    from qtpy import QtCore
-else:
-    from PySide import QtCore
-'''
+
 
 class Message(object):
     '''

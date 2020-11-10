@@ -103,7 +103,7 @@ class StateMachineClient(object):
                                          timeout=SERIAL_TIMEOUT)
                 portReady = True
             except serial.SerialException:
-                print 'Waiting for Arduino to be ready...'
+                print('Waiting for Arduino to be ready...')
                 time.sleep(1)
         if rigsettings.OS=='ubuntu1404':
             self.ser.setTimeout(1.0)
@@ -114,14 +114,14 @@ class StateMachineClient(object):
         time.sleep(0.4)  # FIXME: why does it need extra time? 0.1 does not work!
         self.ser.write(opcode['CONNECT'])
         while not fsmReady:
-            print 'Establishing connection...'
+            print('Establishing connection...')
             sys.stdout.flush()
             fsmReady = (self.ser.read(1)==opcode['OK'])
         if rigsettings.OS=='ubuntu1404':
             self.ser.setTimeout(SERIAL_TIMEOUT)
         else:
             self.ser.timeout = SERIAL_TIMEOUT
-        print 'Connected!'
+        print('Connected!')
         #self.ser.flushOutput()
     def test_connection(self):
         self.ser.write(opcode['TEST_CONNECTION'])
@@ -130,7 +130,7 @@ class StateMachineClient(object):
             return 'OK'
         else:
             raise IOError('Connection to state machine was lost.')
-            #print 'Connection lost'
+            #print('Connection lost')
     def get_version(self):
         '''Request version number from server.
         Returns: string
@@ -196,7 +196,7 @@ class StateMachineClient(object):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
         for line in sm:
-            print line,
+            print(line, end='')
     def run(self):
         self.ser.write(opcode['RUN'])
     def stop(self):
@@ -304,8 +304,8 @@ class StateMachineClient(object):
         return self.ser.readlines()
     def read(self):
         oneline = self.ser.readlines()
-        #print ''.join(oneline)
-        print oneline
+        #print(''.join(oneline))
+        print(oneline)
     def error_check(self):
         # FIXME: is this implemented correctly? It has not been tested
         status = self.ser.read()
@@ -393,7 +393,7 @@ if __name__ == "__main__":
         #time.sleep(0.1)
         unwantedData = c.readlines()
         if unwantedData:
-            print unwantedData
+            print(unwantedData)
         c.run()
         '''
         '''

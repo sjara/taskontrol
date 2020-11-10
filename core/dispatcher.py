@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
-'''
+"""
 Dispatcher for behavioral paradigm.
 
-It is meant to be the interface between a trial-structured paradigm
+Provides an interface between a trial-structured paradigm
 and the state machine. It will for example halt the state machine
 until the next trial has been prepared and ready to start.
 
@@ -20,10 +18,8 @@ NOTES:
 
 TODO:
 * When the form is destroyed, dispatcher.closeEvent is not called!
-'''
+"""
 
-
-from __future__ import print_function
 import sys
 from qtpy import QtCore
 from qtpy import QtGui
@@ -38,13 +34,11 @@ __version__ = '0.2'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
-
 DEFAULT_PREPARE_NEXT = 0 # State to prepare next trial
 N_INPUTS = len(rigsettings.INPUTS)
 N_OUTPUTS = len(rigsettings.OUTPUTS)
 
 class Dispatcher(QtCore.QObject):
-    #class Dispatcher(QtWidgets.QWidget):
     '''
     Dispatcher is the trial controller. It is an interface between a
     trial-structured paradigm and the state machine.

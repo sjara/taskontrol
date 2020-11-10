@@ -2,7 +2,6 @@
 Extra functions useful at different stages of the paradigm design.
 '''
 
-from __future__ import print_function
 import numpy as np
 
 __version__ = '0.1'

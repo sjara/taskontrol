@@ -29,12 +29,10 @@ mat = [  0,  0,  0,  0,  0,  0,  2  ]
 WRITE DOCUMENTATION ABOUT:
 sm.statesNameToIndex
 self.eventsDict
- ...
 
 '''
 
 
-from __future__ import print_function
 from taskontrol.core import utils
 #from taskontrol.settings import rigsettings
 #reload(rigsettings)
