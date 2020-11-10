@@ -42,7 +42,7 @@ FIXME:
 #define TEST                 0xee
 #define ERROR                0xff
 
-#define VERSION        "0.2"
+#define VERSION        "0.3"
 
 #define MAXNEVENTS 512
 #define MAXNSTATES 256
@@ -170,6 +170,24 @@ void add_event(int thisEventCode) {
 // Read inputs and change state accordingly
 void execute_cycle() {
 
+  // -- Test if the state timer finished --
+  currentTime = millis();
+  if(currentTime-stateTimerValue >= stateTimers[currentState]) {
+    add_event(2*nInputs);
+    stateTimerValue = currentTime; // Restart timer
+  }
+  // FIXME: is this the right way to reset the timer?
+
+  // -- Test if any extra timer finished --
+  for (indt=0; indt < nExtraTimers; indt++) {
+    if (activeExtraTimers[indt]) {
+      if(currentTime-extraTimersValues[indt] >= extraTimers[indt]) {
+        add_event(2*nInputs+1+indt);
+        activeExtraTimers[indt] = false;
+      }
+    }
+  }
+
   // -- Check for any changes in inputs --
   for (indi = 0; indi < nInputs; indi++) {
     previousValue = inputValues[indi];
@@ -185,25 +203,6 @@ void execute_cycle() {
     }
   }
   
-  // -- Test if the state timer finished --
-  currentTime = millis();
-  if(currentTime-stateTimerValue >= stateTimers[currentState]) {
-    add_event(2*nInputs);
-    stateTimerValue = currentTime; // Restart timer
-  }
-  // FIXME: is this the right way to reset the timer?
-
-
-  // -- Test if any extra timer finished --
-  for (indt=0; indt < nExtraTimers; indt++) {
-    if (activeExtraTimers[indt]) {
-      if(currentTime-extraTimersValues[indt] >= extraTimers[indt]) {
-	add_event(2*nInputs+1+indt);
-	activeExtraTimers[indt] = false;
-      }
-    }
-  }
-
   // -- Update state machine given last events --
   previousState = currentState;
   update_state_machine();    // Updates currentState
