@@ -15,7 +15,7 @@ __created__ = '2012-08-27'
 import sys
 from qtpy import QtWidgets as QtGui
 from qtpy import QtCore
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 

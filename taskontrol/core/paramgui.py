@@ -21,8 +21,8 @@ import signal
 import sys
 import socket
 import time
-from taskontrol.core import utils
-from taskontrol.settings import rigsettings
+from . import utils
+from .. import rigsettings
 
 __version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'

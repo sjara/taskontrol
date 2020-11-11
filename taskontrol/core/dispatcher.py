@@ -25,7 +25,7 @@ from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets
 import numpy as np
-from taskontrol.settings import rigsettings
+from .. import rigsettings
 #from taskontrol.core import messenger
 #from taskontrol.core import smclient
 #reload(smclient)

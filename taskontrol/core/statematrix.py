@@ -33,7 +33,7 @@ self.eventsDict
 '''
 
 
-from taskontrol.core import utils
+from . import utils
 #from taskontrol.settings import rigsettings
 #reload(rigsettings)
 

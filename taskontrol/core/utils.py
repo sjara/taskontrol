@@ -20,6 +20,7 @@ def find_state_sequence(states,stateSequence):
         sequenceStartInd.append(val)
     return np.array(sequenceStartInd)
 
+
 def find_transition(states,prevStateID,nextStateID):
     '''
     Return an array with the indexes of transitions from origEvent to destEvent
@@ -33,6 +34,7 @@ def find_transition(states,prevStateID,nextStateID):
     nextStateInds = (states==nextStateID)
     transitionInds = np.flatnonzero(prevStateInds & nextStateInds)
     return transitionInds
+
 
 def find_event(events,states,eventID,currentStateID):
     '''

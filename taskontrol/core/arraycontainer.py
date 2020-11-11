@@ -9,7 +9,7 @@ __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 
-from taskontrol.core import utils
+from . import utils
 
 
 class Container(dict):

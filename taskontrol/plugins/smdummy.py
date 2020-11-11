@@ -1,12 +1,7 @@
-#!/usr/bin/env python
-
-'''
+"""
 State machine client dummy.
+"""
 
-TO DO:
-'''
-
-from __future__ import print_function
 import time
 import numpy as np
 import datetime

@@ -1,14 +1,9 @@
-#!/usr/bin/env python
-
-'''
+"""
 State machine client emulator.
 
 TO DO:
 - Separate GUI from Model by using signals and slots.
-
-
-'''
-from __future__ import print_function
+"""
 
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-09-23'
@@ -18,7 +13,7 @@ import numpy as np
 import datetime
 from qtpy import QtCore
 from qtpy import QtWidgets
-from ..settings import rigsettings
+from .. import rigsettings
 
 MAXNEVENTS = 512
 MAXNSTATES = 256

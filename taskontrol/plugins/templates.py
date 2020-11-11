@@ -18,7 +18,7 @@ if sys.platform=='darwin':
 else:
     from PySide import QtGui
     from PySide import QtCore
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
 from taskontrol.core import savedata

@@ -31,7 +31,7 @@ else:
     from PySide import QtCore
 '''
 from taskontrol.core import messenger
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 import pyo
 import signal
 import time

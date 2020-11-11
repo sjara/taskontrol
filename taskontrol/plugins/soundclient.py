@@ -28,19 +28,17 @@ time.sleep(1)
 __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
-from taskontrol.settings import rigsettings
-
+import os
+import sys
+import time
 import pyo
 import threading
-import sys
+import numpy as np
 if sys.platform=='darwin':
     pass
 else:
     import serial
-import time
-import os
-from taskontrol.settings import rigsettings
-import numpy as np
+from .. import rigsettings
 
 #from Pyro.ext import remote_nons
 #import Pyro.errors
