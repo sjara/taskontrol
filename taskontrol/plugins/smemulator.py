@@ -11,6 +11,8 @@ __created__ = '2013-09-23'
 import time
 import numpy as np
 import datetime
+import os
+import tempfile
 from qtpy import QtCore
 from qtpy import QtWidgets
 from .. import rigsettings
@@ -23,6 +25,8 @@ MAXNOUTPUTS = 16
 MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
 VERBOSE = rigsettings.EMULATOR_VERBOSE
+
+TEMPDIR = tempfile.gettempdir()
 
 #buttonsStrings = ['C','L','R','W']
 buttonsStrings = len(rigsettings.INPUTS)*[None]
@@ -354,7 +358,7 @@ class StateMachineClient(QtCore.QObject):
         self.emulate_serial_output()
 
     def emulate_serial_output(self):
-        f=open('/tmp/serialoutput.txt','w')
+        f=open(os.path.join(TEMPDIR,'serialoutput.txt'),'w')
         f.write(str(self.serialout))
         f.close()
 
