@@ -1,23 +1,14 @@
-'''
-Default paradigm.
+"""
+Templates for standard paradigms.
 
-Provides the basics:
-self.params: paramgui.Container()
-self.sm: statematrix.StateMatrix(
-
-
-'''
-
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
+NOTE: while using templates has the advantage of having to write less code
+      for your paradigm, it obscures some of the methods and attributes,
+      so make sure you check your template before using it.
+"""
 
 import sys
-if sys.platform=='darwin':
-    from qtpy import QtWidgets as QtGui
-    from qtpy import QtCore
-else:
-    from PySide import QtGui
-    from PySide import QtCore
+from qtpy import QtWidgets
+from qtpy import QtCore
 from taskontrol import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
@@ -29,13 +20,13 @@ from taskontrol.plugins import manualcontrol
 from taskontrol.plugins import sidesplot
 
 
-class ParadigmTest(QtGui.QMainWindow):
+class ParadigmTest(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(ParadigmTest, self).__init__(parent)
         self.myvar=0
 
 
-class ParadigmMinimal(QtGui.QMainWindow):
+class ParadigmMinimal(QtWidgets.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(ParadigmMinimal, self).__init__(parent)
 
@@ -52,8 +43,8 @@ class ParadigmMinimal(QtGui.QMainWindow):
         self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
 
         # -- Add graphical widgets to main window --
-        self.centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QVBoxLayout()
+        self.centralWidget = QtWidgets.QWidget()
+        layoutMain = QtWidgets.QVBoxLayout()
         layoutMain.addWidget(self.dispatcherView)
 
         self.centralWidget.setLayout(layoutMain)
@@ -69,12 +60,12 @@ class ParadigmMinimal(QtGui.QMainWindow):
         pass
 
     def closeEvent(self, event):
-        '''Executed when closing the main window. Inherited from QtGui.QMainWindow.'''
+        '''Executed when closing the main window. Inherited from QtWidgets.QMainWindow.'''
         self.dispatcherModel.die()
         event.accept()
 
 
-class Paradigm2AFC(QtGui.QMainWindow):
+class Paradigm2AFC(QtWidgets.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm2AFC, self).__init__(parent)
 
@@ -116,12 +107,12 @@ class Paradigm2AFC(QtGui.QMainWindow):
         self.manualControl = manualcontrol.ManualControl(self.dispatcherModel.statemachine)
 
         # -- Add graphical widgets to main window --
-        self.centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QVBoxLayout()
-        layoutTop = QtGui.QVBoxLayout()
-        layoutBottom = QtGui.QHBoxLayout()
-        layoutCol1 = QtGui.QVBoxLayout()
-        layoutCol2 = QtGui.QVBoxLayout()
+        self.centralWidget = QtWidgets.QWidget()
+        layoutMain = QtWidgets.QVBoxLayout()
+        layoutTop = QtWidgets.QVBoxLayout()
+        layoutBottom = QtWidgets.QHBoxLayout()
+        layoutCol1 = QtWidgets.QVBoxLayout()
+        layoutCol2 = QtWidgets.QVBoxLayout()
 
 
         layoutMain.addLayout(layoutTop)
@@ -175,7 +166,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
 
     def _center_in_screen(self):
         qr = self.frameGeometry()
-        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -200,7 +191,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
     def closeEvent(self, event):
         '''
         Executed when closing the main window.
-        This method is inherited from QtGui.QMainWindow, which explains
+        This method is inherited from QtWidgets.QMainWindow, which explains
         its camelCase naming.
         '''
         #print 'ENTERED closeEvent()' # DEBUG
@@ -215,7 +206,7 @@ class Paradigm2AFC(QtGui.QMainWindow):
 '''
 
 
-class ParadigmGoNoGo(QtGui.QMainWindow):
+class ParadigmGoNoGo(QtWidgets.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(ParadigmGoNoGo, self).__init__(parent)
 
@@ -254,12 +245,12 @@ class ParadigmGoNoGo(QtGui.QMainWindow):
         self.manualControl = manualcontrol.ManualControl(self.dispatcherModel.statemachine)
 
         # -- Add graphical widgets to main window --
-        self.centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QVBoxLayout()
-        layoutTop = QtGui.QVBoxLayout()
-        layoutBottom = QtGui.QHBoxLayout()
-        layoutCol1 = QtGui.QVBoxLayout()
-        layoutCol2 = QtGui.QVBoxLayout()
+        self.centralWidget = QtWidgets.QWidget()
+        layoutMain = QtWidgets.QVBoxLayout()
+        layoutTop = QtWidgets.QVBoxLayout()
+        layoutBottom = QtWidgets.QHBoxLayout()
+        layoutCol1 = QtWidgets.QVBoxLayout()
+        layoutCol2 = QtWidgets.QVBoxLayout()
 
 
         layoutMain.addLayout(layoutTop)
@@ -313,7 +304,7 @@ class ParadigmGoNoGo(QtGui.QMainWindow):
 
     def _center_in_screen(self):
         qr = self.frameGeometry()
-        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
@@ -335,7 +326,7 @@ class ParadigmGoNoGo(QtGui.QMainWindow):
     def closeEvent(self, event):
         '''
         Executed when closing the main window.
-        This method is inherited from QtGui.QMainWindow, which explains
+        This method is inherited from QtWidgets.QMainWindow, which explains
         its camelCase naming.
         '''
         #print 'ENTERED closeEvent()' # DEBUG
