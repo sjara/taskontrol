@@ -1,23 +1,16 @@
 #!/usr/bin/env python
-
-'''
+"""
 This example shows how to control the state matrix from a graphical interface.
 It uses the module 'dispatcher' to provide an interface for starting
 and stopping the state machine.
-'''
+"""
 
 import sys
-sys.path.append('/home/sjara/src')
-
 from qtpy import QtCore
 from qtpy import QtWidgets
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 from taskontrol.core import dispatcher
 import signal
-
-__author__ = 'Santiago Jaramillo <jara@cshl.edu>'
-__created__ = '2013-03-17'
-
 
 # -- Create main window --
 signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C (to close window)
@@ -37,8 +30,9 @@ stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1 ] ,
 stateOutputs = [[0,0], [1,0], [0,1]]
 serialOutputs = None
 stateTimers  = [  0.1,    0.5 ,    2.0  ]
-# Here we use _set_state_matrix to load the matrix as a python list,
-# other methods are used when taking advantage of StateMatrix objects.
+# NOTE: For this example we use _set_state_matrix() to set the matrix from a python list.
+#       However, the usual way to set this matrix uses instead a statematrix.StateMatrix
+#       object, discussed in the next examples.
 dispatcherModel._set_state_matrix(stateMatrix, stateOutputs, serialOutputs, stateTimers)
 
 # -- Create dispatcher GUI and connect signals --

@@ -1,27 +1,23 @@
 #!/usr/bin/env python
-
-'''
+"""
 This example shows how to use extra-timers with the statematrix module.
 
 The time for each extra-timer is created before the state matrix.
 Then, one can set which state will trigger the start of the timer.
 When the extra-timer is up, it will generate an event that can be used in any state.
-'''
-
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
+"""
 
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
-from taskontrol.settings import rigsettings
+from qtpy import QtCore
+from qtpy import QtWidgets
+from taskontrol import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
 from taskontrol.core import paramgui
 import signal
 
 
-class Paradigm(QtGui.QMainWindow):
+class Paradigm(QtWidgets.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(Paradigm, self).__init__(parent)
 
@@ -45,10 +41,10 @@ class Paradigm(QtGui.QMainWindow):
         timingParams = self.params.layout_group('Timing Parameters')
 
         # -- Add graphical widgets to main window --
-        centralWidget = QtGui.QWidget()
-        layoutMain = QtGui.QHBoxLayout()
+        centralWidget = QtWidgets.QWidget()
+        layoutMain = QtWidgets.QHBoxLayout()
         layoutMain.addWidget(self.dispatcherView)
-        layoutOneColumn = QtGui.QVBoxLayout()
+        layoutOneColumn = QtWidgets.QVBoxLayout()
         layoutOneColumn.addWidget(timingParams)
         layoutOneColumn.addStretch()
         layoutMain.addLayout(layoutOneColumn)
@@ -91,37 +87,35 @@ class Paradigm(QtGui.QMainWindow):
         self.sm.add_state(name='end_train', statetimer=trainOff,
                           transitions={'Tup':'ready_next_trial'},
                           outputsOff=['centerLED'])
-        print self.sm
+        print(self.sm)
 
         self.dispatcherModel.set_state_matrix(self.sm)
 
 
     def prepare_next_trial(self, nextTrial):
-        print '\nPrepare trial %d'%nextTrial
+        print('\nPrepare trial {}'.format(nextTrial))
         self.set_state_matrix()
         # -- Show results from previous trial --
         lastEvents = self.dispatcherModel.eventsMat[-14:-1]
-        print 'Last 14 events:'
+        print('Last 14 events:')
         for oneEvent in lastEvents:
-            print '%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
+            print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
         self.dispatcherModel.ready_to_start_trial()
 
 
     def start_new_trial(self, currentTrial):
-        print '\n======== Started trial %d ======== '%currentTrial
+        print('\n======== Started trial {} ========'.format(currentTrial))
 
 
     def timer_tic(self,etime,lastEvents):
-        print '.',
-        sys.stdout.flush() # Force printing on the screen at this point
+        print('.', end='', flush=True)
 
-
+        
     def closeEvent(self, event):
-        '''
-        Executed when closing the main window.
-        This method is inherited from QtGui.QMainWindow, which explains
-        its camelCase naming.
-        '''
+        """
+        Executed when closing the main window. This method is inherited
+        from QtWidgets.QMainWindow, which explains its camelCase name.
+        """
         self.dispatcherModel.die()
         event.accept()
 

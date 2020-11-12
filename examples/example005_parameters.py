@@ -1,24 +1,17 @@
 #!/usr/bin/env python
-
-'''
+"""
 This example shows how to add parameters to a paradigm.
 The example also shows how to use methods from paramgui to run the application.
-'''
+"""
 
-from __future__ import print_function
 import sys
-sys.path.append('/home/sjara/src')
-
 from qtpy import QtCore
 from qtpy import QtWidgets
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 from taskontrol.core import dispatcher
 from taskontrol.core import statematrix
 from taskontrol.core import paramgui
 import signal
-
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-__created__ = '2013-03-18'
 
 
 class Paradigm(QtWidgets.QMainWindow):
@@ -92,26 +85,23 @@ class Paradigm(QtWidgets.QMainWindow):
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
         print('Last 10 events:')
         for oneEvent in lastTenEvents:
-            #print'%0.3f\t %d\t %d'%(oneEvent[0],oneEvent[1],oneEvent[2])
-            print('{0:0.3f}\t {1}\t {2}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
+            print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
         self.dispatcherModel.ready_to_start_trial()
 
 
     def start_new_trial(self, currentTrial):
-        print('\n======== Started trial {} ======== '.format(currentTrial))
+        print('\n======== Started trial {} ========'.format(currentTrial))
 
 
     def timer_tic(self,etime,lastEvents):
-        print('.', end='')
-        sys.stdout.flush() # Force printing on the screen at this point
+        print('.', end='', flush=True)
 
 
     def closeEvent(self, event):
-        '''
-        Executed when closing the main window.
-        This method is inherited from QtWidgets.QMainWindow, which explains
-        its camelCase naming.
-        '''
+        """
+        Executed when closing the main window. This method is inherited
+        from QtWidgets.QMainWindow, which explains its camelCase name.
+        """
         self.dispatcherModel.die()
         event.accept()
 

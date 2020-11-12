@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-'''
+"""
 Run a simple state matrix with extra timers.
 It has three states:
 - State0: does nothing, jumps to State1 in 100ms.
@@ -8,16 +7,15 @@ It has three states:
           From here ExtraTimer0 will force a transition to State2.
 - State2: turns light off.
           From here ExtraTimer1 will force a transition to State0.
-'''
 
-__author__ = 'Santiago Jaramillo'
-__created__ = '2013-04-04'
+NOTE: this example will not work on emulator mode.
+"""
 
 from taskontrol.core import smclient
 import numpy as np
 
-nInputs = 3  # Inputs: C,L,R
-nOutputs = 3 # Outputs
+nInputs = 3  # Inputs: see INPUTS in settings/rigsettings,py
+nOutputs = 3 # Outputs: see OUTPUTS in settings/rigsettings,py
 nExtraTimers = 2  # Two extra timers
 
 #                Ci  Co  Li  Lo  Ri  Ro  Tup  eT0 eT1
@@ -43,8 +41,8 @@ sm.set_extra_triggers(triggerStateEachExtraTimer)
 
 sm.run()
 
-print('To stop state transitions, type: sm.stop()')
-print('To close the client, type: sm.close()')
+print('If running in interactive mode you can:')
+print(' Stop state transitions by typing: sm.stop()')
+print(' Close the client by typing: sm.close()')
 
-#import sys; sys.exit()
 
