@@ -183,6 +183,7 @@ class StateMachineClient(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.execute_cycle)
 
+        self.fakeSerial = open(os.path.join(TEMPDIR,'serialoutput.txt'),'w')
         self.emuGUI = EmulatorGUI()
 
     def send_reset(self):
@@ -297,6 +298,7 @@ class StateMachineClient(QtCore.QObject):
         if VERBOSE:
             print('EMULATOR: Close.')
         self.emuGUI.close()
+        self.fakeSerial.close()
 
     def add_event(self,thisEventCode):
         self.eventsTime[self.nEvents] = self.get_time()
@@ -355,12 +357,12 @@ class StateMachineClient(QtCore.QObject):
         self.outputs = self.stateOutputs[currentState,:]
         self.emuGUI.set_outputs(self.outputs)
         self.serialout = self.serialOutputs[currentState]
-        self.emulate_serial_output()
+        self.emulate_serial_output(self.serialout)
 
-    def emulate_serial_output(self):
-        f=open(os.path.join(TEMPDIR,'serialoutput.txt'),'w')
-        f.write(str(self.serialout))
-        f.close()
+    def emulate_serial_output(self, serialout):
+        if serialout:
+            self.fakeSerial.write(str(serialout))
+            self.fakeSerial.flush()
 
     def update_state_machine(self):
         while(self.eventsToProcess>0):
