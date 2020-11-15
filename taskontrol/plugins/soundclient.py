@@ -1,53 +1,70 @@
-#!/usr/bin/env python
+"""
+Plugin for presenting sounds (by communicating with a sound server).
 
-'''
-Plugin for presenting sounds (by communicating with sound server).
+You can choose what sound server to use by changing rigsettings.py.
+The available servers are:
+1. pyo (which uses jack)
+2. pygame (this is useful when using taskontrol on emulator mode)
+3. jack (this uses jackclient directly)
 
-It needs jackd to be running. In Ubuntu 12.04 you can run it with:
+To use pyo or jack with low latency, you need to have jackd running.
+In Ubuntu you can jackd with:
 pasuspender -- /usr/bin/jackd -r -dalsa -dhw:STX -r192000 -p512 -n2
- or
+
+where STX is the name of the soundcard. Usually STX or DX.
+"""
+
+"""
+Other options are:
 pasuspender -- /usr/bin/jackd -r -dalsa -dhw:0 -r41000 -p512 -n2
 pasuspender -- /usr/bin/jackd -R -dalsa -dhw:M2496 -r96000 -p128 -n2
 
+You may want to test the sound first. 
 
-You may want to test the sound first:
-
-Without jack, you can test with:
+- Without jack, you can test with:
 speaker-test -r 41000 -t sine -f 8000
 
-And test pyo:
+- And test pyo:
 import pyo
 import time
 s = pyo.Server(audio='jack').boot()
 s.start()
 soundObj = pyo.Sine(freq=90000,mul=0.1).mix(2).out(dur=1)
 time.sleep(1)
-
-'''
-
-__version__ = '0.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+"""
 
 import os
 import sys
 import time
-import pyo
 import threading
 import numpy as np
-if sys.platform=='darwin':
-    pass
+import tempfile
+import serial
+#from .. import rigsettings
+from taskontrol import rigsettings
+if rigsettings.SOUND_SERVER=='jack':
+    import jack
+elif rigsettings.SOUND_SERVER=='pygame':
+    import pygame
+elif rigsettings.SOUND_SERVER=='pyo':
+    from taskontrol.plugins import soundserverpyo
 else:
-    import serial
-from .. import rigsettings
+    raise("'{}' if not a valid sound server type.".format(rigsettings.SOUND_SERVER))
 
-#from Pyro.ext import remote_nons
-#import Pyro.errors
+############ FIX THIS AT THE END (once other servers are implemented ##############
+if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
+    SERIALTRIGGER = True
+elif rigsettings.STATE_MACHINE_TYPE=='emulator':
+    #from taskontrol.plugins import smemulator
+    SERIALTRIGGER = False
+else:
+    raise ValueError('STATE_MACHINE_TYPE not recognized.')
 
-#PYRO_PORT=rigsettings.SOUND_SERVER_PYRO_PORT
 
 # NOTE: all parameters for the sound server (sampling rate, etc)
 #       are defined in the script that runs jackd, not on this file.
 
+#SOUND_SERVER = rigsettings.SOUND_SERVER
 SERIAL_PORT_PATH= rigsettings.SOUND_TRIGGER_PORT
 SERIAL_BAUD_RATE = 115200  # Should be the same in statemachine.ino
 SERIAL_TIMEOUT = 0.1 #None
@@ -60,19 +77,14 @@ REALTIME = rigsettings.SOUND_SERVER['realtime']
 '''
 
 MAX_NSOUNDS = 128 # According to the serial protocol.
+STOP_ALL_SOUNDS = 128  # SoundID to stop all sounds
 
-SYNC_SIGNAL_FREQUENCY=500.0
+RISETIME = 0.002
+FALLTIME = 0.002
 
-if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
-    USEJACK = True
-    SERIALTRIGGER = True
-else:
-    USEJACK = False
-    SERIALTRIGGER = False
+randomGen = np.random.default_rng()
 
-STOP_ALL_SOUNDS = 128
-
-# -- Set computer's sound level --
+# -- Set computer's sound level (for Linux only) --
 if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
     if baseVol is not None:
@@ -82,28 +94,117 @@ if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
         #os.system('amixer -c 1 set Master {0}% > /dev/null'.format(baseVol))
         print('Set sound volume to {0}%'.format(baseVol))
 
+
+def apply_rise_fall(waveform, samplingRate, riseTime, fallTime):
+    nSamplesRise = round(samplingRate * riseTime)
+    nSamplesFall = round(samplingRate * fallTime)
+    riseVec = np.linspace(0, 1, nSamplesRise)
+    fallVec = np.linspace(1, 0, nSamplesFall)
+    newWaveform = waveform.copy()
+    newWaveform[:nSamplesRise] *= riseVec
+    newWaveform[-nSamplesRise:] *= fallVec
+    return newWaveform
+
+
+def create_soundwave(soundParams, samplingRate=44100, nChannels=2,
+                     risetime=RISETIME, falltime=FALLTIME):
+        timeVec = np.arange(0, soundParams['duration'], 1/samplingRate)
+        if isinstance(soundParams['amplitude'],list) or \
+           isinstance(soundParams['amplitude'],np.ndarray):
+            soundAmp = np.array(soundParams['amplitude'])
+        else:
+            soundAmp = np.tile(soundParams['amplitude'], nChannels)
+        if soundParams['type']=='tone':
+            soundWave = np.sin(2*np.pi*soundParams['frequency']*timeVec)
+        elif soundParams['type']=='chord':
+            freqEachComp = np.logspace(np.log10(soundParams['frequency']/soundParams['factor']),
+                                       np.log10(soundParams['frequency']*soundParams['factor']),
+                                       soundParams['ntones'])
+            soundWave = np.zeros(len(timeVec))
+            for indcomp, freqThisComp in enumerate(freqEachComp):
+                soundWave += np.sin(2*np.pi*freqThisComp*timeVec)
+        elif soundParams['type']=='noise':
+            soundWave = randomGen.uniform(-1,1,len(timeVec))
+        elif soundParams['type']=='AM':
+            modFactor = soundParams['modDepth']/100.0 if 'modDepth' in soundParams else 1.0
+            multTerm = modFactor*0.5
+            addTerm = (1-modFactor*0.5)
+            modFreq = soundParams['modFrequency']
+            envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
+            carrier = randomGen.uniform(-1,1,len(timeVec))
+            soundWave = envelope*carrier
+        elif soundParams['type']=='fromfile':
+            pass
+        soundWave = apply_rise_fall(soundWave, samplingRate, risetime, falltime)
+        soundWave = soundAmp[:,np.newaxis] * np.tile(soundWave,(nChannels,1))
+        return timeVec,soundWave
+
+
+class SoundServerPygame(object):
+    def __init__(self, risetime=RISETIME, falltime=FALLTIME):
+        self.riseTime = risetime
+        self.fallTime = falltime
+        self.samplingRate = 44100
+        self.nChannels = 2  # As of 2020-11-14, it only works for 2 channels
+        self.bufferSize = 4*512
+        pygame.mixer.init(self.samplingRate, size=-16,
+                          channels=self.nChannels, buffer=self.bufferSize)
+        
+    def to_signed_int16(self, waveform):
+        return (waveform*32767).astype(np.int16)
+    
+    def create_sound(self, soundParams):
+        timeVec, soundWave = create_soundwave(soundParams, self.samplingRate,
+                                              self.nChannels, self.riseTime, self.fallTime)
+        # NOTE: pygame requires C-contiguous arrays of size [nSamples,nChannels]
+        soundWave = np.ascontiguousarray(soundWave.T)
+        #soundWave = soundAmp * np.ascontiguousarray(np.tile(soundWave,(self.nChannels,1)).T)
+        #soundWave = self.apply_rise_fall(soundWave)
+        soundObj = pygame.sndarray.make_sound(self.to_signed_int16(soundWave))
+        return soundObj, soundWave
+    
+    def play_sound(self, soundObj, soundWave):
+        soundObj.play()
+        
+    def stop_sound(self, soundObj):
+        soundObj.stop()
+
+
 class SoundPlayer(threading.Thread):
-    def __init__(self,serialtrigger=True):
+    def __init__(self, servertype, serialtrigger=True):
+        """
+        servertype (str): 'jack', 'pygame', 'pyo'
+        """
         threading.Thread.__init__(self)
         self.serialtrigger = serialtrigger
-        self.pyoServer = None
         self.ser = None
         self._stop = threading.Event()
         self._done = threading.Event()
+        self.soundServerType = servertype
 
-        self.init_pyo()
+        if self.soundServerType=='pygame':
+            self.soundServer = SoundServerPygame()
+        elif self.soundServerType=='pyo':
+            USEJACK = rigsettings.STATE_MACHINE_TYPE!='emulator'
+            self.soundServer = soundserverpyo.SoundServerPyo(RISETIME, FALLTIME, USEJACK)
+        else:
+            raise ValueError('Sound server type not recognized.')
+
+        # -- Set sync channel --
+        if rigsettings.SOUND_SYNC_CHANNEL is not None:
+            self.soundServer.set_sync(rigsettings.SOUND_SYNC_CHANNEL,
+                                      rigsettings.SOUND_SYNC_AMPLITUDE,
+                                      rigsettings.SOUND_SYNC_FREQUENCY)
+        
         if self.serialtrigger:
             self.init_serial()
-
-        self.sounds = MAX_NSOUNDS*[None]     # List of objects like pyo.Fader()
-        self.soundwaves = MAX_NSOUNDS*[None] # List of objects like pyo.Sine()
-
-        self.risetime = 0.002
-        self.falltime = 0.002
+        
+        self.sounds = MAX_NSOUNDS*[None]     # List of sound objects like pyo.Fader()
+        self.soundwaves = MAX_NSOUNDS*[None] # List of waveforms like pyo.Sine()
 
         # Dictionary with sound parameters. Each key is one soundID.
         self.soundsParamsDict = {}
-
+        
     def run(self):
         '''Execute thread'''
         if self.serialtrigger:
@@ -116,43 +217,31 @@ class SoundPlayer(threading.Thread):
                     else:
                         self.play_sound(soundID)
         else:
-            '''Emulated mode'''
+            '''Fake serial mode'''
+            tempDir = tempfile.gettempdir()
+            fakeSerial = open(os.path.join(tempDir,'serialoutput.txt'), 'r')
             while not self.stopped():
-                try:
-                    f=open('/tmp/serialoutput.txt','r')
-                    oneval = f.read()
-                    if len(oneval):
-                        soundID = int(oneval)
-                    if soundID==STOP_ALL_SOUNDS:
-                        self.stop_all()
-                    else:
-                        self.play_sound(soundID)
-                except:
-                    pass
+                oneval = fakeSerial.read()
+                time.sleep(0.01)
+                if len(oneval):
+                    soundID = int(oneval)
+                    try:
+                        if soundID==STOP_ALL_SOUNDS:
+                            self.stop_all()
+                        else:
+                            self.play_sound(soundID)
+                    except Exception as exc:
+                        print('[soundclient.py] An error occurred while '+\
+                              'playing sounds. {}'.format(exc))
+            if fakeSerial:
+                fakeSerial.close()
         self._done.set()
-
-    def init_pyo(self):
-        # -- Initialize sound generator (pyo) --
-        print('Creating pyo server.')
-        if USEJACK:
-            self.pyoServer = pyo.Server(audio='jack').boot()
-        else:
-            self.pyoServer = pyo.Server(audio='offline').boot()
-            self.pyoServer.recordOptions(dur=0.1, filename='/tmp/tempsound.wav',
-                                         fileformat=0, sampletype=0)
-        '''
-        self.pyoServer = pyo.Server(sr=SAMPLING_RATE, nchnls=N_CHANNELS,
-                                    buffersize=BUFFER_SIZE,
-                                    duplex=0, audio='jack').boot()
-        '''
-        self.pyoServer.start()
-        print('Pyo server ready')
 
     def init_serial(self):
         print('Connecting to serial port')
         self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD_RATE, timeout=SERIAL_TIMEOUT)
 
-    def set_sound(self,soundID,soundParams):
+    def set_sound(self, soundID, soundParams):
         '''
         soundParams is a dictionary that defines a sound, for example
         {'type':'tone', 'frequency':200, 'duration':0.2, 'amplitude':0.1}
@@ -160,214 +249,21 @@ class SoundPlayer(threading.Thread):
         channel can be 'left', 'right', 'both'
         '''
         self.soundsParamsDict[soundID] = soundParams
-        (self.sounds[soundID],self.soundwaves[soundID]) = \
+        (self.sounds[soundID] ,self.soundwaves[soundID]) = \
             self.create_sound(self.soundsParamsDict[soundID])
-        ###soundutils.create_sound(self.soundsParamsDict[soundID])
 
-    def create_sound(self,soundParams):
-        '''
-        NOTE: This methods needs to return both the soundObj and soundwaveObj to be able to
-        play the sound form elsewhere. If soundwaveObj is not returned, it will not exist
-        outside this scope, and the pyo server plays nothing on soundObj.play()
-
-        Args:
-            soundParams (dict): A dictionary of sound parameters.
-
-        Returns:
-            soundObj (pyo.PyoObject): pyo object with .play() method (usually pyo.Fader)
-            soundWaveObjs (list): List of all pyo soundwave objects needed to produce the sound
-        '''
-        soundWaveObjs = []
-        if isinstance(soundParams['amplitude'],list) or isinstance(soundParams['amplitude'],np.ndarray):
-            soundAmp = list(soundParams['amplitude'])
-        else:
-            soundAmp = 2*[soundParams['amplitude']]
-            
-        risetime = soundParams.setdefault('fadein',self.risetime)
-        falltime = soundParams.setdefault('fadeout',self.falltime)
+    def create_sound(self, soundParams):
+        (soundObj, soundWaveObj) =  self.soundServer.create_sound(soundParams)
+        return (soundObj, soundWaveObj)
         
-        # -- Setup sound synchronization signal ---
-        syncChan = rigsettings.SOUND_SYNC_CHANNEL
-        if syncChan is not None:
-            #Add the sync signal to the list of soundWaveObjs
-            soundAmp[syncChan]=0 #Silence all other sounds in the sync channel
-        # -- Define sound according to type --
-        if soundParams['type']=='tone':
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            soundWaveObjs.append(pyo.Sine(freq=float(soundParams['frequency']),
-                                    mul=soundObj*soundAmp).out())
-        elif soundParams['type']=='chord':
-            nTones = soundParams['ntones']  # Number of components in chord
-            factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
-            centerFreq = soundParams['frequency']
-            freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones)
-            soundObj = pyo.Fader(fadein=risetime, fadeout=falltime,
-                                 dur=soundParams['duration'])
-            for indcomp in range(nTones):
-                #soundwaveObjs.append(pyo.Sine(freq=freqEachComp[indcomp],
-                #                              mul=soundObj).mix(2).out())
-                soundWaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
-                                              mul=soundObj*soundAmp).out())
-        elif soundParams['type']=='noise':
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            #soundwaveObj = pyo.Noise(mul=soundObj).mix(2).out()
-            soundWaveObjs.append(pyo.Noise(mul=soundAmp*soundObj).out())
-        elif soundParams['type']=='AM':
-            if 'modDepth' in soundParams:
-                modFactor = soundParams['modDepth']/100.0
-            else:
-                modFactor = 1.0
-            if isinstance(soundAmp, list):
-                multTerm = [(modFactor*0.5)*x for x in soundAmp]
-                addTerm = [(1-modFactor*0.5)*x for x in soundAmp]
-            else:
-                multTerm = (modFactor*0.5) * soundAmp
-                addTerm = (1-modFactor*0.5) * soundAmp
-            envelope = pyo.Sine(freq=soundParams['modFrequency'],
-                                mul=multTerm,
-                                add=addTerm, phase=0.75)
-            # -- Test code --
-            # y = np.sin(0.1*np.arange(200))
-            #  m=.2; plot(3*m*0.5*y + 3*(1-(m*0.5))); ylim([-4,4]); grid(1)
-            '''
-            if isinstance(soundAmp, list):
-                halfAmp = [0.5*x for x in soundAmp]
-            else:
-                halfAmp = 0.5*soundAmp
-            envelope = pyo.Sine(freq=soundParams['modFrequency'],
-                                mul=halfAmp,
-                                add=halfAmp,phase=0.75)
-            '''
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            soundWaveObjs.append(envelope)
-            soundWaveObjs.append(pyo.Noise(mul=soundObj*envelope).out())
-            '''
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'], mul=soundAmp)
-            envelope = pyo.Sine(freq=soundParams['modFrequency'],mul=soundObj,add=soundAmp,phase=0)
-            soundwaveObj = pyo.Noise(mul=envelope).out()
-            return(soundObj,[envelope,soundwaveObj])
-            '''
-        elif soundParams['type']=='tone_AM':
-            if isinstance(soundAmp, list):
-                halfAmp = [0.5*x for x in soundAmp]
-            else:
-                halfAmp = 0.5*soundAmp
-            nTones = soundParams['ntones']  # Number of components in harmonic
-            factor = soundParams['factor']  # Components will be in range [f/factor, f*factor]
-            centerFreq = soundParams['frequency']
-            freqEachComp = np.logspace(np.log10(centerFreq/factor),np.log10(centerFreq*factor),nTones) if nTones>1 else [centerFreq]
-            envelope = pyo.Sine(freq=soundParams['modRate'],
-                                mul=halfAmp,
-                                add=halfAmp,phase=0.75)
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            soundWaveObjs.append(envelope)
-            for indcomp in range(nTones):
-                soundWaveObjs.append(pyo.Sine(freq=float(freqEachComp[indcomp]),
-                                              mul=soundObj*envelope).out())
-        elif soundParams['type']=='band':
-            frequency = soundParams['frequency']
-            octaves = soundParams['octaves']
-            freqhigh = frequency * np.power(2, octaves/2)
-            freqlow = frequency / np.power(2, octaves/2)
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            freqcent = float((freqhigh + freqlow)/2)
-            bandwidth = float(freqhigh - freqlow)
-            n = pyo.Noise(mul=soundObj*soundAmp)
-            soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
-        elif soundParams['type']=='band_AM':
-            if isinstance(soundAmp, list):
-                halfAmp = [0.5*x for x in soundAmp]
-            else:
-                halfAmp = 0.5*soundAmp
-            frequency = soundParams['frequency']
-            octaves = soundParams['octaves']
-            freqhigh = frequency * np.power(2, octaves/2)
-            freqlow = frequency / np.power(2, octaves/2)
-            envelope = pyo.Sine(freq=soundParams['modRate'],
-                                mul=halfAmp,
-                                add=halfAmp,phase=0.75)
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            freqcent = float((freqhigh + freqlow)/2)
-            bandwidth = float(freqhigh - freqlow)
-            n = pyo.Noise(mul=soundObj*envelope)
-            soundWaveObjs.append(envelope)
-            soundWaveObjs.append(pyo.IRWinSinc(n, freq=freqcent, bw = bandwidth, type=3, order=400).out())
-        elif soundParams['type']=='FM':
-            #fm1 = FM(carrier=250, ratio=[1.5,1.49], index=10, mul=0.3)
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=soundParams['duration'])
-            #soundWave = pyo.FM(carrier=soundParams['frequency'], ratio=[1.5,1.49], index=10, mul=soundObj*soundAmp)
-            #soundWaveObjs.append(soundWave)
-            soundWaveObjs.append(pyo.FM(carrier=soundParams['frequency'], ratio=0.005, index=4, mul=soundObj*soundAmp).out())
-            ###soundWaveObjs.append(pyo.Sine(freq=float(soundParams['frequency']), mul=soundObj*soundAmp).out())
-        elif soundParams['type']=='fromfile':
-            if not os.path.isfile(soundParams['filename']):
-                raise IOError('File {} does not exist.'.format(soundParams['filename']))
-            tableObj = pyo.SndTable(soundParams['filename'])
-            samplingFreq = tableObj.getRate()
-            if soundParams.get('duration'):
-                duration = soundParams['duration']
-            else:
-                duration = tableObj.getDur()
-            if soundParams.get('channel')=='left':
-                fs = [samplingFreq,0]
-            elif soundParams.get('channel')=='right':
-                fs = [0,samplingFreq]
-            else:
-                fs = 2*[samplingFreq]
-            soundObj = pyo.Fader(fadein=self.risetime, fadeout=self.falltime,
-                                 dur=duration)
-            print(duration)
-            print(fs)
-            soundWaveObjs.append(pyo.Osc(table=tableObj, freq=fs, mul=soundObj*soundAmp).out())
-        else:
-            raise TypeError('Sound type "{0}" has not been implemented.'.format(soundParams['type']))
-            #return(None,None)
-        if syncChan is not None:
-            syncAmp = [0,0]
-            syncAmp[syncChan]=rigsettings.SYNC_SIGNAL_AMPLITUDE #Only set the sync signal to play in the sync channel
-            syncFreq = rigsettings.SYNC_SIGNAL_FREQUENCY
-            soundWaveObjs.append(pyo.Sine(float(syncFreq), mul=syncAmp*soundObj, phase=0.5).out())
-        return(soundObj, soundWaveObjs)
-
-    def play_sound(self,soundID):
-        # FIXME: check that this sound has been defined
-        if USEJACK:
-            try:
-                if isinstance(self.soundwaves[soundID],list):
-                    for sw in self.soundwaves[soundID]:
-                        sw.reset() # Reset phase to 0
-                else:
-                    self.soundwaves[soundID].reset()
-            except:
-                #print('Warning! Sound #{0} cannot be reset.'.format(soundID))
-                pass
-                #raise
-            self.sounds[soundID].play()
-        else:
-            soundfile = '/tmp/tempsound.wav'
-            duration = self.sounds[soundID].dur
-            self.pyoServer.recordOptions(dur=duration, filename=soundfile,
-                                         fileformat=0, sampletype=0)
-            self.sounds[soundID].play()
-            self.pyoServer.start()
-            if sys.platform=='darwin':
-                pass
-            else:
-                os.system('aplay {0}'.format(soundfile))
-
+    def play_sound(self, soundID):
+        #self.soundServer.play_sound(soundID)
+        self.soundServer.play_sound(self.sounds[soundID] ,self.soundwaves[soundID])
+        
     def stop_all(self):
-        # We loop only through the sounds that have been defined
         for soundID in self.soundsParamsDict.keys():
             self.sounds[soundID].stop()
-
+    
     def stopped(self):
         return self._stop.isSet()
 
@@ -376,8 +272,7 @@ class SoundPlayer(threading.Thread):
         self._stop.set() # Set flag to stop thread (checked on the thread loop).
         while not self._done.isSet(): # Make sure the loop stopped before shutdown.
             pass
-        self.pyoServer.shutdown()
-
+        self.soundServer.shutdown()
 
 
 class SoundClient(object):
@@ -386,8 +281,11 @@ class SoundClient(object):
     '''
 
     #def __init__(self, serialtrigger=True):
-    def __init__(self):
-        self.soundPlayerThread = SoundPlayer(serialtrigger=SERIALTRIGGER)
+    def __init__(self, soundserver=rigsettings.SOUND_SERVER, serialtrigger=SERIALTRIGGER):
+        self.soundPlayerThread = SoundPlayer(soundserver, serialtrigger=serialtrigger)
+        #self.soundPlayerThread = SoundPlayer(serialtrigger=SERIALTRIGGER)
+        self.sounds = self.soundPlayerThread.sounds
+        self.soundwaves = self.soundPlayerThread.soundwaves
         self.soundPlayerThread.daemon=True
 
     def start(self):
@@ -415,7 +313,7 @@ class SoundClient(object):
 
 
 if __name__ == "__main__":
-    CASE = 5
+    CASE = 2
     if CASE==1:
         soundPlayerThread = SoundPlayer(serialtrigger=True)
         soundPlayerThread.daemon=True
@@ -435,32 +333,40 @@ if __name__ == "__main__":
         #soundPlayerThread.play_sound(1)
         time.sleep(4)
     if CASE==2:
-        sc = SoundClient(serialtrigger=True)
-        s1 = {'type':'tone', 'frequency':210, 'duration':0.2, 'amplitude':0.1}
+        sc = SoundClient()
+        #s1 = {'type':'tone', 'frequency':300, 'duration':0.5, 'amplitude':[0.1,0]}
+        #s1 = {'type':'tone', 'frequency':300, 'duration':0.5, 'amplitude':0.1}
+        #s1 = {'type':'chord', 'frequency':500, 'duration':1.5, 'amplitude':[0.1,0], 'factor':1.2, 'ntones':12}
+        #s1 = {'type':'noise', 'duration':0.5, 'amplitude':0.1}
+        s1 = {'type':'AM', 'duration':0.5, 'amplitude':0.1, 'modDepth':30, 'modFrequency':4}
         sc.set_sound(1,s1)
         sc.play_sound(1)
+        time.sleep(1)
     if CASE==3:
-        sc = SoundClient() #(serialtrigger=False)
-        s1 = {'type':'tone', 'frequency':3500, 'duration':0.1, 'amplitude':0.1}
-        s2 = {'type':'tone', 'frequency':400, 'duration':0.1, 'amplitude':0.1}
-        s3 = {'type':'chord', 'frequency':3000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
-        s4 = {'type':'chord', 'frequency':7000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
-        s5 = {'type':'chord', 'frequency':16000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        sc = SoundClient()
+        s1 = {'type':'tone', 'frequency':700, 'duration':1.1, 'amplitude':[0,0.1]}
+        s2 = {'type':'tone', 'frequency':400, 'duration':1.1, 'amplitude':[0.1,0]}
+        #s3 = {'type':'chord', 'frequency':3000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        #s4 = {'type':'chord', 'frequency':7000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
+        #s5 = {'type':'chord', 'frequency':16000, 'duration':0.1, 'amplitude':0.1, 'ntones':12, 'factor':1.2}
         import time
         TicTime = time.time()
         sc.set_sound(1,s1)
         print('Elapsed Time: ' + str(time.time()-TicTime))
         TicTime = time.time()
-        sc.set_sound(2,s4)
+        sc.set_sound(2,s2)
         print('Elapsed Time: ' + str(time.time()-TicTime))
-        TicTime = time.time()
-        sc.set_sound(3,s5)
-        print('Elapsed Time: ' + str(time.time()-TicTime))
+        #TicTime = time.time()
+        #sc.set_sound(3,s5)
+        #print('Elapsed Time: ' + str(time.time()-TicTime))
         sc.start()
         #sc.define_sounds()
-        sc.play_sound(1)
         sc.play_sound(2)
-        sc.play_sound(3)
+        print('Elapsed Time: ' + str(time.time()-TicTime))
+        sc.play_sound(1)
+        print('Elapsed Time: ' + str(time.time()-TicTime))
+        #sc.play_sound(3)
+        time.sleep(2)
     if CASE==4:
         sc = SoundClient() #(serialtrigger=False)
         s1 = {'type':'tone', 'frequency':500, 'duration':0.2, 'amplitude':np.array([1,1])}
