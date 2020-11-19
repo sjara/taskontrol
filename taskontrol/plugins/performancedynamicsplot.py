@@ -10,14 +10,9 @@ __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-07-21'
 
 import sys
-if sys.platform=='darwin':
-    from qtpy import QtWidgets
-    from qtpy import QtGui
-    from qtpy import QtCore
-else:
-    from PySide import QtGui as QtWidgets
-    from PySide import QtGui
-    from PySide import QtCore
+from qtpy import QtWidgets
+from qtpy import QtGui
+from qtpy import QtCore
 
 import numpy as np
 import pyqtgraph as pg
