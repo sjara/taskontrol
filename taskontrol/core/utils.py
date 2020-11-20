@@ -4,10 +4,6 @@ Extra functions useful at different stages of the paradigm design.
 
 import numpy as np
 
-__version__ = '0.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
-
 def find_state_sequence(states,stateSequence):
     '''
     Return an array with the indexes where state transitions are the same as stateSequence
@@ -68,6 +64,7 @@ def append_dict_to_HDF5(h5fileGroup,dictName,dictData,compression=None):
         dtype = type(val)
         dset = dictGroup.create_dataset(key, data=val, dtype=dtype,
                                           compression=compression)
+        return dset
 
 
 def dict_from_HDF5(dictGroup):
@@ -78,6 +75,29 @@ def dict_from_HDF5(dictGroup):
     return newDict
 
 
+class EnumContainer(dict):
+    """
+    Container for enumerated variables.
+
+    Useful for non-graphical variables like choice and outcome which take
+    a finite set of values, and each value is associated with a label.
+    """
+    def __init__(self):
+        super().__init__()        
+        self.labels = dict()
+    def append_to_file(self, h5file, currentTrial):
+        '''Returns True if successful '''
+        if currentTrial<1:
+            raise UserWarning('WARNING: No trials have been completed or currentTrial not updated.')
+        resultsDataGroup = h5file.require_group('resultsData')
+        resultsLabelsGroup = h5file.require_group('resultsLabels')
+        for key,item in self.items():
+            dset = resultsDataGroup.create_dataset(key, data=item[:currentTrial])
+        for key,item in self.labels.items():
+            # FIXME: Make sure items of self.labels are dictionaries
+            dset = append_dict_to_HDF5(resultsLabelsGroup,key,item)
+        return dset
+    
 if __name__=='__main__':
     states = np.arange(0,20,2)
     stateSequence = [4,6,8]

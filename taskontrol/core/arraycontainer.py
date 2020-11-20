@@ -1,16 +1,10 @@
-#!/usr/bin/env python
+"""
+Container for non-graphical variables (like choice, outcome, etc).
 
-'''
-Container for non-graphical variables (like choice, outcome, etc)
-
-'''
-
-__version__ = '0.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-
+DEPRECATED: use taskontrol.core.utils.EnumContainer() instead.
+"""
 
 from . import utils
-
 
 class Container(dict):
     def __init__(self):
