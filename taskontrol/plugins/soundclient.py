@@ -251,6 +251,15 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2,
     return timeVec, soundWave
 
 
+class SoundContainer(object):
+    def __init__(self, soundParams, soundObj, soundWave):
+        self.params = soundParams  # Sound parameters dictionary
+        self.obj = soundObj        # Sound object (depends on server)
+        self.wave = soundWave      # Sound waveform
+    def __repr__(self):
+        return "{} '{}' {}".format(super().__repr__(),
+                                   self.params['type'], self.wave.shape)
+    
 class SoundServerJack(object):
     def __init__(self, risetime=RISETIME, falltime=FALLTIME):
         self.sounds = {} # Each entry should be: index:SoundContainer()
@@ -387,15 +396,6 @@ class SoundServerJack(object):
         self.jackClient.close()
 
 
-class SoundContainer(object):
-    def __init__(self, soundParams, soundObj, soundWave):
-        self.params = soundParams  # Sound parameters dictionary
-        self.obj = soundObj        # Sound object (depends on server)
-        self.wave = soundWave      # Sound waveform
-    def __repr__(self):
-        return "{} '{}' {}".format(super().__repr__(),
-                                   self.params['type'], self.wave.shape)
-    
 class SoundServerPygame(object):
     def __init__(self, risetime=RISETIME, falltime=FALLTIME):
         self.sounds = {} # Each entry should be: index:SoundContainer()
@@ -444,6 +444,9 @@ class SoundServerPygame(object):
     def set_sync(self, channel, amplitude, frequency):
         pass
     
+    def shutdown(self):
+        pygame.mixer.quit()
+
 
 class SoundClient(threading.Thread):
     """
