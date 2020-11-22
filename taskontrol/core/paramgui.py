@@ -1,10 +1,13 @@
 """
-Classes for graphical parameters in a paradigm.
+Classes for graphical parameters and other graphical elements in a paradigm.
 
 The following parameters classes are defined:
 - NumericParam: For a numeric entry.
 - StringParam: For entry of a string.
 - MenuParam: For a menu entry.
+
+In addition, a Messenger class is provided for displaying messages in a status bar,
+as well as functions for creating the main Qt app for a paradigm.
 """
 
 # TODO:  Make both label and text expanding horizontally
@@ -303,10 +306,53 @@ class MenuParam(GenericParam):
     def get_items(self):
         return self._items
 
-    # def appendToFile(self,h5file,dataParent,itemsParent):
-    #    h5file.createArray(dataParent, key, paramContainer.history[key], paramLabel)
-    #    h5file.createArray(menuItemsGroup, key, paramContainer[key].get_items(),
-    #                               '%s menu items'%paramLabel)
+
+# -----------------------------------------------------------------------------
+
+class Message(object):
+    """
+    Base container for a message.
+
+    It contains the timestamp, the message, and the sender.
+    """
+    def __init__(self, text):
+        self.text = text
+        self.timestamp = time.localtime()
+
+    def __str__(self):
+        '''String representation of the message'''
+        timeString = time.strftime('[%H:%M:%S] ', self.timestamp)
+        return '{}{}'.format(timeString, self.text)
+
+
+class Messenger(QtCore.QObject):
+    """
+    Class for keeping a log of messages.
+
+    You use it within a QMainWindow by connecting it's signals and slots as follows:
+        self.messagebar = messenger.Messenger()
+        self.messagebar.timedMessage.connect(self.show_message)
+        self.messagebar.collect('Created window')
+    where show_message() does something like:
+        self.statusBar().showMessage(str(msg))
+    """
+    timedMessage = QtCore.Signal(str)
+    messages = []
+
+    def __init__(self):
+        super().__init__()
+
+    @QtCore.Slot(str)
+    def collect(self, text):
+        newMessage = Message(text)
+        Messenger.messages.append(newMessage)
+        self.timedMessage.emit(str(newMessage))
+
+    def get_list(self):
+        return [str(x) for x in Messenger.messages]
+
+    def __str__(self):
+        return '\n'.join(self.get_list())
 
 
 # -----------------------------------------------------------------------------
