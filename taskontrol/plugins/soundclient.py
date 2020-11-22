@@ -37,115 +37,10 @@ time.sleep(1)
 TO DO:
 - pygame: fromfile mono/stereo amplitude
 - jack: fromfile
-x jack: stop sounds
-- jack multiple sounds
 - jack: set sync signal
 - general: servertype as argument doesn't work because not all modules are imported.
 - Check thread Events in SoundClient
 '''
-
-'''
-=== BUG 1 ===
-Every now and then, when using fakeserial with Jack (not sure if real serial too), I get this:
-
-Exception in thread Thread-1:
-Traceback (most recent call last):
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 395, in run
-    self.play_sound(soundID)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 412, in play_sound
-    self.soundServer.play_sound(soundID)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 213, in play_sound
-    soundObj = self.sounds[soundID].obj
-KeyError: 12
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/usr/lib/python3.8/threading.py", line 932, in _bootstrap_inner
-    self.run()
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 397, in run
-    print(traceback.format_exc())
-NameError: name 'traceback' is not defined
-Added event 6
-
-'''
-
-'''
-=== BUG 2 ===
-Sometimes, when adding a sound to the Jack sound server, I get this.
-
-From cffi callback <function Client.set_process_callback.<locals>.callback_wrapper at 0x7ff7b07e55e0>:
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/jack.py", line 719, in callback_wrapper
-    callback(frames)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 266, in _jack_process
-    self.port(streamID,'R').get_array().fill(0)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 180, in port
-    return self.jackClient.get_port_by_name(baseName+channel)   
-  File "/usr/lib/python3/dist-packages/jack.py", line 1404, in get_port_by_name
-    raise JackError('Port {0!r} not available'.format(name))
-jack.JackError: Port 'tkJackClient:1R' not available
-Traceback (most recent call last):
-  File "test_bandwidth_masking.py", line 353, in prepare_next_trial
-    self.prepare_target_sound(currentBand, currentNoiseAmp, currentToneInt)
-  File "test_bandwidth_masking.py", line 281, in prepare_target_sound
-    self.soundClient.set_sound(2,s2)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 408, in set_sound
-    self.soundServer.set_sound(soundID, soundParams)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 197, in set_sound
-    self.create_stream(soundID)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 190, in create_stream
-    self.port(streamID,'L').connect(self.targetPorts[0])
-  File "/usr/lib/python3/dist-packages/jack.py", line 1903, in connect
-    self._client.connect(source.name, destination.name)
-  File "/usr/lib/python3/dist-packages/jack.py", line 415, in connect
-    _check(err,
-  File "/usr/lib/python3/dist-packages/jack.py", line 2887, in _check
-    raise JackError('{0} ({1})'.format(msg, error_code))
-jack.JackError: Error connecting 'tkJackClient:2L' -> 'system:playback_1' (-1)
-'''
-
-'''
-Similar to BUG 2 (just starting a paradigm test_band...masking.py
-
-MULATOR: Run.
-[00:35:32] Started
-From cffi callback <function Client.set_process_callback.<locals>.callback_wrapper at 0x7f64301ec5e0>:
-Traceback (most recent call last):
-  File "/usr/lib/python3/dist-packages/jack.py", line 719, in callback_wrapper
-    callback(frames)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 341, in _jack_process
-    self.port(streamID,'L').get_array().fill(0)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 241, in port
-    return self.jackClient.get_port_by_name(baseName+channel)   
-  File "/usr/lib/python3/dist-packages/jack.py", line 1404, in get_port_by_name
-    raise JackError('Port {0!r} not available'.format(name))
-jack.JackError: Port 'tkJackClient:1L' not available
-Traceback (most recent call last):
-  File "test_bandwidth_masking.py", line 353, in prepare_next_trial
-    self.prepare_target_sound(currentBand, currentNoiseAmp, currentToneInt)
-  File "test_bandwidth_masking.py", line 281, in prepare_target_sound
-    self.soundClient.set_sound(2,s2)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 487, in set_sound
-    self.soundServer.set_sound(soundID, soundParams)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 272, in set_sound
-    self.create_stream(soundID)
-  File "/home/sjara/src/taskontrol/taskontrol/plugins/soundclient.py", line 264, in create_stream
-    self.port(streamID,'L').connect(self.targetPorts[0])
-  File "/usr/lib/python3/dist-packages/jack.py", line 1903, in connect
-    self._client.connect(source.name, destination.name)
-  File "/usr/lib/python3/dist-packages/jack.py", line 415, in connect
-    _check(err,
-  File "/usr/lib/python3/dist-packages/jack.py", line 2887, in _check
-    raise JackError('{0} ({1})'.format(msg, error_code))
-jack.JackError: Error connecting 'tkJackClient:2L' -> 'system:playback_1' (-1)
-EMULATOR: Set state matrix.
-EMULATOR: Set state outputs.
-EMULATOR: Force state 1.
-Added event 6
-
-'''
-
 
 import os
 import sys
@@ -170,10 +65,12 @@ else:
 
 ############ FIX THIS AT THE END (once other servers are implemented ##############
 if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
-    SERIALTRIGGER = True
+    SERIAL_TRIGGER = True
 elif rigsettings.STATE_MACHINE_TYPE=='emulator':
     #from taskontrol.plugins import smemulator
-    SERIALTRIGGER = False
+    SERIAL_TRIGGER = False
+    TEMP_DIR = tempfile.gettempdir()
+    FAKE_SERIAL = 'fakeserial.txt'
 else:
     raise ValueError('STATE_MACHINE_TYPE not recognized.')
 
@@ -186,8 +83,8 @@ SERIAL_TIMEOUT = 0.1 #None
 MAX_NSOUNDS = 128 # According to the serial protocol.
 STOP_ALL_SOUNDS = 128  # SoundID to stop all sounds
 
-RISETIME = 0.1002
-FALLTIME = 0.1002
+RISETIME = 0.002
+FALLTIME = 0.002
 
 randomGen = np.random.default_rng()
 
@@ -266,11 +163,11 @@ class SoundServerJack(object):
         self.riseTime = risetime
         self.fallTime = falltime
         
-        self.playingEvent = threading.Event()
-        self.queueDict = {}
+        self.playingEvent = {}  # Stores a threading.Event() for each stream
+        self.queueDict = {}     # Stores a queue for each stream
+        self.preloadingThreads = {}  # Stores threads for preloading each stream
         self.jackClient = jack.Client('tkJackClient')
         self.blocksize = self.jackClient.blocksize
-        ###self.zeroBlock = np.zeros(self.blocksize, dtype=np.float64)
         self.samplingRate = self.jackClient.samplerate
         self.jackClient.set_xrun_callback(self._jack_xrun)
         self.jackClient.set_shutdown_callback(self._jack_shutdown)
@@ -282,6 +179,19 @@ class SoundServerJack(object):
             raise ValueError('Server only works for systems with 2 channels.')
         self.jackClient.activate()
 
+    class PreloadQueue(threading.Thread):
+        def __init__(self, soundObj, soundQueue, blocksize):
+            super().__init__()
+            self.soundObj = soundObj
+            self.soundQueue = soundQueue
+            self.bsize = blocksize
+            self.daemon = True  # The program exits when only daemon threads are left.
+        def run(self):
+            nBlocks = self.soundObj.shape[1]//self.bsize
+            for ind in range(nBlocks):
+                data = self.soundObj[:, ind*self.bsize:(ind+1)*self.bsize]
+                self.soundQueue.put(data)
+    
     def port(self, streamID, channel):
         """
         streamID (int)
@@ -290,15 +200,14 @@ class SoundServerJack(object):
         baseName = '{}:{}'.format(self.jackClient.name,streamID)
         return self.jackClient.get_port_by_name(baseName+channel)   
 
-    def _retry(self):
-        pass
-    
     def create_stream(self, streamID):
         """
         Register Jack ports and create queue for a new sound.
         """
-        if streamID not in self.queueDict:
-            self.queueDict[streamID] = queue.Queue()
+        # Create a new queue or replace the queue if it already exists.
+        self.queueDict[streamID] = queue.Queue()
+        if streamID not in self.playingEvent:
+            self.playingEvent[streamID] = threading.Event()
             self.jackClient.outports.register(str(streamID)+'L')
             self.jackClient.outports.register(str(streamID)+'R')
             portsReady = False
@@ -313,14 +222,42 @@ class SoundServerJack(object):
                     time.sleep(0.001)
             self.port(streamID,'L').connect(self.targetPorts[0])
             self.port(streamID,'R').connect(self.targetPorts[1])
-            #raise Exception()
+        
+    def _jack_process(self, frames):
+        for streamID, oneQueue in self.queueDict.items():
+            if self.playingEvent[streamID].is_set():
+                try:
+                    data = oneQueue.get_nowait()
+                    self.port(streamID,'L').get_array()[:] = data[0]
+                    self.port(streamID,'R').get_array()[:] = data[1]
+                except queue.Empty:
+                    self.port(streamID,'L').get_array().fill(0)
+                    self.port(streamID,'R').get_array().fill(0)
+                    self.playingEvent[streamID].clear() # Finished playing stream
+                    self.preload_queue_no_thread(streamID)
         
     def set_sound(self, soundID, soundParams):
         soundObj, soundwave = self.create_sound(soundParams)
         newSound = SoundContainer(soundParams, soundObj, soundwave)
         self.sounds[soundID] = newSound
         self.create_stream(soundID)
-
+        self.preload_queue_no_thread(soundID)
+        
+    def preload_queue(self, soundID):
+        """Preload a sound via a thread. It will not block processing."""
+        self.preloadingThreads[soundID] = self.PreloadQueue(self.sounds[soundID].obj,
+                                                            self.queueDict[soundID],
+                                                            self.blocksize)
+        self.preloadingThreads[soundID].start()
+        
+    def preload_queue_no_thread(self, soundID):
+        """Preload a sound without invoking a thread. It will block processing until done."""
+        soundObj = self.sounds[soundID].obj
+        nBlocks = soundObj.shape[1]//self.blocksize
+        for ind in range(nBlocks):
+            data = soundObj[:, ind*self.blocksize:(ind+1)*self.blocksize]
+            self.queueDict[soundID].put(data)
+        
     def create_sound(self, soundParams):
         if soundParams['type']=='fromfile':
             pass
@@ -333,16 +270,13 @@ class SoundServerJack(object):
         return soundObj, soundWave
     
     def play_sound(self, soundID):
-        self.playingEvent.set()
-        soundObj = self.sounds[soundID].obj
-        nBlocks = soundObj.shape[1]//self.blocksize
-        for ind in range(nBlocks):
-            data = soundObj[:, ind*self.blocksize:(ind+1)*self.blocksize]
-            self.queueDict[soundID].put(data)
+        # TicTime = time.time()
+        self.playingEvent[soundID].set()
+        # print('Elapsed Time (triggering): ' + str(time.time()-TicTime))
         
     def stop_sound(self, soundID):
-        self._clear_queue(self.queueDict[soundID])
-        self.playingEvent.clear()
+        if self.playingEvent[soundID].is_set():
+            self.queueDict[soundID] = queue.Queue()  # Get a clean queue
 
     def stop_all(self):
         for soundID in self.sounds:
@@ -359,7 +293,6 @@ class SoundServerJack(object):
         self._print_error('JACK shutdown!')
         self._print_error('status:', status)
         self._print_error('reason:', reason)
-        #jackClientEvent.set()
 
     def _jack_stop_callback(self,msg=''):
         print('INSIDE stop callback')
@@ -367,7 +300,6 @@ class SoundServerJack(object):
             self._print_error(msg)
         for port in self.jackClient.outports:
             port.get_array().fill(0)
-        #jackClientEvent.set()
         raise jack.CallbackExit
 
     def _clear_queue(self, q):
@@ -377,20 +309,6 @@ class SoundServerJack(object):
         q.unfinished_tasks = 0
         q.mutex.release()
     
-    def _jack_process(self, frames):
-        for streamID, oneQueue in self.queueDict.items():
-            if self.playingEvent.is_set():
-                try:
-                    data = oneQueue.get_nowait()
-                    self.port(streamID,'L').get_array()[:] = data[0]
-                    self.port(streamID,'R').get_array()[:] = data[1]
-                except queue.Empty:
-                    self.port(streamID,'L').get_array().fill(0)
-                    self.port(streamID,'R').get_array().fill(0)
-            else:
-                self.port(streamID,'L').get_array().fill(0)
-                self.port(streamID,'R').get_array().fill(0)
-        
     def shutdown(self):
         self.jackClient.deactivate()
         self.jackClient.close()
@@ -452,15 +370,14 @@ class SoundClient(threading.Thread):
     """
     Main interface for the generation, triggering, and presentation of sounds.
     """
-    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIALTRIGGER):
+    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIAL_TRIGGER):
         """
         servertype (str): 'jack', 'pygame', 'pyo'
         """
-        threading.Thread.__init__(self)
+        super().__init__()
         self.serialtrigger = serialtrigger
         self.ser = None
         self._stop = threading.Event()
-        self._done = threading.Event()
         self.soundServerType = servertype
 
         if self.soundServerType=='jack':
@@ -480,48 +397,49 @@ class SoundClient(threading.Thread):
                                       rigsettings.SOUND_SYNC_FREQUENCY)
         if self.serialtrigger:
             self.init_serial()
+        else:
+            fakeSerialFullPath = os.path.join(TEMP_DIR, FAKE_SERIAL)
+            if not os.path.isfile(fakeSerialFullPath):
+                open(fakeSerialFullPath, 'w').close() # Create empty file
+            
         self.sounds = self.soundServer.sounds  # Gives access to sounds info
-        self.daemon=True
-
+        self.daemon = True  # The program exits when only daemon threads are left.
+        
     def start(self):
         """Start the sound player thread."""
         super().start()
         
     def run(self):
         '''Execute thread'''
-        if self.serialtrigger:
-            while not self._stop.is_set():
-                onechar = self.ser.read(1)
-                if onechar:
-                    soundID = ord(onechar)
-                    if soundID==STOP_ALL_SOUNDS:
-                        self.stop_all()
-                    else:
-                        self.play_sound(soundID)
-        else:
-            try:
-                '''Fake serial mode'''
-                tempDir = tempfile.gettempdir()
-                fakeSerial = open(os.path.join(tempDir,'serialoutput.txt'), 'r')
+        try:
+            #1/0
+            if self.serialtrigger:
                 while not self._stop.is_set():
-                    oneval = fakeSerial.read()
+                    onechar = self.ser.read(1)
+                    if onechar:
+                        soundID = ord(onechar)
+                        if soundID==STOP_ALL_SOUNDS:
+                            self.stop_all()
+                        else:
+                            self.play_sound(soundID)
+            else:
+                '''Fake serial mode'''
+                fakeSerial = open(os.path.join(TEMP_DIR, FAKE_SERIAL), 'r')
+                while not self._stop.is_set():
+                    oneval = fakeSerial.read(1)
                     time.sleep(0.01)
                     if len(oneval):
-                        soundID = int(oneval)
-                        try:
-                            if soundID==STOP_ALL_SOUNDS:
-                                self.stop_all()
-                            else:
-                                self.play_sound(soundID)
-                        except Exception as exc:
-                            print(traceback.format_exc())
-                            print('[soundclient.py] An error occurred while '+\
-                                  'triggering sounds. {}'.format(exc))
-                if fakeSerial:
-                    fakeSerial.close()
-            except:
-                print(traceback.format_exc())
-        self._done.set()
+                        soundID = ord(oneval)
+                        if soundID==STOP_ALL_SOUNDS:
+                            self.stop_all()
+                        else:
+                            self.play_sound(soundID)
+                        # if fakeSerial:
+                        #     fakeSerial.close()
+        except Exception as exc:
+            #print(traceback.format_exc())
+            #print('[soundclient.py] An error occurred in the sound client thread. {}'.format(exc))
+            raise
 
     def init_serial(self):
         print('Connecting to serial port')
@@ -540,10 +458,8 @@ class SoundClient(threading.Thread):
     def shutdown(self):
         '''Stop thread loop and shutdown pyo sound server'''
         self._stop.set() # Set flag to stop thread (checked on the thread loop).
-        #1/0
         if self.is_alive():
-            while not self._done.is_set(): # Make sure the loop stopped before shutdown.
-                time.sleep(0.001)
+            time.sleep(0.001)
         self.stop_all()
         self.soundServer.shutdown()
 
@@ -554,9 +470,9 @@ class oldSoundClient(object):
     """
 
     #def __init__(self, serialtrigger=True):
-    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIALTRIGGER):
+    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIAL_TRIGGER):
         self.soundPlayer = SoundPlayer(servertype, serialtrigger=serialtrigger)
-        #self.soundPlayer = SoundPlayer(serialtrigger=SERIALTRIGGER)
+        #self.soundPlayer = SoundPlayer(serialtrigger=SERIAL_TRIGGER)
         self.sounds = self.soundPlayer.sounds
         self.soundwaves = self.soundPlayer.soundwaves
         self.soundPlayer.daemon=True
