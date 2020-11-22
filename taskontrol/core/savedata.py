@@ -1,11 +1,6 @@
-#!/usr/bin/env python
-
 """
 Widget to save data.
 """
-
-__version__ = '0.2'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 
 import os
 import time
@@ -15,27 +10,26 @@ from qtpy import QtWidgets
 from qtpy import QtGui
 from qtpy import QtCore
 import subprocess
-#from taskontrol.settings import rigsettings
 
 # A file with this name must exist in the remote directory
 REMOTEDIR_VERIFICATION = 'REMOTEDIR.txt'
 
 
 class SaveData(QtWidgets.QGroupBox):
-    '''
+    """
     A widget to save data, transfer it to a remote repository, and update the database.
-    '''
+    """
     logMessage = QtCore.Signal(str)
 
     def __init__(self, datadir, remotedir=None, updatedb=True, parent=None):
-        '''
+        """
         Args:
             datadir (str): data root directory.
             remotedir (str): remote directory of data repository.
                 If none given it will not send data to repository.
             updatedb (bool): [not implemented].
 
-        '''
+        """
         super(SaveData, self).__init__(parent)
 
         self.datadir = datadir
@@ -57,17 +51,16 @@ class SaveData(QtWidgets.QGroupBox):
 
         # -- Create layouts --
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.buttonSaveData, 0,0, 1,2)
-        layout.addWidget(self.checkInteractive, 1,0)
-        layout.addWidget(self.checkOverwrite, 1,1)
-        layout.addWidget(self.checkSendToRepo, 2,0, 1,2)
+        layout.addWidget(self.buttonSaveData, 0, 0, 1, 2)
+        layout.addWidget(self.checkInteractive, 1, 0)
+        layout.addWidget(self.checkOverwrite, 1, 1)
+        layout.addWidget(self.checkSendToRepo, 2, 0, 1, 2)
         self.setLayout(layout)
         self.setTitle('Manage Data')
 
-
-    def to_file(self,containers,currentTrial=None,experimenter='',
-                subject='subject',paradigm='paradigm',date=None,suffix='a',filename=None):
-        '''
+    def to_file(self, containers, currentTrial=None, experimenter='', subject='subject',
+                paradigm='paradigm', date=None, suffix='a', filename=None):
+        """
         Saves the history of parameters, events and results to an HDF5 file.
 
         Args:
@@ -87,27 +80,26 @@ class SaveData(QtWidgets.QGroupBox):
         ``datadir/experimenter/subject/subject_paradigm_YYMMDDa.h5``
           or, is experimenter is empty:
         ``datadir/subject/subject_paradigm_YYMMDDa.h5``
-        '''
-
+        """
         if filename is not None:
             defaultFileName = filename
         else:
             if date is None:
-                date = time.strftime('%Y%m%d',time.localtime())
+                date = time.strftime('%Y%m%d', time.localtime())
             dataRootDir = self.datadir
             fileExt = 'h5'
-            relativePath = os.path.join(experimenter,subject,'') # Added trailing separator
-            fullDataDir = os.path.join(dataRootDir,relativePath)
+            relativePath = os.path.join(experimenter, subject, '')
+            fullDataDir = os.path.join(dataRootDir, relativePath)
             if not os.path.exists(fullDataDir):
                 os.makedirs(fullDataDir)
-            fileNameOnly = '{0}_{1}_{2}{3}.{4}'.format(subject,paradigm,date,suffix,fileExt)
-            defaultFileName = os.path.join(fullDataDir,fileNameOnly)
+            fileNameOnly = '{0}_{1}_{2}{3}.{4}'.format(subject, paradigm, date, suffix, fileExt)
+            defaultFileName = os.path.join(fullDataDir, fileNameOnly)
 
         self.logMessage.emit('Saving data...')
 
         if self.checkInteractive.checkState():
-            #fname,ffilter = QtWidgets.QFileDialog.getSaveFileName(self,'CHOOSE','/tmp/','*.*')
-            fname,ffilter = QtWidgets.QFileDialog.getSaveFileName(self,'Save to file',defaultFileName,'*.*')
+            fname, ffilter = QtWidgets.QFileDialog.getSaveFileName(self, 'Save to file',
+                                                                   defaultFileName, '*.*')
             if not fname:
                 self.logMessage.emit('Saving cancelled.')
                 return
@@ -118,7 +110,8 @@ class SaveData(QtWidgets.QGroupBox):
             else:
                 msgBox = QtWidgets.QMessageBox()
                 msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-                msgBox.setText('File exists: <br>{0} <br>Use <b>Interactive</b> or <b>Overwrite</b> modes.'.format(defaultFileName))
+                msgBox.setText('File exists: <br>{0} <br>Use <b>Interactive</b> or ' +
+                               '<b>Overwrite</b> modes.'.format(defaultFileName))
                 msgBox.exec_()
                 return
         else:
@@ -126,15 +119,15 @@ class SaveData(QtWidgets.QGroupBox):
 
         # -- Create data file --
         # FIXME: check that the file opened correctly
-        h5file = h5py.File(fname,'w')
+        h5file = h5py.File(fname, 'w')
 
         for container in containers:
             try:
-                container.append_to_file(h5file,currentTrial)
+                container.append_to_file(h5file, currentTrial)
             except UserWarning as uwarn:
                 self.logMessage.emit(uwarn.message)
                 print(uwarn.message)
-            except:
+            except:  # pylint: disable=bare-except
                 h5file.close()
                 raise
         h5file.close()
@@ -144,27 +137,27 @@ class SaveData(QtWidgets.QGroupBox):
 
         if self.checkSendToRepo.checkState():
             if self.remotedir:
-                self.send_to_repository(relativePath,fileNameOnly)
+                self.send_to_repository(relativePath, fileNameOnly)
             else:
-                self.logMessage.emit('Remote directory has not been defined. '+\
+                self.logMessage.emit('Remote directory has not been defined. ' +
                                      'Nothing sent to repository.')
 
-    def send_to_repository(self,relativePath,fileNameOnly):
-        '''
+    def send_to_repository(self, relativePath, fileNameOnly):
+        """
         Send saved data to repository.
         FIXME: The remote subdirectories must exist, otherwise it will fail.
-        '''
-        verificationFile = os.path.join(self.remotedir,REMOTEDIR_VERIFICATION)
+        """
+        verificationFile = os.path.join(self. remotedir, REMOTEDIR_VERIFICATION)
         if os.path.exists(verificationFile):
-            fullRemoteDir = os.path.join(self.remotedir,relativePath)
+            fullRemoteDir = os.path.join(self. remotedir, relativePath)
             if not os.path.exists(fullRemoteDir):
                 os.makedirs(fullRemoteDir)
             cmd = 'rsync'
             flag1 = '-ab'
             flag2 = '--no-g'
             localfile = self.filename
-            cmdlist = [cmd,flag1,flag2,localfile,fullRemoteDir]
-            p = subprocess.Popen(cmdlist,shell=False,stdout=subprocess.PIPE,
+            cmdlist = [cmd, flag1, flag2, localfile, fullRemoteDir]
+            p = subprocess.Popen(cmdlist, shell=False, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
             stdout, stderr = p.communicate()
             if stderr:
@@ -173,7 +166,7 @@ class SaveData(QtWidgets.QGroupBox):
         else:
             self.logMessage.emit('Remote verification file not found. Nothing was sent.')
 
-        '''
+        """
         #'sjara@localhost://tmp/remote/'
         cmd = 'rsync'
         flags = '-avb'
@@ -187,52 +180,4 @@ class SaveData(QtWidgets.QGroupBox):
         if stderr:
             raise IOError(stderr)
         pass
-        '''
-
-if __name__ == "__main__":
-    import signal
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    import sys
-    from taskontrol.settings import rigsettings
-    # -- A workaround to enable re-running the app in ipython after closing --
-    app=QtWidgets.QApplication.instance() # checks if QApplication already exists
-    if not app: # create QApplication if it doesnt exist
-        app = QtWidgets.QApplication(sys.argv)
-    form = QtWidgets.QDialog()
-    saveData = SaveData(rigsettings.DATA_DIR)
-    layoutMain = QtWidgets.QHBoxLayout()
-    layoutMain.addWidget(saveData)
-    form.setLayout(layoutMain)
-    def onbutton():
-        import arraycontainer
-        results = arraycontainer.Container()
-        results['onevar'] = [1,2,3,4]
-        saveData.to_file([results],currentTrial=3)
-        print('Saved data to {0}'.format(saveData.filename))
-    saveData.buttonSaveData.clicked.connect(onbutton)
-    form.show()
-    app.exec_()
-
-
-
-'''
-        import paramgui
-        params = paramgui.Container()
-    class Dispatcher(object):
-        eventsMatrix = [[0,0,0]]
-    dispatcherModel = Dispatcher()
-
-        try:
-            ###print dispatcherModel.eventsMat ### DEBUG
-            success = dispatcherModel.append_to_file(h5file)
-            if not success:
-                self.logMessage.emit('WARNING: No trials have been completed. Nothing was saved.')
-                h5file.close()
-                return
-            paramContainer.append_to_file(h5file)
-            stateMatrixObj.append_to_file(h5file)
-        except:
-            h5file.close()
-            raise
-'''
-
+        """
