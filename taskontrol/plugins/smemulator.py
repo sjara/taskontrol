@@ -26,7 +26,8 @@ MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
 VERBOSE = rigsettings.EMULATOR_VERBOSE
 
-TEMPDIR = tempfile.gettempdir()
+TEMP_DIR = tempfile.gettempdir()
+FAKE_SERIAL = 'fakeserial.txt'
 
 #buttonsStrings = ['C','L','R','W']
 buttonsStrings = len(rigsettings.INPUTS)*[None]
@@ -183,7 +184,7 @@ class StateMachineClient(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.execute_cycle)
 
-        self.fakeSerial = open(os.path.join(TEMPDIR,'serialoutput.txt'),'w')
+        self.fakeSerial = open(os.path.join(TEMP_DIR, FAKE_SERIAL),'w')
         self.emuGUI = EmulatorGUI()
 
     def send_reset(self):
@@ -361,7 +362,7 @@ class StateMachineClient(QtCore.QObject):
 
     def emulate_serial_output(self, serialout):
         if serialout:
-            self.fakeSerial.write(str(serialout))
+            self.fakeSerial.write(chr(serialout))
             self.fakeSerial.flush()
 
     def update_state_machine(self):
