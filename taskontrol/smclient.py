@@ -24,7 +24,7 @@ import os
 import sys
 import time
 import struct
-from .. import rigsettings
+from . import rigsettings
 
 SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
 #SERIAL_PORT_PATH = '/dev/ttyACM0'

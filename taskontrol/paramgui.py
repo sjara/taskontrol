@@ -21,7 +21,7 @@ import sys
 import socket
 import time
 from . import utils
-from .. import rigsettings
+from . import rigsettings
 
 
 class Container(dict):

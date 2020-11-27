@@ -1,5 +1,25 @@
 """
 A framework for developing behavioral experiments.
+
+savedata
+--------
+.. automodule:: taskontrol.savedata
+   :members:
+
+statematrix
+--------
+.. automodule:: taskontrol.statematrix
+   :members:
+
+paramgui
+--------
+.. automodule:: taskontrol.paramgui
+   :members:
+
+dispatcher
+----------
+.. automodule:: taskontrol.dispatcher
+   :members:
 """
 
 import os

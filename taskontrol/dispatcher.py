@@ -12,7 +12,7 @@ from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets
 import numpy as np
-from .. import rigsettings
+from . import rigsettings
 
 
 DEFAULT_PREPARE_NEXT = 0  # State to prepare next trial
