@@ -106,15 +106,16 @@ def apply_rise_fall(waveform, samplingRate, riseTime, fallTime):
     fallVec = np.linspace(1, 0, nSamplesFall)
     newWaveform = waveform.copy()
     newWaveform[:nSamplesRise] *= riseVec
-    newWaveform[-nSamplesRise:] *= fallVec
+    newWaveform[-nSamplesFall:] *= fallVec
     return newWaveform
 
 
-def create_soundwave(soundParams, samplingRate=44100, nChannels=2,
-                     risetime=RISETIME, falltime=FALLTIME):
+def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     """
     DOCUMENT ALL OPTIONS HERE
     """
+    risetime = soundParams.setdefault('fadein', RISETIME)   # Set if not specified
+    falltime = soundParams.setdefault('fadeout', FALLTIME)  # Set if not specified
     timeVec = np.arange(0, soundParams['duration'], 1/samplingRate)
     if isinstance(soundParams['amplitude'],list) or \
        isinstance(soundParams['amplitude'],np.ndarray):
@@ -140,9 +141,11 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2,
         envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
         carrier = randomGen.uniform(-1,1,len(timeVec))
         soundWave = envelope*carrier
-    #elif soundParams['type']=='fromfile':
-    #    wavfile = wave.open(soundParams['filename'],'r')
-
+        #elif soundParams['type']=='fromfile':
+        #    wavfile = wave.open(soundParams['filename'],'r')
+    else:
+        raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
+    
     soundWave = apply_rise_fall(soundWave, samplingRate, risetime, falltime)
     soundWave = soundAmp[:,np.newaxis] * np.tile(soundWave,(nChannels,1))
     return timeVec, soundWave
@@ -262,8 +265,7 @@ class SoundServerJack(object):
         if soundParams['type']=='fromfile':
             pass
         else:
-            timeVec, soundWave = create_soundwave(soundParams, self.samplingRate,
-                                                  self.nChannels, self.riseTime, self.fallTime)
+            timeVec, soundWave = create_soundwave(soundParams, self.samplingRate, self.nChannels)
             padSize = soundWave.shape[1]%self.blocksize
             padArray = np.zeros((self.nChannels, padSize))
             soundObj = np.hstack((soundWave, padArray))
@@ -342,8 +344,7 @@ class SoundServerPygame(object):
                   'specified channel for playback!')
             soundWave = None # FUTURE: I could load the samples here
         else:
-            timeVec, soundWave = create_soundwave(soundParams, self.samplingRate,
-                                                  self.nChannels, self.riseTime, self.fallTime)
+            timeVec, soundWave = create_soundwave(soundParams, self.samplingRate, self.nChannels)
             # NOTE: pygame requires C-contiguous arrays of size [nSamples,nChannels]
             soundWave = np.ascontiguousarray(soundWave.T)
             soundObj = pygame.sndarray.make_sound(self.to_signed_int16(soundWave))
@@ -352,7 +353,7 @@ class SoundServerPygame(object):
     def play_sound(self, soundID):
         self.sounds[soundID].obj.play()
         
-    def stop_sound(self, soundObj):
+    def stop_sound(self, soundID):
         self.sounds[soundID].obj.stop()
 
     def stop_all(self):
@@ -452,6 +453,9 @@ class SoundClient(threading.Thread):
         self.soundServer.play_sound(soundID)
         #self.soundServer.play_sound(self.sounds[soundID] ,self.soundwaves[soundID])
         
+    def stop_sound(self, soundID):
+        self.soundServer.stop_sound(soundID)
+        
     def stop_all(self):
         self.soundServer.stop_all()
         
@@ -462,37 +466,6 @@ class SoundClient(threading.Thread):
             time.sleep(0.001)
         self.stop_all()
         self.soundServer.shutdown()
-
-
-class oldSoundClient(object):
-    """
-    Main interface for sound generation, triggering, and presentation.
-    """
-
-    #def __init__(self, serialtrigger=True):
-    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIAL_TRIGGER):
-        self.soundPlayer = SoundPlayer(servertype, serialtrigger=serialtrigger)
-        #self.soundPlayer = SoundPlayer(serialtrigger=SERIAL_TRIGGER)
-        self.sounds = self.soundPlayer.sounds
-        self.soundwaves = self.soundPlayer.soundwaves
-        self.soundPlayer.daemon=True
-
-    def start(self):
-        self.soundPlayer.start()
-
-    def set_sound(self,soundID,soundParams):
-        self.soundPlayer.set_sound(soundID,soundParams)
-
-    def play_sound(self,soundID):
-        # FIXME: check that this sound as been defined
-        self.soundPlayer.play_sound(soundID)
-
-    def stop_all(self):
-        self.soundPlayer.stop_all()
-
-    def shutdown(self):
-        # FIXME: disconnect serial
-        self.soundPlayer.shutdown()
 
 
 if __name__ == "__main__":
