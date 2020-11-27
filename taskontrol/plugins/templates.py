@@ -10,12 +10,11 @@ import sys
 from qtpy import QtWidgets
 from qtpy import QtCore
 from taskontrol import rigsettings
-from taskontrol.core import dispatcher
-from taskontrol.core import statematrix
-from taskontrol.core import savedata
-from taskontrol.core import paramgui
-from taskontrol.core import messenger
-from taskontrol.core import arraycontainer
+from taskontrol import dispatcher
+from taskontrol import statematrix
+from taskontrol import savedata
+from taskontrol import paramgui
+from taskontrol import utils
 from taskontrol.plugins import manualcontrol
 from taskontrol.plugins import sidesplot
 
@@ -139,14 +138,14 @@ class Paradigm2AFC(QtWidgets.QMainWindow):
         self._center_in_screen()
 
         # -- Add variables storing results --
-        self.results = arraycontainer.Container()
+        self.results = utils.EnumContainer()
 
         # -- Connect signals from dispatcher --
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self._timer_tic)
 
         # -- Connect messenger --
-        self.messagebar = messenger.Messenger()
+        self.messagebar = paramgui.Messenger()
         self.messagebar.timedMessage.connect(self._show_message)
         self.messagebar.collect('Created window')
 
@@ -277,14 +276,14 @@ class ParadigmGoNoGo(QtWidgets.QMainWindow):
         self._center_in_screen()
 
         # -- Add variables storing results --
-        self.results = arraycontainer.Container()
+        self.results = utils.EnumContainer()
 
         # -- Connect signals from dispatcher --
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self._timer_tic)
 
         # -- Connect messenger --
-        self.messagebar = messenger.Messenger()
+        self.messagebar = paramgui.Messenger()
         self.messagebar.timedMessage.connect(self._show_message)
         self.messagebar.collect('Created window')
 
