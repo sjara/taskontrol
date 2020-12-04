@@ -43,7 +43,7 @@ class Dispatcher(QtCore.QObject):
         super(Dispatcher, self).__init__(parent)
 
         if serverType == 'arduino_due':
-            from taskontrol.core import smclient as smclient
+            from taskontrol import smclient as smclient
         elif serverType == 'dummy':
             from taskontrol.plugins import smdummy as smclient
         elif serverType == 'emulator':
