@@ -3,11 +3,11 @@ Plugin for presenting sounds (by communicating with a sound server).
 
 You can choose what sound server to use by changing rigsettings.py.
 The available servers are:
-1. pyo (which uses jack)
+1. jack (to use jackclient directly on Linux. This option provides the minimum latency.)
 2. pygame (this is useful when using taskontrol on emulator mode)
-3. jack (this uses jackclient directly)
+3. pyo (uses pyo and jack. NOTE: we don't want to use this option anymore)
 
-To use pyo or jack with low latency, you need to have jackd running.
+To use jack with low latency, you need to have jackd running.
 In Ubuntu you can jackd with:
 pasuspender -- /usr/bin/jackd -r -dalsa -dhw:STX -r192000 -p512 -n2
 
@@ -112,11 +112,44 @@ def apply_rise_fall(waveform, samplingRate, riseTime, fallTime):
 
 def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     """
-    DOCUMENT ALL OPTIONS HERE
+    Create a sound waveform give parameters.
+
+    Args:
+        soundParams (dict): a dictionary defining sound parameters. See details below.
+        samplingRate (float): sampling rate for the waveform.
+        nChannels (int): number of channels. Usually 2, for stereo sound.
+    Returns:
+        timeVec (np.ndarray): array with timestamps
+        soundWave (np.ndarray): array with waveform amplitude at each time point.
+
+    The string in soundParams['type'] defines the type of sound to be created. Some
+    parameters are common to all sound types, while some parameters depend on the type.
+    Some parameters have defaults, and therefore do not need to be specified.
+
+    Parameters common to all sound types:
+        'fadein': time period for amplitude fade in (at the beginning of the sound)
+        'fadeout': time period for amplitude fade out (at the end of the sound)
+        'duration': duration of sound. Ignored when loading sound from file.
+        'amplitude': it can be a single number, or a list/array with as many elements
+            as channels.
+    
+    Parameters specific to each sound type:
+        'tone' (pure sinusoidal)
+            'frequency' (
+        'chord' (multiple simultaneous sinusoidals): 
+            'frequency' (center frequency)
+            'factor' (maxFreq/centerFreq)
+            'ntones' (number of tones included in the chord)
+        'noise' (white noise):
+            (no additional parameters)
+        'AM' (amplitude modulated white noise):
+            'modDepth': modulation depth as a percentage (0-100).
+            'modFrequency': amplitude modulation rate.
     """
     risetime = soundParams.setdefault('fadein', RISETIME)   # Set if not specified
     falltime = soundParams.setdefault('fadeout', FALLTIME)  # Set if not specified
-    timeVec = np.arange(0, soundParams['duration'], 1/samplingRate)
+    if soundParams['type']!='fromfile':
+        timeVec = np.arange(0, soundParams['duration'], 1/samplingRate)
     if isinstance(soundParams['amplitude'],list) or \
        isinstance(soundParams['amplitude'],np.ndarray):
         soundAmp = np.array(soundParams['amplitude'])
@@ -141,8 +174,26 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
         carrier = randomGen.uniform(-1,1,len(timeVec))
         soundWave = envelope*carrier
-        #elif soundParams['type']=='fromfile':
-        #    wavfile = wave.open(soundParams['filename'],'r')
+    elif soundParams['type']=='fromfile':
+        '''
+        import struct
+        wavfile = wave.open(soundParams['filename'],'r')
+        fileFs = wavfile.getframerate()         # sampling rate
+        fileNsamples = wavfile.getnframes()     # number of channels
+        fileNchannels = wavfile.getnchannels()  # number of samples
+        timeVec = np.arange(0, fileNsamples/fileFs, 1/fileFs)
+        byteStr = wavfile.readframes(fileNsamples)
+        soundWave = struct.unpack("<H", byteStr)
+        '''
+        import scipy.io.wavfile
+        import scipy.signal
+        fileFs, soundWave = scipy.io.wavfile.read(soundParams['filename'])
+        nSamples = len(soundWave)
+        soundWave = soundWave.astype(np.float)/np.iinfo(soundWave.dtype).max
+        newNsamples = round(samplingRate*nSamples/fileFs)
+        soundWave = scipy.signal.resample(soundWave, newNsamples)
+        #timeVec = np.arange(0, nSamples/fileFs, 1/fileFs)
+        timeVec = np.arange(0, newNsamples/samplingRate, 1/samplingRate)
     else:
         raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
     
@@ -262,7 +313,7 @@ class SoundServerJack(object):
             self.queueDict[soundID].put(data)
         
     def create_sound(self, soundParams):
-        if soundParams['type']=='fromfile':
+        if 0: #soundParams['type']=='fromfile':
             pass
         else:
             timeVec, soundWave = create_soundwave(soundParams, self.samplingRate, self.nChannels)
@@ -337,7 +388,7 @@ class SoundServerPygame(object):
         self.sounds[soundID] = newSound
 
     def create_sound(self, soundParams):
-        if soundParams['type']=='fromfile':
+        if soundParams['type']=='pygameFile':
             soundObj = pygame.mixer.Sound(soundParams['filename'])
             soundObj.set_volume(soundParams['amplitude'][0])
             print('WARNING! Current implementation using pygame ignores '+\
