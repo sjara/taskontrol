@@ -63,6 +63,8 @@ elif rigsettings.SOUND_SERVER=='pyo':
 else:
     raise("'{}' if not a valid sound server type.".format(rigsettings.SOUND_SERVER))
 
+# NOTE: scipy will be imported if using 'fromfile' option.
+
 ############ FIX THIS AT THE END (once other servers are implemented ##############
 if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
     SERIAL_TRIGGER = True
@@ -192,7 +194,6 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         soundWave = soundWave.astype(np.float)/np.iinfo(soundWave.dtype).max
         newNsamples = round(samplingRate*nSamples/fileFs)
         soundWave = scipy.signal.resample(soundWave, newNsamples)
-        #timeVec = np.arange(0, nSamples/fileFs, 1/fileFs)
         timeVec = np.arange(0, newNsamples/samplingRate, 1/samplingRate)
     else:
         raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
@@ -218,6 +219,7 @@ class SoundServerJack(object):
         self.fallTime = falltime
         
         self.playingEvent = {}  # Stores a threading.Event() for each stream
+        self.loopFlag = {}
         self.queueDict = {}     # Stores a queue for each stream
         self.preloadingThreads = {}  # Stores threads for preloading each stream
         self.jackClient = jack.Client('tkJackClient')
@@ -262,6 +264,7 @@ class SoundServerJack(object):
         self.queueDict[streamID] = queue.Queue()
         if streamID not in self.playingEvent:
             self.playingEvent[streamID] = threading.Event()
+            self.loopFlag[streamID] = False
             self.jackClient.outports.register(str(streamID)+'L')
             self.jackClient.outports.register(str(streamID)+'R')
             portsReady = False
@@ -276,7 +279,8 @@ class SoundServerJack(object):
                     time.sleep(0.001)
             self.port(streamID,'L').connect(self.targetPorts[0])
             self.port(streamID,'R').connect(self.targetPorts[1])
-        
+
+    '''    
     def _jack_process(self, frames):
         for streamID, oneQueue in self.queueDict.items():
             if self.playingEvent[streamID].is_set():
@@ -289,13 +293,31 @@ class SoundServerJack(object):
                     self.port(streamID,'R').get_array().fill(0)
                     self.playingEvent[streamID].clear() # Finished playing stream
                     self.preload_queue_no_thread(streamID)
+    '''    
+    def _jack_process(self, frames):
+        for streamID, oneQueue in self.queueDict.items():
+            if self.playingEvent[streamID].is_set():
+                try:
+                    data = oneQueue.get_nowait()
+                    self.port(streamID,'L').get_array()[:] = data[0]
+                    self.port(streamID,'R').get_array()[:] = data[1]
+                except queue.Empty:
+                    if self.loopFlag[streamID]:
+                        self.preload_queue(streamID)  # FIXME: which preload to use?
+                    else:
+                        self.port(streamID,'L').get_array().fill(0)
+                        self.port(streamID,'R').get_array().fill(0)
+                        self.playingEvent[streamID].clear() # Finished playing stream
+                        #self.preload_queue_no_thread(streamID) # FIXME: which preload to use?
+                        self.preload_queue(streamID)  # FIXME: which preload to use?
         
     def set_sound(self, soundID, soundParams):
         soundObj, soundwave = self.create_sound(soundParams)
         newSound = SoundContainer(soundParams, soundObj, soundwave)
         self.sounds[soundID] = newSound
         self.create_stream(soundID)
-        self.preload_queue_no_thread(soundID)
+        #self.preload_queue_no_thread(soundID) # FIXME: which preload to use?
+        self.preload_queue(soundID)  # FIXME: which preload to use?
         
     def preload_queue(self, soundID):
         """Preload a sound via a thread. It will not block processing."""
@@ -327,7 +349,12 @@ class SoundServerJack(object):
         self.playingEvent[soundID].set()
         # print('Elapsed Time (triggering): ' + str(time.time()-TicTime))
         
+    def loop_sound(self, soundID):
+        self.loopFlag[soundID] = True
+        self.playingEvent[soundID].set()
+        
     def stop_sound(self, soundID):
+        self.loopFlag[soundID] = False
         if self.playingEvent[soundID].is_set():
             self.queueDict[soundID] = queue.Queue()  # Get a clean queue
 
@@ -403,6 +430,9 @@ class SoundServerPygame(object):
     
     def play_sound(self, soundID):
         self.sounds[soundID].obj.play()
+        
+    def loop_sound(self, soundID):
+        self.sounds[soundID].obj.play(loops=-1)
         
     def stop_sound(self, soundID):
         self.sounds[soundID].obj.stop()
@@ -502,7 +532,9 @@ class SoundClient(threading.Thread):
 
     def play_sound(self, soundID):
         self.soundServer.play_sound(soundID)
-        #self.soundServer.play_sound(self.sounds[soundID] ,self.soundwaves[soundID])
+        
+    def loop_sound(self, soundID):
+        self.soundServer.loop_sound(soundID)
         
     def stop_sound(self, soundID):
         self.soundServer.stop_sound(soundID)
