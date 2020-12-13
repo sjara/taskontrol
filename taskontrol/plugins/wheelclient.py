@@ -57,6 +57,16 @@ class WheelClient(threading.Thread):
             self.position.append(pos)
             time.sleep(self.samplingPeriod)
 
+    def append_to_file(self, h5file, currentTrial):
+        """
+        Create a group in the specified HDF5 file, and store
+        timestamps and position.
+        """
+        (timestamp, position) = self.get_data()
+        wheelGroup = h5file.create_group('/wheelSensor')
+        dset1 = wheelGroup.create_dataset('timestamp', data=timestamp)
+        dset2 = wheelGroup.create_dataset('position', data=position)
+
     def get_data(self):
         """
         Returns:
