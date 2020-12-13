@@ -72,13 +72,16 @@ class Container(dict):
         groupBox.setLayout(self.layoutForm)
         return groupBox
 
-    def update_history(self):
+    def update_history(self, lastTrial=None):
         """Append the value of each parameter (to track) for this trial."""
         for key in self._paramsToKeepHistory:
             try:
                 self.history[key].append(self[key].get_value())
             except KeyError:  # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [self[key].get_value()]
+            if lastTrial is not None:
+                msg = 'The length of the history does not match the numeber of trials.'
+                assert len(self.history[key])==lastTrial+1, msg
 
     def set_values(self, valuesdict):
         """Set the value of many parameters at once.
