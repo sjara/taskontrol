@@ -1,48 +1,96 @@
-'''
+"""
 Client for the rotary encoder server running on an Arduino Uno.
-'''
 
-import sys
+TO DO:
+- GET_POSITION waits until the wheel stops
+"""
+
 import serial
 import struct
 import time
+import threading
 import numpy as np
+from taskontrol import rigsettings
 
-SERIAL_PORT_PATH = '/dev/ttyACM0'
+SERIAL_PORT_PATH = rigsettings.WHEEL_SENSOR_PORT
 SERIAL_BAUD = 115200
 SERIAL_TIMEOUT = 0.2 #None
+
+DEFAULT_SAMPLING_PERIOD = 0.1
 
 opcode = {
     'OK'                  : 0xaa,
     'RESET'               : 0x01,  # NOT IMPLEMENTED
     'TEST_CONNECTION'     : 0x02,
-    'GET_POSITION'        : 0x03,
-    'GET_INTERVAL'        : 0x04,
-    'GET_SPEED'           : 0x05,
-    'SET_THRESHOLD_MOVE'  : 0x06,
-    'GET_THRESHOLD_MOVE'  : 0x07,
-    'SET_THRESHOLD_STOP'  : 0x08,
-    'GET_THRESHOLD_STOP'  : 0x09,
-    'SET_SAMPLING_FACTOR' : 0x0a,
-    'GET_SAMPLING_FACTOR' : 0x0b,
-    'SET_N_PERIODS'       : 0x0c,
-    'GET_N_PERIODS'       : 0x0d,
-    'GET_VERSION'         : 0x0e,
-    'GET_TICK_TIMES'      : 0x0f,
-    'RUN'                 : 0xee,
-    'SET_DEBUG_MODE'      : 0xf0,
+    'GET_VERSION'         : 0x03,
+    'GET_POSITION'        : 0x04,
+    'SET_THRESHOLD_MOVE'  : 0x05,
+    'GET_THRESHOLD_MOVE'  : 0x06,
+    'SET_THRESHOLD_STOP'  : 0x07,
+    'GET_THRESHOLD_STOP'  : 0x08,
+    'SET_SAMPLING_FACTOR' : 0x09,
+    'GET_SAMPLING_FACTOR' : 0x0a,
     'ERROR'               : 0xff,
 }
 for k,v in opcode.items():
     opcode[k]=bytes([v])
 
 
-class WheelClient(object):
-    def __init__(self, connectnow=True):
-        '''Wheel sensor client for the Arduino Due.'''
+class WheelClient(threading.Thread):
+    def __init__(self, samplingPeriod=DEFAULT_SAMPLING_PERIOD):
+        """
+        Args:
+            samplingPeriod (float): how often (in sec) to request position from wheel sensor.
+        """
+        super().__init__()
+        self.running = True
+        self.timestamp = []
+        self.position = []
+        self.samplingPeriod = samplingPeriod
+        self.daemon = True  # The program exits when only daemon threads are left.
         self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD, timeout=SERIAL_TIMEOUT)
-        #self.tickTimes = np.array([],dtype=int)
+
+    def run(self):
+        while(self.running):
+            (ts, pos) = self.get_position()
+            self.timestamp.append(ts)
+            self.position.append(pos)
+            time.sleep(self.samplingPeriod)
+
+    def get_data(self):
+        """
+        Returns:
+            timestamps (np.array): timestamps in seconds (float)
+            position (list): position (int64)
+        """
+        return (np.array(self.timestamp)/1000, np.array(self.position))
+
+    def get_last_sample(self):
+        """
+        Returns:
+            timestamps (np.array): timestamps in seconds (float)
+            position (list): position (int64)
+        """
+        return (self.timestamp[-1]/1000, self.position[-1])
         
+    def get_raw_data(self):
+        """
+        Returns:
+            timestamps (list): in milliseconds as int64
+            position (list): as int64
+        """
+        return (self.timestamp, self.position)
+
+    def get_position(self):
+        """
+        Returns one sample of raw data (timestamp, position) from the wheel sensor.
+        Both numbers are int64. Timestamp in milliseconds.
+        """
+        self.ser.write(opcode['GET_POSITION'])
+        oneline = self.ser.readline()
+        ts, pos = [int(x) for x in oneline.strip().split(b' ')]
+        return (ts, pos)
+
     def test_connection(self):
         """
         Clear serial buffer and test whether connection to wheel sensor is alive.
@@ -58,56 +106,57 @@ class WheelClient(object):
                 return 'OK'
             time.sleep(0.01)
             print('.', end='', flush=True)
-            #print(f'{attempt}: {connectionStatus}')
         raise IOError('Connection to the wheel sensor Arduino was lost.')
-            
 
     def print_serial(self):
         oneline = 'not-empty'
         while oneline:
             oneline = self.ser.readline()
             print(oneline,end='')
-            
+
     def get_version(self):
+        self.running = False
         self.ser.write(opcode['GET_VERSION'])
         valueStr = self.ser.readline()
+        self.running = True
         return valueStr.strip()
-    
+
     def set_threshold_move(self, value):
         self.ser.write(opcode['SET_THRESHOLD_MOVE'])
         packedValue = struct.pack('<B',value)
         self.ser.write(packedValue)
+
     def get_threshold_move(self):
         self.ser.write(opcode['GET_THRESHOLD_MOVE'])
         valueStr = self.ser.readline()
         return int(valueStr.strip())
+
     def set_threshold_stop(self, value):
         self.ser.write(opcode['SET_THRESHOLD_STOP'])
         packedValue = struct.pack('<B',value)
         self.ser.write(packedValue)
+
     def get_threshold_stop(self):
         self.ser.write(opcode['GET_THRESHOLD_STOP'])
         valueStr = self.ser.readline()
         return int(valueStr.strip())
+
     def set_sampling_factor(self, value):
         self.ser.write(opcode['SET_SAMPLING_FACTOR'])
         packedValue = struct.pack('<B',value)
         self.ser.write(packedValue)
+
     def set_n_periods(self, value):
         self.ser.write(opcode['SET_N_PERIODS'])
         packedValue = struct.pack('<B',value)
         self.ser.write(packedValue)
-    def set_debug_mode(self, value):
-        self.ser.write(opcode['SET_DEBUG_MODE'])
-        packedValue = struct.pack('<B',value)
-        self.ser.write(packedValue)
 
-    def run(self):
-        self.ser.write(opcode['RUN'])
-        
-    def close(self):
+    def shutdown(self):
+        self.running = False
+        while(self.is_alive()):
+            time.sleep(0.001)
         self.ser.close()
-        
+
 
 if __name__ == '__main__':
     #samplingPeriod = 20   # In milliseconds

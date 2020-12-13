@@ -1,27 +1,30 @@
 /*
 Wheelsensor using Arduino UNO and rotary encoder.
 
-It uses the Arduino internal Timer1 to interrupt every time x ms
-pass and calculates instantaneous velocity of rotary encoder at
-that time. It then compares velocity to threshold, and if velocity
-is over threshold, it switches a boolean variable to 1, else keeps
-boolean off.
+It keeps track of the position of the rotary encoder and it will send
+it together with a timestamp via the serial port when requested.
+
+It also allows setting (upper an lower) velocity thresholds to trigger
+changes of a binary output. For this feature, it uses the Arduino's
+internal Timer1 to calculate instantaneous velocity of the rotary
+encoder at each time period. The sampling period can be defined by the
+user. The default is 20 ms.
 */
+
+#define VERSION        "0.2"
 
 // -- Serial commands --
 #define OK                    0xaa
 #define TEST_CONNECTION       0x02
-#define SET_THRESHOLD_MOVE    0x06
-#define GET_THRESHOLD_MOVE    0x07
-#define SET_THRESHOLD_STOP    0x08
-#define GET_THRESHOLD_STOP    0x09
-#define SET_SAMPLING_PERIOD   0x0a
-#define GET_SAMPLING_PERIOD   0x0b
-#define GET_VERSION           0x0e
-#define TEST                  0xee
+#define GET_VERSION           0x03
+#define GET_POSITION          0x04
+#define SET_THRESHOLD_MOVE    0x05
+#define GET_THRESHOLD_MOVE    0x06
+#define SET_THRESHOLD_STOP    0x07
+#define GET_THRESHOLD_STOP    0x08
+#define SET_SAMPLING_PERIOD   0x09
+#define GET_SAMPLING_PERIOD   0x0a
 #define ERROR                 0xff
-
-#define VERSION        "0.2"
 
 // -- Input and outputs --
 int outputA = 2; // Arduino pin connected to rotary encoder output A
@@ -58,6 +61,14 @@ unsigned int t1_comp = samplingPeriod * 62.5; // Initialize Timer1 compare value
 // to on every cycle. So only set samplingPeriod to be
 // an even number.
 
+void send_position(unsigned long timeStamp, long positionCounter) {
+    // Send time and position separated by space
+    Serial.print(timeStamp);
+    Serial.print(" ");
+    Serial.print(positionCounter);
+    Serial.println();
+}
+
 void setup() {
   // Initialize binary output
   pinMode(binaryOutputPin, OUTPUT);
@@ -79,32 +90,23 @@ void loop() {
 
   // If the previous and the current state of the outputA
   // are different then a pulse occurred
-    if (aState != aLastState) {
-      timeStamp = millis();
-      // If the outputB state is different to the outputA state,
-      // then the encoder is rotating clockwise.
-      // Otherwise, it's rotating counterclockwise
-      if (digitalRead(outputB) != aState) { 
-	positionCounter ++;
-      }
-      else {
-	positionCounter --;
-      }
-
-      // Print time and positionCounter to serial monitor 
-      // separated by a space
-      Serial.print(timeStamp);
-      Serial.print(" ");
-      Serial.print(positionCounter);
-      Serial.println();
+  if (aState != aLastState) {
+    // If the outputB state is different to the outputA state,
+    // then the encoder is rotating clockwise.
+    // Otherwise, it's rotating counterclockwise
+    if (digitalRead(outputB) != aState) {
+      positionCounter ++;
     }
+    else {
+      positionCounter --;
+    }
+  }
 
-    // Updates the previous state of outputA with the current state
-    aLastState = aState;
-    
-    // Define what to do if serial commands are sent from
-    // Python client to Arduino
-    while (Serial.available() > 0) {
+  // Updates the previous state of outputA with the current state
+  aLastState = aState;
+
+  // Check for serial commands from the client
+  while (Serial.available() > 0) {
     serialByte = Serial.read();
     switch(serialByte) {
       case TEST_CONNECTION: {
@@ -112,9 +114,9 @@ void loop() {
 	break;
       }
       case GET_VERSION: {
-        Serial.println(VERSION);
-        break;
-      } 
+	Serial.println(VERSION);
+	break;
+      }
       case SET_THRESHOLD_MOVE: {
 	thresholdMove = read_int32_serial();
 	break;
@@ -124,13 +126,18 @@ void loop() {
 	break;
       }
       case SET_SAMPLING_PERIOD: {
-	samplingPeriod = read_int32_serial(); 
-        t1_comp = samplingPeriod * (125 / 2);
-        setUpTimer1();
+	samplingPeriod = read_int32_serial();
+	t1_comp = samplingPeriod * (125 / 2);
+	setUpTimer1();
 	break;
       }
       case GET_SAMPLING_PERIOD: {
 	Serial.println(samplingPeriod);
+	break;
+      }
+      case GET_POSITION: {
+	timeStamp = millis();
+	send_position(timeStamp, positionCounter);
 	break;
       }
     }
@@ -139,54 +146,54 @@ void loop() {
 
 
 ISR(TIMER1_COMPA_vect) {
-    // Reset the timer counter
-    TCNT1 = t1_load;
-  
-    // Calculate the velocity
-    velocity = abs(positionCounter - lastPosition);
-    // If the velocity is over the threshold:
-    if (velocity > thresholdMove) {
-      // Mouse is running
-      runState = 1;
-      // Set binary output pin high
-      digitalWrite(binaryOutputPin, HIGH);
-    }
-    else {
-      // Mouse isn't running
-      runState = 0;
-      // Set binary output pin low
-      digitalWrite(binaryOutputPin, LOW);
-    }
-  
-    // Update the last position to be the current position
-    // for the next velocity calculation
-    lastPosition = positionCounter;
+  // Reset the timer counter
+  TCNT1 = t1_load;
+
+  // Calculate the velocity
+  velocity = abs(positionCounter - lastPosition);
+  // If the velocity is over the threshold:
+  if (velocity > thresholdMove) {
+    // Mouse is running
+    runState = 1;
+    // Set binary output pin high
+    digitalWrite(binaryOutputPin, HIGH);
+  }
+  else {
+    // Mouse isn't running
+    runState = 0;
+    // Set binary output pin low
+    digitalWrite(binaryOutputPin, LOW);
+  }
+
+  // Update the last position to be the current position
+  // for the next velocity calculation
+  lastPosition = positionCounter;
 }
 
 
 void setUpTimer1() {
-    cli(); // Stop interrupts
-    TCCR1A = 0; // Reset Timer1 control register A
-    
-    // Set Timer1 prescaler to 256
-    TCCR1B |= (1 << CS12);
-    TCCR1B &= ~(1 << CS11);
-    TCCR1B &= ~(1 << CS10);
-  
-    TCNT1 = t1_load; // Reset Timer1
-    OCR1A = t1_comp; // Set compare value
-    TIMSK1 = (1 << OCIE1A); // Enable Timer1 overflow interrupt
-    sei(); // Enable interrupts
+  cli(); // Stop interrupts
+  TCCR1A = 0; // Reset Timer1 control register A
+
+  // Set Timer1 prescaler to 256
+  TCCR1B |= (1 << CS12);
+  TCCR1B &= ~(1 << CS11);
+  TCCR1B &= ~(1 << CS10);
+
+  TCNT1 = t1_load; // Reset Timer1
+  OCR1A = t1_comp; // Set compare value
+  TIMSK1 = (1 << OCIE1A); // Enable Timer1 overflow interrupt
+  sei(); // Enable interrupts
 }
 
 
 unsigned long read_int32_serial() {
-    // Read four bytes and combine them (little endian order, LSB first)
-    long value = 0;
-    for (int ind=0; ind<4; ind++) {
-      while (!Serial.available()) {}  // Wait for data
-      serialByte = Serial.read();
-        value = ((long) serialByte << (8*ind)) | value;
-    }
-    return value;
+  // Read four bytes and combine them (little endian order, LSB first)
+  long value = 0;
+  for (int ind=0; ind<4; ind++) {
+    while (!Serial.available()) {}  // Wait for data
+    serialByte = Serial.read();
+    value = ((long) serialByte << (8*ind)) | value;
+  }
+  return value;
 }
