@@ -176,6 +176,12 @@ class Dispatcher(QtCore.QObject):
             self.update_trial_borders()
             self.prepareNextTrial.emit(self.currentTrial+1)
 
+    def get_state(self):
+        """
+        Return current time and state of the server.
+        """
+        return (self.serverTime, int(self.currentState))
+
     @QtCore.Slot()
     def resume(self):
         # --- Start timer ---
