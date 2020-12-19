@@ -8,11 +8,13 @@ It has three states:
 - State2: turns light off.
           From here ExtraTimer1 will force a transition to State0.
 
-NOTE: this example will not work on emulator mode.
+NOTES: 
+1. This example will not work on emulator mode.
+2. Run this script from ipython to be able to stop the state machine,
+   as instructed at the end.
 """
 
-from taskontrol.core import smclient
-import numpy as np
+from taskontrol import smclient
 
 nInputs = 3  # Inputs: see INPUTS in settings/rigsettings,py
 nOutputs = 3 # Outputs: see OUTPUTS in settings/rigsettings,py

@@ -8,8 +8,8 @@ import sys
 from qtpy import QtCore 
 from qtpy import QtWidgets 
 from taskontrol import rigsettings
-from taskontrol.core import dispatcher
-from taskontrol.core import statematrix
+from taskontrol import dispatcher
+from taskontrol import statematrix
 import signal
 
 
@@ -69,7 +69,7 @@ class Paradigm(QtWidgets.QMainWindow):
         for oneEvent in lastTenEvents:
             print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
         self.dispatcherModel.ready_to_start_trial()
-
+        
     '''
     def start_new_trial(self, currentTrial):
         print('\n======== Started trial {} ========'.format(currentTrial))
@@ -88,7 +88,6 @@ class Paradigm(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
-    #QtCore.pyqtRemoveInputHook() # To stop looping if error occurs (for PyQt not PySide)
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
     app = QtWidgets.QApplication(sys.argv)
     paradigm = Paradigm()

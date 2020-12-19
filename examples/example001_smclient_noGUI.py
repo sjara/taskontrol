@@ -4,11 +4,13 @@ Run a simple state matrix that alternates between two states.
 A state change happens either from a 2 sec timer or from the first
 two inputs (center port in, left port in).
 
-NOTE: this example will not work on emulator mode.
+NOTES: 
+1. This example will not work on emulator mode.
+2. Run this script from ipython to be able to stop the state machine,
+   as instructed at the end.
 """
 
-from taskontrol import rigsettings
-from taskontrol.core import smclient
+from taskontrol import smclient
     
 nInputs = 3  # Inputs: see INPUTS in settings/rigsettings,py
 nOutputs = 3 # Outputs: see OUTPUTS in settings/rigsettings,py

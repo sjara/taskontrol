@@ -134,10 +134,8 @@ class Paradigm(QtWidgets.QMainWindow):
     
     def save_to_file(self):
         '''Triggered by button-clicked signal'''
-        self.saveData.to_file([self.params, self.dispatcherModel,
-                               self.sm, self.results],
+        self.saveData.to_file([self.params, self.dispatcherModel, self.sm],
                               self.dispatcherModel.currentTrial,
-                              experimenter=self.params['experimenter'].get_value(),
                               subject=self.params['subject'].get_value(),
                               paradigm=self.name)
 
@@ -153,6 +151,8 @@ class Paradigm(QtWidgets.QMainWindow):
         self.soundClient.set_sound(self.soundID, s1)
         
     def prepare_next_trial(self, nextTrial):
+        if nextTrial>0:
+            self.params.update_history(nextTrial-1)
         soundDuration = self.params['soundDuration'].get_value()
         interTrialInterval = self.params['interTrialInterval'].get_value()
         self.prepare_sound()
@@ -190,5 +190,5 @@ class Paradigm(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
-    (app,paradigm) = paramgui.create_app(Paradigm)
+    (app, paradigm) = paramgui.create_app(Paradigm)
 

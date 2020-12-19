@@ -9,7 +9,7 @@ import sys
 from qtpy import QtCore
 from qtpy import QtWidgets
 from taskontrol import rigsettings
-from taskontrol.core import dispatcher
+from taskontrol import dispatcher
 import signal
 
 # -- Create main window --

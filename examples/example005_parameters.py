@@ -8,9 +8,9 @@ import sys
 from qtpy import QtCore
 from qtpy import QtWidgets
 from taskontrol import rigsettings
-from taskontrol.core import dispatcher
-from taskontrol.core import statematrix
-from taskontrol.core import paramgui
+from taskontrol import dispatcher
+from taskontrol import statematrix
+from taskontrol import paramgui
 import signal
 
 
@@ -51,7 +51,7 @@ class Paradigm(QtWidgets.QMainWindow):
         self.setCentralWidget(centralWidget)
 
         # -- Center in screen --
-        paramgui.center_in_screen(self)
+        paramgui.center_on_screen(self)
 
         # -- Connect signals from dispatcher --
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
@@ -107,5 +107,5 @@ class Paradigm(QtWidgets.QMainWindow):
 
 
 if __name__ == '__main__':
-    (app,paradigm) = paramgui.create_app(Paradigm)
+    (app, paradigm) = paramgui.create_app(Paradigm)
 
