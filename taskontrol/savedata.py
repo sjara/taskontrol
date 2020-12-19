@@ -110,8 +110,8 @@ class SaveData(QtWidgets.QGroupBox):
             else:
                 msgBox = QtWidgets.QMessageBox()
                 msgBox.setIcon(QtWidgets.QMessageBox.Warning)
-                msgBox.setText('File exists: <br>{0} <br>Use <b>Interactive</b> or ' +
-                               '<b>Overwrite</b> modes.'.format(defaultFileName))
+                msgBox.setText(f'File exists: <br>{defaultFileName} <br>' +
+                               'Use <b>Interactive</b> or <b>Overwrite</b> modes.')
                 msgBox.exec_()
                 return
         else:
@@ -121,26 +121,29 @@ class SaveData(QtWidgets.QGroupBox):
         # FIXME: check that the file opened correctly
         h5file = h5py.File(fname, 'w')
 
+        success = True
         for container in containers:
             try:
                 container.append_to_file(h5file, currentTrial)
             except UserWarning as uwarn:
-                self.logMessage.emit(uwarn.message)
-                print(uwarn.message)
+                success = False
+                self.logMessage.emit(str(uwarn))
+                print(uwarn)
             except:  # pylint: disable=bare-except
+                success = False
                 h5file.close()
                 raise
         h5file.close()
 
-        self.filename = fname
-        self.logMessage.emit('Saved data to {0}'.format(fname))
-
-        if self.checkSendToRepo.checkState():
-            if self.remotedir:
-                self.send_to_repository(relativePath, fileNameOnly)
-            else:
-                self.logMessage.emit('Remote directory has not been defined. ' +
-                                     'Nothing sent to repository.')
+        if success:
+            self.filename = fname
+            self.logMessage.emit('Saved data to {0}'.format(fname))
+            if self.checkSendToRepo.checkState():
+                if self.remotedir:
+                    self.send_to_repository(relativePath, fileNameOnly)
+                else:
+                    self.logMessage.emit('Remote directory has not been defined. ' +
+                                         'Nothing sent to repository.')
 
     def send_to_repository(self, relativePath, fileNameOnly):
         """
