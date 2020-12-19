@@ -1,14 +1,9 @@
 """
 A framework for developing behavioral experiments.
 
-savedata
---------
-.. automodule:: taskontrol.savedata
-   :members:
-
-statematrix
---------
-.. automodule:: taskontrol.statematrix
+dispatcher
+----------
+.. automodule:: taskontrol.dispatcher
    :members:
 
 paramgui
@@ -16,9 +11,24 @@ paramgui
 .. automodule:: taskontrol.paramgui
    :members:
 
-dispatcher
-----------
-.. automodule:: taskontrol.dispatcher
+savedata
+--------
+.. automodule:: taskontrol.savedata
+   :members:
+
+smclient
+--------
+.. automodule:: taskontrol.smclient
+   :members:
+
+statematrix
+-----------
+.. automodule:: taskontrol.statematrix
+   :members:
+
+utils
+-----
+.. automodule:: taskontrol.utils
    :members:
 """
 

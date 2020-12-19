@@ -30,13 +30,13 @@ Here is an example on how you implement the pulse train using extratimers:
 .. code-block:: python
     :linenos:
 
+    from taskontrol import statematrix
+    from taskontrol import rigsettings
     from taskontrol.plugins import templates
-    from taskontrol.core import statematrix
-    from taskontrol.settings import rigsettings
 
     class Paradigm(templates.ParadigmMinimal):
         def __init__(self,parent=None):
-            super(Paradigm, self).__init__(parent)
+            super().__init__(parent)
             self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                               outputs=rigsettings.OUTPUTS,
                                               readystate='ready_next_trial',
@@ -51,30 +51,28 @@ Here is an example on how you implement the pulse train using extratimers:
             self.sm.add_state(name='start', statetimer=0,
                               transitions={'Tup':'pulse_on'}, trigger=['trainTimer'])
             self.sm.add_state(name='pulse_on', statetimer=0.1,
-                              transitions={'Tup':'pulse_off','trainTimer':'end_train'},
+                              transitions={'Tup':'pulse_off', 'trainTimer':'end_train'},
                               outputsOn=['centerLED'])
             self.sm.add_state(name='pulse_off', statetimer=0.2,
-                              transitions={'Tup':'pulse_on','trainTimer':'end_train'},
+                              transitions={'Tup':'pulse_on', 'trainTimer':'end_train'},
                               outputsOff=['centerLED'])
             self.sm.add_state(name='end_train', statetimer=1,
                               transitions={'Tup':'ready_next_trial'},
                               outputsOff=['centerLED'])
-            print self.sm
+            print(self.sm)
             self.dispatcherModel.set_state_matrix(self.sm)
             # -- Tell the state machine that we are ready to start --
             self.dispatcherModel.ready_to_start_trial()
 
     if __name__ == "__main__":
-        (app,paradigm) = templates.paramgui.create_app(Paradigm)
+        (app, paradigm) = templates.paramgui.create_app(Paradigm)
 
 	
-.. note:: In this example, we import a couple of additional modules (``statematrix`` and ``rigsettings``). In previous examples, these were imported by the ``templates`` module, but here we will use them directly.
-
-* **Line 8** creates a StateMatrix object with specific inputs, outputs and one extratimer called ``trainTimer``. Take a look at `rigsettings_template.py`_, to see how inputs and outputs are defined.
+* **Line 8** creates a StateMatrix object with one extratimer called ``trainTimer``.
 * **Line 16** sets the duration of our extratimer.
 * **Line 19** defines the first state, which triggers the extratimer (line 20)
-* The system will switch back and forth between states ``pulse_on`` and ``pulse_off`` until the ``trainTimer`` ends and makes the system transition to the ``end_train`` state.
-    
+* The system will switch back and forth between states ``pulse_on`` and ``pulse_off`` until the ``trainTimer`` ends making the system transition to the ``end_train`` state.
+
 .. _rigsettings_template.py: https://github.com/sjara/taskontrol/blob/master/settings/rigsettings_template.py
 
 

@@ -1,6 +1,5 @@
 Reference:
 ==========
 
-.. toctree::
-   settings
-   core
+.. automodule:: taskontrol
+..   :members:

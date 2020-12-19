@@ -3,10 +3,12 @@
 Getting started with TASKontrol
 ===============================
 
-This document explains how to run an simple paradigm using TASKontrol. We will start by running paradigms using the emulator before we try anything with external interfaces.
+To define an experiment with TASKontrol, you create a *paradigm*. Within a paradigm, you define all the parameters that describe the behavioral task, as well as the graphical user interface to enable starting and stopping the session.
+
+This document explains how to run a simple paradigm using TASKontrol. We will start by running paradigms using the emulator before we try connecting to external interfaces (like an Arduino).
 
 1. First, you need to `download and install TASKontrol`_.
-2. Make sure that in your ``settings/settings.py`` file, you have set ``STATE_MACHINE_TYPE = 'emulator'``.
+2. Make sure that in your ``settings/rigsettings.py`` file, you have set ``STATE_MACHINE_TYPE = 'emulator'``.
 3. Open your favorite editor and save the following Python code into a file (any folder would work). Let's assume you called the file ``testparadigm.py``.
 
 .. code-block:: python
@@ -15,11 +17,11 @@ This document explains how to run an simple paradigm using TASKontrol. We will s
     from taskontrol.plugins import templates
 
     class Paradigm(templates.ParadigmMinimal):
-        def __init__(self,parent=None):
-            super(Paradigm, self).__init__(parent)
+        def __init__(self, parent=None):
+            super().__init__(parent)
 
     if __name__ == "__main__":
-        (app,paradigm) = templates.paramgui.create_app(Paradigm)
+        (app, paradigm) = templates.paramgui.create_app(Paradigm)
 
 4. In a terminal, go to the folder where you saved the file, and open the paradigm by running the command: ``python testparadigm.py``
 
@@ -47,10 +49,10 @@ Interacting with the paradigm
 What is the code doing?
 -----------------------
 
-* **Line 1** imports a module that contains paradigm templates. This module will in turn import all necessary modules from PySide (such as QtGui for graphical interface) and taskontrol (rigsettings, dispatcher, etc).
+* **Line 1** imports a module that contains paradigm templates. This module will in turn import all necessary modules from Qt (for the graphical interface) and taskontrol (rigsettings, dispatcher, etc).
 * **Line 3** is where we define the class for our paradigm, which we call ``Paradigm``. In this example, our class is a subclass of the simplest template called ``ParadigmMinimal``. To see what is being inherited, look at `plugins/templates.py`_.
-* **Line 4-5** are part of the constructor of the class. These lines will appear in any paradigm we create.
-* **Line 7** is a standard Python way of checking if the file is run directly (as opposed to being imported by another file).
+* **Line 4-5** are part of the constructor of the class. These lines should appear in any paradigm we create based on a template.
+* **Line 7** is a standard Python way of checking if the file is run directly (as opposed to being imported as a module by another file).
 * **Line 8** will call the ``create_app()`` method, which will return:
 
   * An instance of the ``QtGui.QApplication`` class (the main class for running Qt applications).
