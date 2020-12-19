@@ -21,14 +21,13 @@ class SaveData(QtWidgets.QGroupBox):
     """
     logMessage = QtCore.Signal(str)
 
-    def __init__(self, datadir, remotedir=None, updatedb=True, parent=None):
+    def __init__(self, datadir, remotedir=None, updatedb=False, parent=None):
         """
         Args:
             datadir (str): data root directory.
             remotedir (str): remote directory of data repository.
                 If none given it will not send data to repository.
             updatedb (bool): [not implemented].
-
         """
         super(SaveData, self).__init__(parent)
 
