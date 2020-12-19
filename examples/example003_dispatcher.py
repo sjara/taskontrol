@@ -6,14 +6,13 @@ and stopping the state machine.
 """
 
 import sys
-from qtpy import QtCore
 from qtpy import QtWidgets
 from taskontrol import rigsettings
 from taskontrol import dispatcher
 import signal
 
 # -- Create main window --
-signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C (to close window)
+signal.signal(signal.SIGINT, signal.SIG_DFL)  # Enable Ctrl-C (to close window)
 app = QtWidgets.QApplication(sys.argv)
 form = QtWidgets.QDialog()
 
@@ -27,9 +26,9 @@ dispatcherModel = dispatcher.Dispatcher(parent=form,
 stateMatrix = [ [ 0,  0,  0,  0,  0,  0,  1 ] ,
                 [ 1,  1,  1,  1,  1,  1,  2 ] ,
                 [ 1,  2,  1,  2,  2,  2,  1 ] ]
-stateOutputs = [[0,0], [1,0], [0,1]]
+stateOutputs = [[0, 0], [1, 0], [0, 1]]
 serialOutputs = None
-stateTimers  = [  0.1,    0.5 ,    2.0  ]
+stateTimers = [0.1, 0.5, 2.0]
 # NOTE: For this example we use _set_state_matrix() to set the matrix from a python list.
 #       However, the usual way to set this matrix uses instead a statematrix.StateMatrix
 #       object, discussed in the next examples.
@@ -44,5 +43,3 @@ layout.addWidget(dispatcherView)
 form.setLayout(layout)
 form.show()
 app.exec_()
-
-

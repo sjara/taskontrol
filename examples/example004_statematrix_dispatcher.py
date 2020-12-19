@@ -5,8 +5,7 @@ and how to use the statematrix module to assemble the matrix easily.
 """
 
 import sys
-from qtpy import QtCore 
-from qtpy import QtWidgets 
+from qtpy import QtWidgets
 from taskontrol import rigsettings
 from taskontrol import dispatcher
 from taskontrol import statematrix
@@ -21,7 +20,7 @@ class Paradigm(QtWidgets.QMainWindow):
         smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Create dispatcher --
-        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.3)
+        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType, interval=0.3)
         self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
 
         # -- Add graphical widgets to main window --
@@ -30,7 +29,6 @@ class Paradigm(QtWidgets.QMainWindow):
         layoutMain.addWidget(self.dispatcherView)
         centralWidget.setLayout(layoutMain)
         self.setCentralWidget(centralWidget)
-        self.center_in_screen()
 
         # --- Create state matrix ---
         self.set_state_matrix()
@@ -39,13 +37,6 @@ class Paradigm(QtWidgets.QMainWindow):
         self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
         self.dispatcherModel.timerTic.connect(self.timer_tic)
 
-    def center_in_screen(self):
-        """Position window in center of screen"""
-        qr = self.frameGeometry()
-        cp = QtWidgets.QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        self.move(qr.topLeft())
-
     def set_state_matrix(self):
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
@@ -53,10 +44,10 @@ class Paradigm(QtWidgets.QMainWindow):
 
         # -- Set state matrix --
         self.sm.add_state(name='first_state', statetimer=1.0,
-                          transitions={'Cin':'second_state','Tup':'second_state'},
+                          transitions={'Cin':'second_state', 'Tup':'second_state'},
                           outputsOn=['centerLED'])
         self.sm.add_state(name='second_state', statetimer=2.0,
-                          transitions={'Lin':'first_state','Tup':'ready_next_trial'},
+                          transitions={'Lin':'first_state', 'Tup':'ready_next_trial'},
                           outputsOff=['centerLED'])
         print(self.sm)
 
@@ -67,15 +58,10 @@ class Paradigm(QtWidgets.QMainWindow):
         lastTenEvents = self.dispatcherModel.eventsMat[-10:-1]
         print('Last 10 events:')
         for oneEvent in lastTenEvents:
-            print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0],oneEvent[1],oneEvent[2]))
+            print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0], oneEvent[1], oneEvent[2]))
         self.dispatcherModel.ready_to_start_trial()
-        
-    '''
-    def start_new_trial(self, currentTrial):
-        print('\n======== Started trial {} ========'.format(currentTrial))
-    '''
 
-    def timer_tic(self,etime,lastEvents):
+    def timer_tic(self, etime, lastEvents):
         print('.', end='', flush=True)
 
     def closeEvent(self, event):
@@ -88,7 +74,7 @@ class Paradigm(QtWidgets.QMainWindow):
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
+    signal.signal(signal.SIGINT, signal.SIG_DFL)  # Enable Ctrl-C
     app = QtWidgets.QApplication(sys.argv)
     paradigm = Paradigm()
     paradigm.show()
