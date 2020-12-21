@@ -90,15 +90,16 @@ FALLTIME = 0.002
 
 randomGen = np.random.default_rng()
 
-# -- Set computer's sound level (for Linux only) --
-if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
-    baseVol = rigsettings.SOUND_VOLUME_LEVEL
-    if baseVol is not None:
-        os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
+def set_system_volume(volumeLevel=None):
+    """
+    Set computer's sound level (for Linux only).
+    """
+    if volumeLevel is not None:
+        os.system('amixer set Master {0}% > /dev/null'.format(volumeLevel))
         # Change volume of the first two sound-cards
-        #os.system('amixer -c 0 set Master {0}% > /dev/null'.format(baseVol))
-        #os.system('amixer -c 1 set Master {0}% > /dev/null'.format(baseVol))
-        print('Set sound volume to {0}%'.format(baseVol))
+        #os.system('amixer -c 0 set Master {0}% > /dev/null'.format(volumeLevel))
+        #os.system('amixer -c 1 set Master {0}% > /dev/null'.format(volumeLevel))
+        print('Set sound volume to {0}%'.format(volumeLevel))
 
 
 def apply_rise_fall(waveform, samplingRate, riseTime, fallTime):
@@ -457,6 +458,8 @@ class SoundClient(threading.Thread):
         servertype (str): 'jack', 'pygame', 'pyo'
         """
         super().__init__()
+
+        set_system_volume(rigsettings.SOUND_VOLUME_LEVEL)
         self.serialtrigger = serialtrigger
         self.ser = None
         self._stop = threading.Event()
@@ -524,8 +527,17 @@ class SoundClient(threading.Thread):
             raise
 
     def init_serial(self):
-        print('Connecting to serial port')
-        self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD_RATE, timeout=SERIAL_TIMEOUT)
+        connected = False
+        while not connected:
+            print('Connecting to serial port for sound trigger...')
+            try:
+                self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD_RATE,
+                                         timeout=SERIAL_TIMEOUT)
+                connected = True
+            except serial.serialutil.SerialException:
+                time.sleep(0.1)
+                #print('**************** GOOD *****************')
+                #raise
 
     def set_sound(self, soundID, soundParams):
         self.soundServer.set_sound(soundID, soundParams)
@@ -550,7 +562,7 @@ class SoundClient(threading.Thread):
         self.stop_all()
         self.soundServer.shutdown()
 
-
+"""
 if __name__ == "__main__":
     CASE = 2
     if CASE==1:
@@ -637,4 +649,4 @@ if __name__ == "__main__":
 #test.change_message(1,'dos')
 #test.change_sound(1,200)
 
-
+"""

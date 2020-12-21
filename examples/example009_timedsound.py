@@ -98,9 +98,6 @@ class Paradigm(QtWidgets.QMainWindow):
         self.noiseCal = speakercalibration.NoiseCalibration(rigsettings.SPEAKER_CALIBRATION_NOISE)
 
         # -- Connect to sound server and define sounds --
-        print('Conecting to soundserver...')
-        print('***** FIXME: HARDCODED TIME DELAY TO WAIT FOR SERIAL PORT! *****') ### DEBUG
-        time.sleep(0.2)
         self.soundClient = soundclient.SoundClient()
         self.soundID = 1
         self.soundClient.start()

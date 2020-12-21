@@ -47,13 +47,14 @@ DATADIR = '/var/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
-
+'''
 # -- Set computer's sound level --
 if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
     if baseVol is not None:
         os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
         print('Set sound volume to {0}%'.format(baseVol))
+'''
 
 '''
 def OLD_create_sound(soundParams):
@@ -664,6 +665,7 @@ class NoiseCalibration(object):
 
 
 if __name__ == "__main__":
+    
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
     app=QtGui.QApplication.instance() # checks if QApplication already exists
     if not app: # create QApplication if it doesnt exist
