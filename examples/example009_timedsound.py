@@ -61,12 +61,10 @@ class Paradigm(QtWidgets.QMainWindow):
         soundParams = self.params.layout_group('Sound parameters')
         
         # -- Create dispatcher --
-        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
-        self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
+        self.dispatcher = dispatcher.Dispatcher(serverType=smServerType,interval=0.1)
 
         # -- Manual control of outputs --
-        self.manualControl = manualcontrol.ManualControl(self.dispatcherModel.statemachine)
-
+        self.manualControl = manualcontrol.ManualControl(self.dispatcher.statemachine)
 
         # -- Add graphical widgets to main window --
         self.centralWidget = QtWidgets.QWidget()
@@ -79,7 +77,7 @@ class Paradigm(QtWidgets.QMainWindow):
 
         layoutCol1.addWidget(self.saveData)
         layoutCol1.addWidget(self.sessionInfo)
-        layoutCol1.addWidget(self.dispatcherView)
+        layoutCol1.addWidget(self.dispatcher.widget)
         
         layoutCol2.addWidget(self.manualControl)
         layoutCol2.addStretch()
@@ -103,7 +101,7 @@ class Paradigm(QtWidgets.QMainWindow):
         self.soundClient.start()
         
         # -- Connect signals from dispatcher --
-        self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
+        self.dispatcher.prepareNextTrial.connect(self.prepare_next_trial)
 
         # -- Connect messenger --
         self.messagebar = paramgui.Messenger()
@@ -112,7 +110,7 @@ class Paradigm(QtWidgets.QMainWindow):
 
         # -- Connect signals to messenger
         self.saveData.logMessage.connect(self.messagebar.collect)
-        self.dispatcherModel.logMessage.connect(self.messagebar.collect)
+        self.dispatcher.logMessage.connect(self.messagebar.collect)
 
         # -- Connect other signals --
         self.saveData.buttonSaveData.clicked.connect(self.save_to_file)
@@ -131,8 +129,8 @@ class Paradigm(QtWidgets.QMainWindow):
     
     def save_to_file(self):
         '''Triggered by button-clicked signal'''
-        self.saveData.to_file([self.params, self.dispatcherModel, self.sm],
-                              self.dispatcherModel.currentTrial,
+        self.saveData.to_file([self.params, self.dispatcher, self.sm],
+                              self.dispatcher.currentTrial,
                               subject=self.params['subject'].get_value(),
                               paradigm=self.name)
 
@@ -172,8 +170,8 @@ class Paradigm(QtWidgets.QMainWindow):
                           outputsOff=['centerLED'],
                           serialOut=soundclient.STOP_ALL_SOUNDS)
         '''
-        self.dispatcherModel.set_state_matrix(self.sm)
-        self.dispatcherModel.ready_to_start_trial()
+        self.dispatcher.set_state_matrix(self.sm)
+        self.dispatcher.ready_to_start_trial()
 
     def closeEvent(self, event):
         '''
@@ -182,7 +180,7 @@ class Paradigm(QtWidgets.QMainWindow):
         its camelCase naming.
         '''
         self.soundClient.shutdown()
-        self.dispatcherModel.die()
+        self.dispatcher.die()
         event.accept()
 
 

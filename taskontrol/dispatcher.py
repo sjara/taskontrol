@@ -29,9 +29,13 @@ class Dispatcher(QtCore.QObject):
 
     It emits the following signals:
     timerTic        : at every tic of the dispatcher timer.
-                      It sends: serverTime,currentState,eventCount,currentTrial
+                      It sends: serverTime, currentState, eventCount, currentTrial
     prepareNextTrial: whenever one of the prepare-next-trial-states is reached.
                       It sends: 'nextTrial'
+    logMessage      : emits messages when starting and stopping.
+
+    If gui=True, the attribute Dispatcher.widget (an instance of DispatcherGUI) provides 
+    a graphical interface which communicates with this class via signals and slots.
     """
     # -- Create signals (they need to be defined before the class constructor) --
     timerTic = QtCore.Signal(float, int, int, int)
@@ -39,7 +43,17 @@ class Dispatcher(QtCore.QObject):
     logMessage = QtCore.Signal(str)
 
     def __init__(self, parent=None, serverType='dummy', connectnow=True, interval=0.3,
-                 nInputs=N_INPUTS, nOutputs=N_OUTPUTS):
+                 nInputs=N_INPUTS, nOutputs=N_OUTPUTS, gui=True):
+        """
+        Args:
+            parent (QObject)
+            serverType (str): 'arduino_due', 'emulator', or 'dummy'.
+            connectnow (bool): whether to connect to state machine during object creation.
+            interval (float): how often to get data from state machine.
+            nInputs (int): number of inputs of the system.
+            nOutputs (int): number of output of the system.
+            gui (bool): whether to create a dispatcher graphical interface.
+        """
         super(Dispatcher, self).__init__(parent)
 
         if serverType == 'arduino_due':
@@ -68,9 +82,9 @@ class Dispatcher(QtCore.QObject):
         self.serverTime = 0.0   # Time on the state machine
         self.currentState = 0   # State of the state machine
         self.eventCount = 0     # Number of events so far
-        self.currentTrial = -1   # Current trial (first trial will be 0)
-        self.lastEvents = []   # Matrix with info about last events
-        self.eventsMat = []    # Matrix with info about all events
+        self.currentTrial = -1  # Current trial (first trial will be 0)
+        self.lastEvents = []    # List of lists with info about last events
+        self.eventsMat = []     # List of lists with info about all events
         self.indexLastEventEachTrial = []  # index of last event for each trial
 
         # -- Create timer --
@@ -78,6 +92,12 @@ class Dispatcher(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.timeout)
 
+        # -- Create GUI --
+        if gui:
+            self.widget = DispatcherGUI(model=self)
+        else:
+            self.widget = None
+            
         # -- Start with just a zero-state --
         self.reset_state_matrix()
 

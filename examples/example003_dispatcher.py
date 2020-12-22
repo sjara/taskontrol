@@ -17,7 +17,7 @@ app = QtWidgets.QApplication(sys.argv)
 form = QtWidgets.QDialog()
 
 # -- Create dispatcher and upload state transition matrix --
-dispatcherModel = dispatcher.Dispatcher(parent=form,
+dispatcherObj = dispatcher.Dispatcher(parent=form,
                                         serverType=rigsettings.STATE_MACHINE_TYPE,
                                         interval=0.5,
                                         nInputs=3, nOutputs=2)
@@ -32,14 +32,11 @@ stateTimers = [0.1, 0.5, 2.0]
 # NOTE: For this example we use _set_state_matrix() to set the matrix from a python list.
 #       However, the usual way to set this matrix uses instead a statematrix.StateMatrix
 #       object, discussed in the next examples.
-dispatcherModel._set_state_matrix(stateMatrix, stateOutputs, serialOutputs, stateTimers)
-
-# -- Create dispatcher GUI and connect signals --
-dispatcherView = dispatcher.DispatcherGUI(model=dispatcherModel)
+dispatcherObj._set_state_matrix(stateMatrix, stateOutputs, serialOutputs, stateTimers)
 
 # -- Create layout and run --
 layout = QtWidgets.QVBoxLayout()
-layout.addWidget(dispatcherView)
+layout.addWidget(dispatcherObj.widget)
 form.setLayout(layout)
 form.show()
 app.exec_()

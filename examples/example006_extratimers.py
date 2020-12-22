@@ -22,8 +22,7 @@ class Paradigm(QtWidgets.QMainWindow):
         smServerType = rigsettings.STATE_MACHINE_TYPE
 
         # -- Create dispatcher --
-        self.dispatcherModel = dispatcher.Dispatcher(serverType=smServerType, interval=0.1)
-        self.dispatcherView = dispatcher.DispatcherGUI(model=self.dispatcherModel)
+        self.dispatcher = dispatcher.Dispatcher(serverType=smServerType, interval=0.1)
 
         # -- Add parameters --
         self.params = paramgui.Container()
@@ -40,7 +39,7 @@ class Paradigm(QtWidgets.QMainWindow):
         # -- Add graphical widgets to main window --
         centralWidget = QtWidgets.QWidget()
         layoutMain = QtWidgets.QHBoxLayout()
-        layoutMain.addWidget(self.dispatcherView)
+        layoutMain.addWidget(self.dispatcher.widget)
         layoutOneColumn = QtWidgets.QVBoxLayout()
         layoutOneColumn.addWidget(timingParams)
         layoutOneColumn.addStretch()
@@ -52,8 +51,8 @@ class Paradigm(QtWidgets.QMainWindow):
         paramgui.center_on_screen(self)
 
         # -- Connect signals from dispatcher --
-        self.dispatcherModel.prepareNextTrial.connect(self.prepare_next_trial)
-        self.dispatcherModel.timerTic.connect(self.timer_tic)
+        self.dispatcher.prepareNextTrial.connect(self.prepare_next_trial)
+        self.dispatcher.timerTic.connect(self.timer_tic)
 
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
@@ -85,17 +84,17 @@ class Paradigm(QtWidgets.QMainWindow):
                           transitions={'Tup':'ready_next_trial'},
                           outputsOff=['centerLED'])
         print(self.sm)
-        self.dispatcherModel.set_state_matrix(self.sm)
+        self.dispatcher.set_state_matrix(self.sm)
 
     def prepare_next_trial(self, nextTrial):
         print('\nPrepare trial {}'.format(nextTrial))
         self.set_state_matrix()
         # -- Show results from previous trial --
-        lastEvents = self.dispatcherModel.eventsMat[-14:-1]
+        lastEvents = self.dispatcher.eventsMat[-14:-1]
         print('Last 14 events:')
         for oneEvent in lastEvents:
             print('{:.3f}\t {:.0f}\t {:.0f}'.format(oneEvent[0], oneEvent[1], oneEvent[2]))
-        self.dispatcherModel.ready_to_start_trial()
+        self.dispatcher.ready_to_start_trial()
 
     def timer_tic(self, etime, lastEvents):
         print('.', end='', flush=True)
@@ -105,7 +104,7 @@ class Paradigm(QtWidgets.QMainWindow):
         Executed when closing the main window. This method is inherited
         from QtWidgets.QMainWindow, which explains its camelCase name.
         """
-        self.dispatcherModel.die()
+        self.dispatcher.die()
         event.accept()
 
 
