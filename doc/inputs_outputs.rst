@@ -9,7 +9,7 @@ Below we show how these inputs/outputs can be defined manually or taken from the
 
 *Outputs* are defined by a similar Python dictionary such as ``{'centerValve':0, 'centerLED':1}``. 
 
-When creating an instance of ``StateMatrix``, we can also specify the name of the "readystate". When the system reaches this state, it gives the control back from the state machine to the user interface until ``dispatcherModel.ready_to_start_trial()`` is called.
+When creating an instance of ``StateMatrix``, we can also specify the name of the "readystate". When the system reaches this state, it gives the control back from the state machine to the user interface until ``dispatcher.ready_to_start_trial()`` is called.
 
 Here is an example of how this is done in code:
 
@@ -25,7 +25,7 @@ Here is an example of how this is done in code:
             self.sm = statematrix.StateMatrix(inputs={'C':0, 'L':1, 'R':2},
                                               outputs={'centerValve':0, 'centerLED':1},
                                               readystate='ready_next_trial')
-            # The parent class defines self.dispatcherModel used below.
+            # The parent class defines self.dispatcher used below.
 
         def prepare_next_trial(self, nextTrial):
             # -- Set state matrix --
@@ -37,9 +37,9 @@ Here is an example of how this is done in code:
             self.sm.add_state(name='light_off', statetimer=0,
                               transitions={'Tup':'ready_next_trial'},
                               outputsOff=['centerLED'])
-            self.dispatcherModel.set_state_matrix(self.sm)
+            self.dispatcher.set_state_matrix(self.sm)
             # -- Tell the state machine that we are ready to start --
-            self.dispatcherModel.ready_to_start_trial()
+            self.dispatcher.ready_to_start_trial()
 
     if __name__ == "__main__":
         (app, paradigm) = templates.paramgui.create_app(Paradigm)

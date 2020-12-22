@@ -27,7 +27,7 @@ The following code shows how we can add states, transitions and outputs to our p
     class Paradigm(templates.ParadigmMinimal):
         def __init__(self, parent=None):
             super().__init__(parent)
-            # The parent class defines self.sm and self.dispatcherModel used below.
+            # The parent class defines self.sm and self.dispatcher used below.
         
         def prepare_next_trial(self, nextTrial):
             # -- Set state matrix --
@@ -39,9 +39,9 @@ The following code shows how we can add states, transitions and outputs to our p
             self.sm.add_state(name='light_off', statetimer=0,
                               transitions={'Tup':'ready_next_trial'},
                               outputsOff=['centerLED'])
-            self.dispatcherModel.set_state_matrix(self.sm)
+            self.dispatcher.set_state_matrix(self.sm)
             # -- Tell the state machine that we are ready to start --
-            self.dispatcherModel.ready_to_start_trial()
+            self.dispatcher.ready_to_start_trial()
 
     if __name__ == "__main__":
         (app, paradigm) = templates.paramgui.create_app(Paradigm)

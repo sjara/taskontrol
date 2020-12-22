@@ -41,7 +41,7 @@ Here is an example on how you implement the pulse train using extratimers:
                                               outputs=rigsettings.OUTPUTS,
                                               readystate='ready_next_trial',
                                               extratimers=['trainTimer'])
-            # The parent class defines self.dispatcherModel used below.
+            # The parent class defines self.dispatcher used below.
 
         def prepare_next_trial(self, nextTrial):
             # -- Set extra timers --
@@ -60,9 +60,9 @@ Here is an example on how you implement the pulse train using extratimers:
                               transitions={'Tup':'ready_next_trial'},
                               outputsOff=['centerLED'])
             print(self.sm)
-            self.dispatcherModel.set_state_matrix(self.sm)
+            self.dispatcher.set_state_matrix(self.sm)
             # -- Tell the state machine that we are ready to start --
-            self.dispatcherModel.ready_to_start_trial()
+            self.dispatcher.ready_to_start_trial()
 
     if __name__ == "__main__":
         (app, paradigm) = templates.paramgui.create_app(Paradigm)
