@@ -48,7 +48,10 @@ class WheelClient(threading.Thread):
         self.position = []
         self.samplingPeriod = samplingPeriod
         self.daemon = True  # The program exits when only daemon threads are left.
-        self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD, timeout=SERIAL_TIMEOUT)
+        if SERIAL_PORT_PATH is None:
+            self.ser = WheelEmulator()
+        else:
+            self.ser = serial.Serial(SERIAL_PORT_PATH, SERIAL_BAUD, timeout=SERIAL_TIMEOUT)
 
     def run(self):
         while(self.running):
@@ -166,6 +169,29 @@ class WheelClient(threading.Thread):
         while(self.is_alive()):
             time.sleep(0.001)
         self.ser.close()
+
+
+class WheelEmulator(object):
+    def __init__(self):
+        self.timeZero = time.time()
+        self.serialBuffer = []
+    def write(self, serialByte):
+        if serialByte==opcode['TEST_CONNECTION']:
+            self.serialBuffer.insert(0, opcode['OK'])
+        if serialByte==opcode['GET_POSITION']:
+            timestamp = int(1000*(time.time()-self.timeZero))
+            tsAndPos = f'{timestamp} 0\n'
+            self.serialBuffer.insert(0, str.encode(tsAndPos))
+        if serialByte==opcode['GET_VERSION']:
+            self.serialBuffer.insert(0, 'WheelEmulator')
+    def read(self):
+        return self.serialBuffer.pop()
+    def readline(self):
+        return self.serialBuffer.pop()
+    def readlines(self):
+        return self.serialBuffer
+    def close(self):
+        pass
 
 
 if __name__ == '__main__':
