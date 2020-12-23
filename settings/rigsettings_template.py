@@ -16,12 +16,12 @@ OS = 'ubuntu2004'
 
 #: ======== State machine and ports ========
 
-#: Type of state machine. Either 'arduino_due', 'emulator' or 'dummy'
+#: Type of state machine. Either 'arduino_due', 'emulator' or 'dummy'.
 STATE_MACHINE_TYPE = 'emulator'
-#STATE_MACHINE_TYPE = 'arduino_due'
 #STATE_MACHINE_TYPE = 'dummy'
+#STATE_MACHINE_TYPE = 'arduino_due'
 
-#: Make the emulator print details
+#: Make the emulator print details.
 EMULATOR_VERBOSE = True
 
 #: Serial port for the state machine.
@@ -32,24 +32,25 @@ STATE_MACHINE_PORT = '/dev/arduinoDueProgramming'
 SOUND_TRIGGER_PORT = '/dev/arduinoDueNative'
 #SOUND_TRIGGER_PORT = '/dev/ttyACM1'
 
-#: Serial port for the wheelsensor
+#: Serial port for the wheelsensor.
 WHEEL_SENSOR_PORT = None
-#WHEEL_SENSOR_PORT = 'dev/arduinoUNO'
+#WHEEL_SENSOR_PORT = '/dev/arduinoUNO'
 
 
 #: ======== Sound subsystem ========
 
-#: Type of sound server. Either 'jack' or 'pygame'
+#: Type of sound server. Either 'jack' or 'pygame'.
 SOUND_SERVER = 'pygame'
 #SOUND_SERVER = 'jack'
 
-#: Type of sound card. Find this name by running: aplay -l
-SOUND_CARD_NAME = 'PCH'
+#: Type of sound card (if using jack). Find this name by running: aplay -l
+SOUND_CARD_NAME = 'STX'
+#SOUND_CARD_NAME = 'DX'
 
-#: Computer volume level for sound presentation [0-100%]
+#: Computer volume level for sound presentation [0-100%].
 SOUND_VOLUME_LEVEL = 82
 
-#: Files that define the calibration of speakers
+#: Files that define the calibration of speakers.
 SPEAKER_CALIBRATION_SINE = None
 #SPEAKER_CALIBRATION_SINE = '/home/jarauser/src/taskontrol/settings/speaker_calibration_sine.h5'
 SPEAKER_CALIBRATION_CHORD = None
