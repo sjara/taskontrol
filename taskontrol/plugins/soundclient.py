@@ -35,6 +35,7 @@ time.sleep(1)
 
 '''
 TO DO:
+- Fix error when fadein/out is zero.
 - pygame: fromfile mono/stereo amplitude
 - jack: fromfile
 - jack: set sync signal

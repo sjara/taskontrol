@@ -96,15 +96,16 @@ class OutputButton(QtGui.QPushButton):
             self.soundObj = pyo.Noise(mul=DEFAULT_AMPLITUDE)
         '''
     def create_sound(self,soundType):
-        duration = 2
+        duration = 5
+        fade = 0.01
         if soundType=='sine':
-            soundParams = {'type':'tone', 'frequency':int(self.soundTitle),
-                           'amplitude':self.soundAmplitude, 'duration':duration}
+            soundParams = {'type':'tone', 'frequency':int(self.soundTitle)}
         elif soundType=='chord':
-            soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2,
-                           'amplitude':self.soundAmplitude, 'duration':duration}
+            soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2}
         elif soundType=='noise':
-            soundParams = {'type':'noise', 'amplitude':self.soundAmplitude, 'duration':duration}
+            soundParams = {'type':'noise'}
+        soundParams.update({'amplitude':self.soundAmplitude, 'duration':duration,
+                            'fadein':fade, 'fadeout':fade})
         self.soundClient.set_sound(self.buttonID, soundParams)
 
     def toggleOutput(self):
@@ -119,7 +120,8 @@ class OutputButton(QtGui.QPushButton):
         stylestr = 'QPushButton {{color: {0}; font: bold}}'.format(BUTTON_COLORS['on'])
         self.setStyleSheet(stylestr)
         self.create_sound(soundType=self.soundType)
-        self.soundClient.play_sound(self.buttonID)
+        #self.soundClient.play_sound(self.buttonID)
+        self.soundClient.loop_sound(self.buttonID)
 
     def stop(self):
         '''Stop action.'''
