@@ -232,9 +232,12 @@ class SoundServerJack(object):
         self.jackClient.set_process_callback(self._jack_process)
         self.targetPorts = self.jackClient.get_ports(is_physical=True,
                                                      is_input=True, is_audio=True)
-        self.nChannels = len(self.targetPorts)
-        if self.nChannels!=2:
-            raise ValueError('Server only works for systems with 2 channels.')
+        #self.nChannels = len(self.targetPorts)
+        #if self.nChannels!=2:
+        #    raise ValueError('Server only works for systems with 2 channels.')
+        self.nChannels = 2 # FIXME: hardcoded for the moment
+        if len(self.targetPorts)>2:
+            print('WARNING! the sound card has more than two channels.')
         self.jackClient.activate()
 
     class PreloadQueue(threading.Thread):
