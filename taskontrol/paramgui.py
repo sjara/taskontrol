@@ -113,8 +113,10 @@ class Container(dict):
                 raise
 
     def append_to_file(self, h5file, currentTrial):
-        """Append parameters' history to an HDF5 file.
-        It truncates data to the trial before currentTrial """
+        """
+        Append parameters' history to an HDF5 file.
+        It truncates data to the trial before currentTrial, because currentTrial has not ended.
+        """
         dataParent = 'resultsData'      # Parameters from each trial
         itemsParent = 'resultsLabels'   # Items in menu parameters
         sessionParent = 'sessionData'   # Parameters for the whole session
