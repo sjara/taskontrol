@@ -65,7 +65,7 @@ def append_dict_to_HDF5(h5fileGroup, dictName, dictData, compression=None):
         dtype = type(val)
         dset = dictGroup.create_dataset(key, data=val, dtype=dtype,
                                         compression=compression)
-        return dset
+    return dictGroup
 
 
 def dict_from_HDF5(dictGroup):
