@@ -96,7 +96,7 @@ class OutputButton(QtGui.QPushButton):
             self.soundObj = pyo.Noise(mul=DEFAULT_AMPLITUDE)
         '''
     def create_sound(self,soundType):
-        duration = 5
+        duration = 3
         fade = 0.01
         if soundType=='sine':
             soundParams = {'type':'tone', 'frequency':int(self.soundTitle)}
