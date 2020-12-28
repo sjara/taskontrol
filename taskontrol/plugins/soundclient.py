@@ -57,14 +57,14 @@ from taskontrol import rigsettings
 if rigsettings.SOUND_SERVER=='jack':
     import jack
     import queue
+    import scipy.io.wavfile
+    import scipy.signal
 elif rigsettings.SOUND_SERVER=='pygame':
     import pygame
 elif rigsettings.SOUND_SERVER=='pyo':
     from taskontrol.plugins import soundserverpyo
 else:
     raise("'{}' if not a valid sound server type.".format(rigsettings.SOUND_SERVER))
-
-# NOTE: scipy will be imported if using 'fromfile' option.
 
 ############ FIX THIS AT THE END (once other servers are implemented ##############
 if rigsettings.STATE_MACHINE_TYPE=='arduino_due':
@@ -180,22 +180,26 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         soundWave = envelope*carrier
     elif soundParams['type']=='fromfile':
         '''
+        # -- The version with wave+struct does not work yet --
         import struct
         wavfile = wave.open(soundParams['filename'],'r')
         fileFs = wavfile.getframerate()         # sampling rate
         fileNsamples = wavfile.getnframes()     # number of channels
         fileNchannels = wavfile.getnchannels()  # number of samples
+        fileNbits = 8*wavfile.getsampwidth()    # getsampwidth() returns number of bytes
         timeVec = np.arange(0, fileNsamples/fileFs, 1/fileFs)
         byteStr = wavfile.readframes(fileNsamples)
-        soundWave = struct.unpack("<H", byteStr)
+        # Assumes 16bit
+        soundWave = np.array(struct.unpack('<'+fileNsamples*'H', byteStr)).astype(np.float)
+        soundWave = soundWave/(2**(fileNbits-1))-1  # Convert uint to [-1,1)
         '''
-        import scipy.io.wavfile
-        import scipy.signal
         fileFs, soundWave = scipy.io.wavfile.read(soundParams['filename'])
         nSamples = len(soundWave)
-        soundWave = soundWave.astype(np.float)/np.iinfo(soundWave.dtype).max
+        maxIntValue = abs(np.iinfo(soundWave.dtype).min) # For example, int16 range is -32768 to 32767
+        soundWave = soundWave.astype(np.float)/maxIntValue
         newNsamples = round(samplingRate*nSamples/fileFs)
-        soundWave = scipy.signal.resample(soundWave, newNsamples)
+        #soundWave = scipy.signal.resample(soundWave, newNsamples) # This way is too slow
+        soundWave = scipy.signal.resample_poly(soundWave, samplingRate, fileFs) # Faster resample
         timeVec = np.arange(0, newNsamples/samplingRate, 1/samplingRate)
     else:
         raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
