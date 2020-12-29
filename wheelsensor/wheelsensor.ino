@@ -1,207 +1,199 @@
 /*
-Movement sensor (using computer mouse) for Arduino DUE.
-This can be used for example to sense the rotation of a wheel.
+Wheelsensor using Arduino UNO and rotary encoder.
 
-This version reports movement with the LED and sends every event via serial.
-It allows changing the sampling period and the number of periods
-for detecing a STOP event.
+It keeps track of the position of the rotary encoder and it will send
+it together with a timestamp via the serial port when requested.
 
-
-Timer interrupt based on:
-http://2manyprojects.net/timer-interrupts
-
-TO DO:
-- It may send events of 0 movement when moving in Y (not X)
-
+It also allows setting (upper an lower) velocity thresholds to trigger
+changes of a binary output. For this feature, it uses the Arduino's
+internal Timer1 to calculate instantaneous velocity of the rotary
+encoder at each time period. The sampling period can be defined by the
+user. The default is 20 ms.
 */
 
-// Require mouse control library
-#include <MouseController.h>
+#define VERSION        "0.2"
 
-#define ledPin 13
-
+// -- Serial commands --
 #define OK                    0xaa
-#define RESET                 0x01  // OBSOLETE
 #define TEST_CONNECTION       0x02
-#define GET_POSITION          0x03
-#define GET_INTERVAL          0x04
-#define GET_SPEED             0x05
-#define SET_THRESHOLD_MOVE    0x06
-#define GET_THRESHOLD_MOVE    0x07
-#define SET_THRESHOLD_STOP    0x08
-#define GET_THRESHOLD_STOP    0x09
-#define SET_SAMPLING_FACTOR   0x0a
-#define GET_SAMPLING_FACTOR   0x0b
-#define SET_N_PERIODS         0x0c
-#define GET_N_PERIODS         0x0d
-#define GET_SERVER_VERSION    0x0e
-#define GET_TICK_TIMES        0x0f
-#define RUN                   0xee
-#define SET_DEBUG_MODE        0xf0
+#define GET_VERSION           0x03
+#define GET_POSITION          0x04
+#define SET_THRESHOLD_MOVE    0x05
+#define GET_THRESHOLD_MOVE    0x06
+#define SET_THRESHOLD_STOP    0x07
+#define GET_THRESHOLD_STOP    0x08
+#define SET_SAMPLING_PERIOD   0x09
+#define GET_SAMPLING_PERIOD   0x0a
 #define ERROR                 0xff
 
-#define VERSION        "0.1"
+// -- Input and outputs --
+int outputA = 2; // Arduino pin connected to rotary encoder output A
+int outputB = 4; // Arduino pin connected to rotary encoder output B
+int aState;      // State of encoder output A
+int aLastState;  // Last state of encoder output A
+unsigned char serialByte; // For receiving serial communications
 
-//#define MAX_N_PERIODS  200
-//#define BUFFER_SIZE    256
+// -- Encoder position variables --
+long positionCounter = 0;    // Cumulative encoder position counter
+long lastPosition = 0;       // Previous encoder position
+long velocity = 0;           // Instantaneous velocity of encoder
+unsigned long timeStamp = 0; // Time since Arduino was started in ms
 
-USBHost usb; // Initialize USB Controller
-MouseController mouse(usb); // Attach mouse controller to USB
+boolean runState = 0;     // To track if wheel is moving
+int binaryOutputPin = 13; // Output pin to indicate some wheel event
+int thresholdMove = 10;   // Velocity threshold that sets output pin high
+int thresholdStop = 1;    // Velocity threshold that sets output pin low
+unsigned int samplingPeriod = 20; // Velocity sampling period (ms). Must be even.
 
-unsigned char debugMode = 0;
+// -- Timer1 variables
+const uint16_t t1_load = 0; // Timer1 counter value
+unsigned int t1_comp = samplingPeriod * 62.5; // Initialize Timer1 compare value
+// t1_comp = ((x * 0.001 * 16,000,000) / (256)) for a desired x
+// milliseconds to pass every counter increment (The constants
+// simplify to 62.5)
+// Examples:
+// 125 > 2 ms
+// 625 > 10 ms
+// 32150 > 500 ms
+// Note: Since 62.5 is odd, if samplingPeriod is an odd
+// number, there will be an extra 0.5, and the timer
+// will not be counting to exactly the time you want it
+// to on every cycle. So only set samplingPeriod to be
+// an even number.
 
-// Generic variables (to test timer)
-int state = false;
-
-// For serial
-unsigned char serialByte;
-
-// To get speed
-int mouseXchange;
-long avgTickRate = 0; // Total count in interval of duration = (nPeriods * sa
-unsigned long lastTime = 0;
-unsigned long thisTime = 0;
-
-// Thresholds for detecting movement or no movement
-unsigned char thresholdMove = 10;   // Pixels per unit time
-unsigned char thresholdStop = 1;
-unsigned char samplingPeriodFactor = 1; // Multiplier of 100ms
-unsigned char periodsStop = 1;
-
-unsigned char periodsSoFar = 0;
-
-//long timerPeriod = 65600; // 0.1 seconds
-long timerPeriod;
-//  65600 / 656000 = 0.1 seconds
-// 131200 / 656000 = 0.2 seconds
-
-
-// -- This function intercepts mouse movements --
-void mouseMoved() {
-  TC_Start(TC2, 1);
-  // NOTE: We are using abs() to detect movement in either direction
-  mouseXchange = mouse.getXChange();
-  if (abs(mouseXchange)>=thresholdMove) {
-    digitalWrite(ledPin, true);
-    periodsSoFar = 0;
-  }
-  else if (abs(mouseXchange)<=thresholdStop) {
-    periodsSoFar++;
-    if (periodsSoFar>=periodsStop) {
-      digitalWrite(ledPin, false);
-      periodsSoFar = 0;
-    }
-  }
-
-  if(debugMode)
-    Serial.println(mouseXchange); // DEBUG
+void send_position(unsigned long timeStamp, long positionCounter) {
+    // Send time and position separated by space
+    Serial.print(timeStamp);
+    Serial.print(" ");
+    Serial.print(positionCounter);
+    Serial.println();
 }
-
-
-// -- Timer interrupt handler --
-void TC7_Handler() {
-  // We need to get the status to clear it and allow the interrupt to fire again
-  TC_GetStatus(TC2, 1); // Reser timer interrupt
-  //digitalWrite(ledPin, false); // Turn output pin off
-  periodsSoFar++;
-  if (periodsSoFar>=periodsStop) {
-    digitalWrite(ledPin, false);
-    periodsSoFar = 0;
-  }
-
-  if(debugMode) {}
-    //Serial.println("..Stopped.."); // DEBUG
-}
-
-
-// -- Enable timer interrupt --
-void enable_timer_interrupt() {
-  // Turn on the timer clock in the power management controller
-  pmc_set_writeprotect(false); // Disable write protection for pmc registers
-  pmc_enable_periph_clk(ID_TC7); // Enable peripheral clock TC7
-  // We want wavesel 01 with RC
-  TC_Configure(TC2, 1,
-	       TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); 
-  TC_SetRC(TC2, 1, timerPeriod);
-  TC_Start(TC2, 1);
-  // Enable timer interrupts on the timer
-  TC2->TC_CHANNEL[1].TC_IER=TC_IER_CPCS;   // IER = interrupt enable register
-  TC2->TC_CHANNEL[1].TC_IDR=~TC_IER_CPCS;  // IDR = interrupt disable register
-  /* Enable the interrupt in the nested vector interrupt controller */
-  /* TC4_IRQn where 4 is the timer number * timer channels (3) + the channel number (=(1*3)+1) for timer1 channel1 */
-  NVIC_EnableIRQ(TC7_IRQn);
-}
-
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
+  // Initialize binary output
+  pinMode(binaryOutputPin, OUTPUT);
+  digitalWrite(binaryOutputPin, LOW);
 
-  byte ready=0;
-  while(!ready) {
-    if (Serial.available()>0) {
-      serialByte = Serial.read();
-      switch(serialByte) {
-        case TEST_CONNECTION: {
-	  Serial.write(OK);
-	  break;
-	}
-        case SET_THRESHOLD_MOVE: {
-	  while (!Serial.available()) {}  // Wait for data
-	  thresholdMove = Serial.read();
-	  break;
-	}
-        case GET_THRESHOLD_MOVE: {
-	  Serial.println(thresholdMove);
-	  break;
-	}
-        case SET_THRESHOLD_STOP: {
-	  while (!Serial.available()) {}  // Wait for data
-	  thresholdStop = Serial.read();
-	  break;
-	}
-        case GET_THRESHOLD_STOP: {
-	  Serial.println(thresholdStop);
-	  break;
-	}
-        case SET_SAMPLING_FACTOR: {
-	  while (!Serial.available()) {}  // Wait for data
-	  samplingPeriodFactor = Serial.read();
-	  break;
-	}
-        case SET_N_PERIODS: {
-	  while (!Serial.available()) {}  // Wait for data
-	  periodsStop = Serial.read();
-	  break;
-	}
-        case SET_DEBUG_MODE: {
-	  while (!Serial.available()) {}  // Wait for data
-	  debugMode = Serial.read();
-	  break;
-	}
-        case RUN: {
-	  ready=1;
-	  break;
-	}
-      }
-    }
-  }
-  timerPeriod = samplingPeriodFactor * 65600;
-  Serial.println("--- Wheel sensor ---");
-  Serial.print("THRESHOLD MOVE: ");
-  Serial.println(thresholdMove);
-  Serial.print("THRESHOLD STOP: ");
-  Serial.println(thresholdStop);
-  Serial.print("N PERIODS TO STOP: ");
-  Serial.println(periodsStop);
-  Serial.print("SAMPLING PERIOD FACTOR: ");
-  Serial.println(samplingPeriodFactor);
-  Serial.println("STARTING!");
-  enable_timer_interrupt();
+  // Set up input pins for rotary encoder
+  pinMode(outputA, INPUT);
+  pinMode(outputB, INPUT);
+  aLastState = digitalRead(outputA); // Read initial state of encoder output A
+
+  Serial.begin(115200); // Initialize serial port
+  setUpTimer1();        // Initialize Timer1
 }
 
 
 void loop() {
-  usb.Task();
+  // Reads the current state of the outputA
+  aState = digitalRead(outputA);
+
+  // If the previous and the current state of the outputA
+  // are different then a pulse occurred
+  if (aState != aLastState) {
+    // If the outputB state is different to the outputA state,
+    // then the encoder is rotating clockwise.
+    // Otherwise, it's rotating counterclockwise
+    if (digitalRead(outputB) != aState) {
+      positionCounter ++;
+    }
+    else {
+      positionCounter --;
+    }
+  }
+
+  // Updates the previous state of outputA with the current state
+  aLastState = aState;
+
+  // Check for serial commands from the client
+  while (Serial.available() > 0) {
+    serialByte = Serial.read();
+    switch(serialByte) {
+      case TEST_CONNECTION: {
+	Serial.write(OK);
+	break;
+      }
+      case GET_VERSION: {
+	Serial.println(VERSION);
+	break;
+      }
+      case SET_THRESHOLD_MOVE: {
+	thresholdMove = read_int32_serial();
+	break;
+      }
+      case GET_THRESHOLD_MOVE: {
+	Serial.println(thresholdMove);
+	break;
+      }
+      case SET_SAMPLING_PERIOD: {
+	samplingPeriod = read_int32_serial();
+	t1_comp = samplingPeriod * (125 / 2);
+	setUpTimer1();
+	break;
+      }
+      case GET_SAMPLING_PERIOD: {
+	Serial.println(samplingPeriod);
+	break;
+      }
+      case GET_POSITION: {
+	timeStamp = millis();
+	send_position(timeStamp, positionCounter);
+	break;
+      }
+    }
+  }
 }
 
+
+ISR(TIMER1_COMPA_vect) {
+  // Reset the timer counter
+  TCNT1 = t1_load;
+
+  // Calculate the velocity
+  velocity = abs(positionCounter - lastPosition);
+  // If the velocity is over the threshold:
+  if (velocity > thresholdMove) {
+    // Mouse is running
+    runState = 1;
+    // Set binary output pin high
+    digitalWrite(binaryOutputPin, HIGH);
+  }
+  else {
+    // Mouse isn't running
+    runState = 0;
+    // Set binary output pin low
+    digitalWrite(binaryOutputPin, LOW);
+  }
+
+  // Update the last position to be the current position
+  // for the next velocity calculation
+  lastPosition = positionCounter;
+}
+
+
+void setUpTimer1() {
+  cli(); // Stop interrupts
+  TCCR1A = 0; // Reset Timer1 control register A
+
+  // Set Timer1 prescaler to 256
+  TCCR1B |= (1 << CS12);
+  TCCR1B &= ~(1 << CS11);
+  TCCR1B &= ~(1 << CS10);
+
+  TCNT1 = t1_load; // Reset Timer1
+  OCR1A = t1_comp; // Set compare value
+  TIMSK1 = (1 << OCIE1A); // Enable Timer1 overflow interrupt
+  sei(); // Enable interrupts
+}
+
+
+unsigned long read_int32_serial() {
+  // Read four bytes and combine them (little endian order, LSB first)
+  long value = 0;
+  for (int ind=0; ind<4; ind++) {
+    while (!Serial.available()) {}  // Wait for data
+    serialByte = Serial.read();
+    value = ((long) serialByte << (8*ind)) | value;
+  }
+  return value;
+}

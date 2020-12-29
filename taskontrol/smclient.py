@@ -25,7 +25,7 @@ import os
 import sys
 import time
 import struct
-from ..settings import rigsettings
+from . import rigsettings
 
 SERIAL_PORT_PATH = rigsettings.STATE_MACHINE_PORT
 #SERIAL_PORT_PATH = '/dev/ttyACM0'
@@ -66,8 +66,8 @@ opcode = {
     'REPORT_SERIAL_OUTPUTS': 0x1e,
     'ERROR'              : 0xff,
 }
-for k,v in opcode.iteritems():
-    opcode[k]=chr(v)
+for k,v in opcode.items():
+    opcode[k]=bytes([v])
 
 class StateMachineClient(object):
     def __init__(self,connectnow=True):
@@ -147,9 +147,9 @@ class StateMachineClient(object):
         # -- nActions: two per input, one state timer, and extra timers --
         self.nActions = 2*self.nInputs + 1 + self.nExtraTimers
         self.ser.write(opcode['SET_SIZES'])
-        self.ser.write(chr(nInputs))
-        self.ser.write(chr(nOutputs))
-        self.ser.write(chr(nExtraTimers))
+        self.ser.write(bytes([nInputs]))
+        self.ser.write(bytes([nOutputs]))
+        self.ser.write(bytes([nExtraTimers]))
     def get_time(self):
         '''Request server time.
         Returns time in seconds.
@@ -170,7 +170,7 @@ class StateMachineClient(object):
         inputValues = [ord(x) for x in inputValuesChr]
         return inputValues
     def force_output(self,outputIndex,outputValue):
-        self.ser.write(opcode['FORCE_OUTPUT']+chr(outputIndex)+chr(outputValue))
+        self.ser.write(opcode['FORCE_OUTPUT']+bytes([outputIndex])+bytes([outputValue]))
     def set_state_matrix(self,stateMatrix):
         '''
         stateMatrix: [nStates][nActions]  (where nActions is 2*nInputs+1+nExtraTimers)
@@ -186,11 +186,14 @@ class StateMachineClient(object):
     def send_matrix(self,someMatrix):
         nRows = len(someMatrix)
         nCols = len(someMatrix[0])
-        self.ser.write(chr(nRows))
-        self.ser.write(chr(nCols))
-        for indrow,oneRow in enumerate(someMatrix):
-            for inditem,oneItem in enumerate(oneRow):
-                self.ser.write(chr(oneItem))
+        self.ser.write(bytes([nRows]))
+        self.ser.write(bytes([nCols]))
+        #print repr(chr(nRows)) ### DEBUG
+        #print repr(chr(nCols)) ### DEBUG
+        for oneRow in someMatrix:
+            for oneItem in oneRow:
+                #print repr(chr(oneItem)) ### DEBUG
+                self.ser.write(bytes([oneItem]))
     def report_state_matrix(self):
         self.ser.write(opcode['REPORT_STATE_MATRIX'])
         sm = self.ser.readlines()
@@ -240,7 +243,7 @@ class StateMachineClient(object):
         '''
         self.ser.write(opcode['SET_EXTRA_TRIGGERS'])
         for onestate in stateTriggerEachExtraTimer:
-            self.ser.write(chr(onestate))
+            self.ser.write(bytes([onestate]))
     def report_extra_timers(self):
         self.ser.write(opcode['REPORT_EXTRA_TIMERS'])
         return self.ser.readlines()
@@ -258,7 +261,7 @@ class StateMachineClient(object):
         '''
         self.ser.write(opcode['SET_SERIAL_OUTPUTS'])
         for oneOutput in serialOutputs:
-            self.ser.write(chr(oneOutput))
+            self.ser.write(bytes([oneOutput]))
     def report_serial_outputs(self):
         self.ser.write(opcode['REPORT_SERIAL_OUTPUTS'])
         return self.ser.readline()
@@ -288,10 +291,11 @@ class StateMachineClient(object):
         return ord(currentState)
     def force_state(self,stateID):
         self.ser.write(opcode['FORCE_STATE'])
-        self.ser.write(chr(stateID))        
-
+        self.ser.write(bytes([stateID]))        
+    '''
     def write(self,value):
         self.ser.write(value)
+    '''
     def OLD_set_state_outputs(self,stateOutputs):
         '''Each element of stateOutputs must be one byte.
         A future version may include a 'mask' so that the output

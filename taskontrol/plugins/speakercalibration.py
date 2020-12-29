@@ -1,10 +1,10 @@
-'''
+"""
 Generate sounds at different frequencies to calibrate speakers.
 
 What I want:
 - Play sound until press stop
   . To enable enough time to measure amplitude in oscilloscope
-- GUI: 
+- GUI:
   . array of frequencies
   . one button each freq to start/stop
   . a box to enter amplitude
@@ -14,23 +14,24 @@ What I want:
 [0.03,0.014,0.013,0.004,0.005,0.006,0.01,0.01,0.03,0.017,0.03,0.028,0.03,0.03,0.03,0.03]
 
 TO DO:
+- Fix one speaker at a time (currently all sounds come out of both speakers)
 - Add SpeakerNoiseCalibration class (GUI to calibrate)
 - Fix NoiseCalibration.find_amplitude types (it should not be just a number)
+"""
 
-
-'''
 
 import sys
-from PySide import QtCore 
-from PySide import QtGui 
-from taskontrol.core import messenger
-from taskontrol.settings import rigsettings
-import pyo
+#import pyo
 import signal
 import time
 import os
 import numpy as np
 import h5py
+from qtpy import QtWidgets as QtGui
+from qtpy import QtCore
+from taskontrol import paramgui
+from taskontrol import rigsettings
+from taskontrol.plugins import soundclient
 
 SOUND_FREQUENCIES = np.logspace(np.log10(1000), np.log10(40000), 16)
 SOUND_FREQUENCIES = np.sort(np.concatenate((SOUND_FREQUENCIES,[3000,5000,7000,11000,16000,24000])))
@@ -46,16 +47,17 @@ DATADIR = '/var/tmp/'
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
-
+'''
 # -- Set computer's sound level --
 if hasattr(rigsettings,'SOUND_VOLUME_LEVEL'):
     baseVol = rigsettings.SOUND_VOLUME_LEVEL
     if baseVol is not None:
         os.system('amixer set Master {0}% > /dev/null'.format(baseVol))
-        print 'Set sound volume to {0}%'.format(baseVol)
-        
+        print('Set sound volume to {0}%'.format(baseVol))
+'''
 
-def create_sound(soundParams):
+'''
+def OLD_create_sound(soundParams):
     amplitude = soundParams['amplitude']
     if soundParams['type']=='sine':
         soundObjList = [pyo.Sine(freq=soundParams['frequency'],mul=amplitude)]
@@ -70,13 +72,15 @@ def create_sound(soundParams):
     if soundParams['type']=='noise':
         soundObjList = [pyo.Noise(mul=amplitude)]
     return soundObjList
+'''
 
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
-    def __init__(self, soundServer, title, soundType='sine',channel=1, parent=None):
-        super(OutputButton, self).__init__(title, parent)
+    def __init__(self, buttonID, soundClient, title, soundType='sine',channel=1, parent=None):
+        super().__init__(title, parent)
 
-        self.soundServer = soundServer
+        self.buttonID = buttonID
+        self.soundClient = soundClient
         self.soundTitle = title
         self.soundAmplitude = DEFAULT_AMPLITUDE
         self.channel = channel
@@ -92,15 +96,17 @@ class OutputButton(QtGui.QPushButton):
             self.soundObj = pyo.Noise(mul=DEFAULT_AMPLITUDE)
         '''
     def create_sound(self,soundType):
+        duration = 3
+        fade = 0.01
         if soundType=='sine':
-            soundParams = {'type':'sine', 'frequency':int(self.soundTitle),
-                           'amplitude':self.soundAmplitude}
+            soundParams = {'type':'tone', 'frequency':int(self.soundTitle)}
         elif soundType=='chord':
-            soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2,
-                           'amplitude':self.soundAmplitude}
+            soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2}
         elif soundType=='noise':
-            soundParams = {'type':'noise', 'amplitude':self.soundAmplitude}
-        self.soundObjList = create_sound(soundParams)
+            soundParams = {'type':'noise'}
+        soundParams.update({'amplitude':self.soundAmplitude, 'duration':duration,
+                            'fadein':fade, 'fadeout':fade})
+        self.soundClient.set_sound(self.buttonID, soundParams)
 
     def toggleOutput(self):
         if self.isChecked():
@@ -114,29 +120,32 @@ class OutputButton(QtGui.QPushButton):
         stylestr = 'QPushButton {{color: {0}; font: bold}}'.format(BUTTON_COLORS['on'])
         self.setStyleSheet(stylestr)
         self.create_sound(soundType=self.soundType)
-        self.play_sound()
+        #self.soundClient.play_sound(self.buttonID)
+        self.soundClient.loop_sound(self.buttonID)
 
     def stop(self):
         '''Stop action.'''
         self.setChecked(False)
         stylestr = ''
         self.setStyleSheet(stylestr)
-        self.stop_sound()
-        
+        self.soundClient.stop_sound(self.buttonID)
+
+    '''
     def play_sound(self):
-        #self.soundObj = pyo.Sine(freq=soundfreq,mul=0.02).mix(2).out()
-        #self.soundObj.setMul(0.01) 
         for soundObj in self.soundObjList:
             soundObj.out(chnl=self.channel)
-
+    '''
+    
     def change_amplitude(self,amplitude):
         self.soundAmplitude = amplitude
-        for soundObj in self.soundObjList:
-            soundObj.setMul(amplitude)
+        #for soundObj in self.soundObjList:
+        #    soundObj.setMul(amplitude)
 
+    '''
     def stop_sound(self):
         for soundObj in self.soundObjList:
             soundObj.stop()
+    '''
 
 class AmplitudeControl(QtGui.QDoubleSpinBox):
     def __init__(self,soundButton,parent=None):
@@ -151,9 +160,9 @@ class AmplitudeControl(QtGui.QDoubleSpinBox):
         self.soundButton.change_amplitude(value)
 
 class SoundControlGUI(QtGui.QGroupBox):
-    def __init__(self, soundServer, channel=0, channelName='left', parent=None):
+    def __init__(self, soundClient, channel=0, channelName='left', parent=None):
         super(SoundControlGUI, self).__init__(parent)
-        self.soundServer = soundServer
+        self.soundClient = soundClient
         self.soundFreqs = SOUND_FREQUENCIES
         # -- Create graphical objects --
         layout = QtGui.QGridLayout()
@@ -161,7 +170,7 @@ class SoundControlGUI(QtGui.QGroupBox):
         self.outputButtons = nFreq*[None]
         self.amplitudeControl = nFreq*[None]
         self.channel = channel
-        
+
         stopAllButton = QtGui.QPushButton('STOP ALL')
         layout.addWidget(stopAllButton, 0, 1)
         stopAllButton.clicked.connect(self.stop_all)
@@ -170,15 +179,15 @@ class SoundControlGUI(QtGui.QGroupBox):
         playAllButton.clicked.connect(self.play_all)
 
         for indf,onefreq in enumerate(self.soundFreqs):
-            self.outputButtons[indf] = OutputButton(self.soundServer,str(int(np.round(onefreq))),
+            self.outputButtons[indf] = OutputButton(indf, self.soundClient, str(int(np.round(onefreq))),
                                                     channel=self.channel)
             self.amplitudeControl[indf] = AmplitudeControl(self.outputButtons[indf])
             layout.addWidget(self.outputButtons[indf], indf+1, 0)
             layout.addWidget(self.amplitudeControl[indf], indf+1, 1)
-            
+
         self.setLayout(layout)
         self.setTitle('Speaker '+channelName)
-    
+
     def play_all(self):
         for oneButton in self.outputButtons:
             oneButton.start()
@@ -192,11 +201,12 @@ class SoundControlGUI(QtGui.QGroupBox):
         for indf,oneAmplitude in enumerate(self.amplitudeControl):
             amplitudeEach[indf] = oneAmplitude.value()
         return amplitudeEach
-    
+
+'''    
 class NoiseSoundControlGUI(QtGui.QGroupBox):
-    def __init__(self, soundServer, channel=0, channelName='left', parent=None):
+    def __init__(self, soundClient, channel=0, channelName='left', parent=None):
         super(NoiseSoundControlGUI, self).__init__(parent)
-        self.soundServer = soundServer
+        self.soundClient = soundClient
         self.channel=channel
 
         # -- Create graphical objects --
@@ -204,8 +214,8 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
         self.outputButtons = []
         self.amplitudeControl=[]
 
-        self.outputButtons.append(OutputButton(self.soundServer, 'RMS Power', soundType='noise', channel=self.channel))
-        self.outputButtons.append(OutputButton(self.soundServer, 'Narrowband Power', soundType='noise', channel=self.channel))
+        self.outputButtons.append(OutputButton(self.soundClient, 'RMS Power', soundType='noise', channel=self.channel))
+        self.outputButtons.append(OutputButton(self.soundClient, 'Narrowband Power', soundType='noise', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
             self.amplitudeControl.append(AmplitudeControl(outputButton))
@@ -214,13 +224,14 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
 
         self.setLayout(layout)
         self.setTitle('Speaker '+channelName)
-        
+
         # If multiple amplitude controls
     def amplitude_array(self):
         amplitudeEach = np.empty(len(self.amplitudeControl))
         for indf,oneAmplitude in enumerate(self.amplitudeControl):
             amplitudeEach[indf] = oneAmplitude.value()
         return amplitudeEach
+'''
 
 class LoadButton(QtGui.QPushButton):
     '''
@@ -230,7 +241,7 @@ class LoadButton(QtGui.QPushButton):
     logMessage = QtCore.Signal(str)
     def __init__(self, soundControlArray, parent=None):
         super(LoadButton, self).__init__('Load data', parent)
-        self.soundControlArray = soundControlArray       
+        self.soundControlArray = soundControlArray
         self.calData = None # Object to contain loaded data
         self.clicked.connect(self.load_data)
     def load_data(self):
@@ -255,7 +266,7 @@ class PlotButton(QtGui.QPushButton):
     '''
     def __init__(self, soundControlArray, parent=None):
         super(PlotButton, self).__init__('Plot results', parent)
-        self.soundControlArray = soundControlArray       
+        self.soundControlArray = soundControlArray
         self.clicked.connect(self.plot_data)
     def plot_data(self):
         frequencies = self.soundControlArray[0].soundFreqs
@@ -275,7 +286,7 @@ class SaveButton(QtGui.QPushButton):
     logMessage = QtCore.Signal(str)
     def __init__(self, soundControlArray, parent=None):
         super(SaveButton, self).__init__('Save calibration', parent)
-        self.soundControlArray = soundControlArray       
+        self.soundControlArray = soundControlArray
         self.clicked.connect(self.save_data)
         self.filename = None
         self.datadir = DATADIR
@@ -304,14 +315,14 @@ class SaveButton(QtGui.QPushButton):
                 return
         else:
             fname = defaultFileName
-        
+
         # Create array with amplitudes from all channels
         amplitudeData = []
         for soundControl in self.soundControlArray:
             amplitudeData.append(soundControl.amplitude_array())
         amplitudeData = np.array(amplitudeData)
 
-        ###print amplitudeData ###DEBUG
+        ###print(amplitudeData) # DEBUG
 
         # -- Create data file --
         # FIXME: check that the file opened correctly
@@ -322,18 +333,18 @@ class SaveButton(QtGui.QPushButton):
         try:
             if soundType=='noise':
                 dsetAmp = h5file.create_dataset('amplitudeRMS',data=amplitudeData[:,0]) # FIXME: hardcoded method of separating amplitudes
-            	dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-            	dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
-		dsetAmp = h5file.create_dataset('amplitudeNarrowband',data=amplitudeData[:,1])
-            	dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-            	dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
-            	dsetRef = h5file.create_dataset('powerRMS',data=DEFAULT_POWER_RMS)
-            	dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
-            	dsetRef = h5file.create_dataset('powerNarrowband',data=DEFAULT_POWER_NARROWBAND)
-            	dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
-            	dsetRef = h5file.create_dataset('computerSoundLevel',
+                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                dsetAmp = h5file.create_dataset('amplitudeNarrowband',data=amplitudeData[:,1])
+                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                dsetRef = h5file.create_dataset('powerRMS',data=DEFAULT_POWER_RMS)
+                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef = h5file.create_dataset('powerNarrowband',data=DEFAULT_POWER_NARROWBAND)
+                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef = h5file.create_dataset('computerSoundLevel',
                                           	data=rigsettings.SOUND_VOLUME_LEVEL)
-            	dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
+                dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
             else:
                 dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
                 dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
@@ -347,15 +358,15 @@ class SaveButton(QtGui.QPushButton):
                 dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
         except UserWarning as uwarn:
             self.logMessage.emit(uwarn.message)
-            print uwarn.message
+            print(uwarn.message)
         except:
             h5file.close()
             raise
         h5file.close()
- 
+
         self.filename = fname
         self.logMessage.emit('Saved data to {0}'.format(fname))
-    
+
 class VerticalLine(QtGui.QFrame):
     def __init__(self,parent=None):
         super(VerticalLine, self).__init__(parent)
@@ -363,22 +374,23 @@ class VerticalLine(QtGui.QFrame):
         self.setFrameShadow(QtGui.QFrame.Sunken)
         self.setSizePolicy(QtGui.QSizePolicy.Minimum,
                            QtGui.QSizePolicy.Expanding)
-     
-    
+
+
 class SpeakerCalibrationGUI(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(SpeakerCalibrationGUI, self).__init__(parent)
 
         self.name = 'speakercalibration'
-        self.soundServer = self.initialize_sound()
+        #self.soundClient = self.initialize_sound()
+        self.soundClient = soundclient.SoundClient()
 
         # -- Add graphical widgets to main window --
         self.centralWidget = QtGui.QWidget()
         layoutMain = QtGui.QHBoxLayout()
         layoutRight = QtGui.QVBoxLayout()
-               
-        self.soundControlL = SoundControlGUI(self.soundServer, channel=0, channelName='left')
-        self.soundControlR = SoundControlGUI(self.soundServer, channel=1, channelName='right')
+
+        self.soundControlL = SoundControlGUI(self.soundClient, channel=0, channelName='left')
+        self.soundControlR = SoundControlGUI(self.soundClient, channel=1, channelName='right')
 
         self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
         soundTypeLabel = QtGui.QLabel('Sound type')
@@ -396,7 +408,7 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         self.computerSoundLevel.setEnabled(False)
         self.loadButton = LoadButton([self.soundControlL,self.soundControlR])
         self.plotButton = PlotButton([self.soundControlL,self.soundControlR])
-        
+
 
         layoutRight.addWidget(self.saveButton)
         layoutRight.addWidget(soundTypeLabel)
@@ -414,7 +426,7 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         layoutMain.addWidget(self.soundControlR)
         layoutMain.addWidget(VerticalLine())
         layoutMain.addLayout(layoutRight)
-        
+
 
         self.centralWidget.setLayout(layoutMain)
         self.setCentralWidget(self.centralWidget)
@@ -426,16 +438,16 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         #self.results = arraycontainer.Container()
 
         # -- Connect messenger --
-        self.messagebar = messenger.Messenger()
+        self.messagebar = paramgui.Messenger()
         self.messagebar.timedMessage.connect(self._show_message)
         self.messagebar.collect('Created window')
 
         # -- Connect signals to messenger
         self.saveButton.logMessage.connect(self.messagebar.collect)
-        
+
         # -- Connect other signals --
         #self.saveData.buttonSaveData.clicked.connect(self.save_to_file)
-    
+
     def change_sound_type(self,soundTypeInd):
         for oneOutputButton in self.soundControlL.outputButtons:
             #oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
@@ -444,14 +456,18 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
             #oneOutputButton.create_sound(self.soundTypeList[soundTypeInd])
             oneOutputButton.soundType = self.soundTypeList[soundTypeInd]
 
+    """
     def initialize_sound(self):
+        '''
         s = pyo.Server(audio='jack').boot()
         s.start()
+        '''
         return s
-
+    """
+        
     def _show_message(self,msg):
         self.statusBar().showMessage(str(msg))
-        print msg
+        print(msg)
 
     def _center_in_screen(self):
         qr = self.frameGeometry()
@@ -465,31 +481,32 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         This method is inherited from QtGui.QMainWindow, which explains
         its camelCase naming.
         '''
-        #print 'ENTERED closeEvent()' # DEBUG
-        #print 'Closing all connections.' # DEBUG
-        self.soundServer.shutdown()
+        #print('ENTERED closeEvent()') # DEBUG
+        #print('Closing all connections.') # DEBUG
+        self.soundClient.shutdown()
         #self.pyoServer.shutdown()
         event.accept()
-        
+
+"""
 class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(NoiseSpeakerCalibrationGUI, self).__init__(parent)
 
         self.name = 'noisespeakercalibration'
-        self.soundServer = self.initialize_sound()
+        self.soundClient = self.initialize_sound()
 
         # -- Add graphical widgets to main window --
         self.centralWidget = QtGui.QWidget()
         layoutMain = QtGui.QHBoxLayout()
         layoutRight = QtGui.QVBoxLayout()
 
-        self.soundControlL = NoiseSoundControlGUI(self.soundServer, channel=0, channelName='left')
-        self.soundControlR = NoiseSoundControlGUI(self.soundServer, channel=1, channelName='right')
+        self.soundControlL = NoiseSoundControlGUI(self.soundClient, channel=0, channelName='left')
+        self.soundControlR = NoiseSoundControlGUI(self.soundClient, channel=1, channelName='right')
         for oneOutputButton in self.soundControlL.outputButtons:
             oneOutputButton.soundType = 'noise'
         for oneOutputButton in self.soundControlR.outputButtons:
             oneOutputButton.soundType = 'noise'
-        
+
         self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
 
         noiseTargetIntensityLabel = QtGui.QLabel('Target RMS power in time domain [dB-SPL]')
@@ -539,14 +556,14 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
         #self.results = arraycontainer.Container()
 
         # -- Connect messenger --
-        self.messagebar = messenger.Messenger()
+        self.messagebar = paramgui.Messenger()
         self.messagebar.timedMessage.connect(self._show_message)
         self.messagebar.collect('Created window')
 
         # -- Connect signals to messenger
         #TODO: enable saving and uncomment below
         self.saveButton.logMessage.connect(self.messagebar.collect)
-        
+
     def initialize_sound(self):
         s = pyo.Server(audio='jack').boot()
         #s = pyo.Server().boot()
@@ -555,7 +572,7 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
 
     def _show_message(self,msg):
         self.statusBar().showMessage(str(msg))
-        print msg
+        print(msg)
 
     def _center_in_screen(self):
         qr = self.frameGeometry()
@@ -569,11 +586,12 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
         This method is inherited from QtGui.QMainWindow, which explains
         its camelCase naming.
         '''
-        #print 'ENTERED closeEvent()' # DEBUG
-        #print 'Closing all connections.' # DEBUG
-        self.soundServer.shutdown()
+        #print('ENTERED closeEvent()') # DEBUG
+        #print('Closing all connections.') # DEBUG
+        self.soundClient.shutdown()
         #self.pyoServer.shutdown()
         event.accept()
+"""
 
 class Calibration(object):
     '''
@@ -593,14 +611,14 @@ class Calibration(object):
             self.frequency = np.array([1000,4000])
             self.intensity = 60
         self.nChannels = self.amplitude.shape[0]
-            
+
     def find_amplitude(self,frequency,intensity):
         '''
         Linear interpolation (in log-freq) to find appropriate amplitude
         Returns an array with the amplitude for each channel.
         '''
         ampAtRef = []
-        for chn in range(self.nChannels):     
+        for chn in range(self.nChannels):
             thisAmp = np.interp(np.log10(frequency),np.log10(self.frequency),
                                 self.amplitude[chn,:])
             ampAtRef.append(thisAmp)
@@ -609,7 +627,7 @@ class Calibration(object):
         ampFactor = 10**(dBdiff/20.0)
         return np.array(ampAtRef)*ampFactor
 
-    
+
 class NoiseCalibration(object):
     '''
     Reads data from file and finds appropriate amplitude for a desired
@@ -630,7 +648,7 @@ class NoiseCalibration(object):
             self.powerRMS = 60
             self.powerNarrowband = 40
         self.nChannels = self.amplitudeRMS.shape[0]
-            
+
     def find_amplitude(self, intensity, type='rms'):
         '''
         type:
@@ -649,9 +667,10 @@ class NoiseCalibration(object):
 
 
 if __name__ == "__main__":
+    
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
+    app=QtGui.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
     args = sys.argv[1:]
     if len(args):
@@ -664,7 +683,7 @@ if __name__ == "__main__":
     '''
     if 1:
         cal=Calibration('/tmp/speaker_calibration_20140322175816.h5')
-        print cal.find_amplitude(1200,60)
-        print cal.find_amplitude(1200,40)
+        print(cal.find_amplitude(1200,60))
+        print(cal.find_amplitude(1200,40))
     '''
 

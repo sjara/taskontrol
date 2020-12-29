@@ -1,14 +1,9 @@
-#!/usr/bin/env python
-
-'''
+"""
 State machine client emulator.
 
 TO DO:
 - Separate GUI from Model by using signals and slots.
-
-
-'''
-from __future__ import print_function
+"""
 
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-09-23'
@@ -16,9 +11,11 @@ __created__ = '2013-09-23'
 import time
 import numpy as np
 import datetime
-from PySide import QtCore
-from PySide import QtGui
-from ..settings import rigsettings
+import os
+import tempfile
+from qtpy import QtCore
+from qtpy import QtWidgets
+from .. import rigsettings
 
 MAXNEVENTS = 512
 MAXNSTATES = 256
@@ -29,6 +26,9 @@ MAXNACTIONS = 2*MAXNINPUTS + 1 + MAXNEXTRATIMERS
 
 VERBOSE = rigsettings.EMULATOR_VERBOSE
 
+TEMP_DIR = tempfile.gettempdir()
+FAKE_SERIAL = 'fakeserial.txt'
+
 #buttonsStrings = ['C','L','R','W']
 buttonsStrings = len(rigsettings.INPUTS)*[None]
 for key,item in rigsettings.INPUTS.items(): buttonsStrings[item]=key
@@ -38,12 +38,12 @@ if hasattr(rigsettings, 'EMULATOR_GUI_ORDER'):
 else:
     buttonsPos = [1,0,2,3]
 
-class EmulatorGUI(QtGui.QWidget):
+class EmulatorGUI(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(EmulatorGUI, self).__init__(parent)
         '''
-        self.window = QtGui.QMainWindow()
-        #self.window = QtGui.QWidget()
+        self.window = QtWidgets.QMainWindow()
+        #self.window = QtWidgets.QWidget()
         self.window.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.window.setGeometry(100, 600, 500, 300)
@@ -59,17 +59,17 @@ class EmulatorGUI(QtGui.QWidget):
         self.button = nButtons*[0]
         self.light = nButtons*[0]
         self.water = nButtons*[0]
-        layoutMain = QtGui.QGridLayout()
+        layoutMain = QtWidgets.QGridLayout()
         for indbut in range(nButtons):
-            self.button[indbut] = QtGui.QPushButton(buttonsStrings[indbut])
+            self.button[indbut] = QtWidgets.QPushButton(buttonsStrings[indbut])
             self.button[indbut].setMinimumSize(100,100)
             layoutMain.addWidget(self.button[indbut],2,buttonsPos[indbut])
-            self.light[indbut] = QtGui.QPushButton()
+            self.light[indbut] = QtWidgets.QPushButton()
             self.light[indbut].setMinimumSize(100,25)
             self.light[indbut].setEnabled(False)
             self.changeLight(indbut,0)
             layoutMain.addWidget(self.light[indbut],1,buttonsPos[indbut])
-            self.water[indbut] = QtGui.QPushButton()
+            self.water[indbut] = QtWidgets.QPushButton()
             self.water[indbut].setMinimumSize(100,25)
             self.water[indbut].setEnabled(False)
             layoutMain.addWidget(self.water[indbut],0,buttonsPos[indbut])
@@ -184,6 +184,7 @@ class StateMachineClient(QtCore.QObject):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.execute_cycle)
 
+        self.fakeSerial = open(os.path.join(TEMP_DIR, FAKE_SERIAL),'w')
         self.emuGUI = EmulatorGUI()
 
     def send_reset(self):
@@ -298,6 +299,7 @@ class StateMachineClient(QtCore.QObject):
         if VERBOSE:
             print('EMULATOR: Close.')
         self.emuGUI.close()
+        self.fakeSerial.close()
 
     def add_event(self,thisEventCode):
         self.eventsTime[self.nEvents] = self.get_time()
@@ -356,12 +358,12 @@ class StateMachineClient(QtCore.QObject):
         self.outputs = self.stateOutputs[currentState,:]
         self.emuGUI.set_outputs(self.outputs)
         self.serialout = self.serialOutputs[currentState]
-        self.emulate_serial_output()
+        self.emulate_serial_output(self.serialout)
 
-    def emulate_serial_output(self):
-        f=open('/tmp/serialoutput.txt','w')
-        f.write(str(self.serialout))
-        f.close()
+    def emulate_serial_output(self, serialout):
+        if serialout:
+            self.fakeSerial.write(chr(serialout))
+            self.fakeSerial.flush()
 
     def update_state_machine(self):
         while(self.eventsToProcess>0):

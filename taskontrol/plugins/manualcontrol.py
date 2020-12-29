@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Plugin for controlling outputs manually.
 
@@ -10,9 +12,10 @@ __version__ = '0.1.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2012-08-27'
 
-from PySide import QtCore 
-from PySide import QtGui 
-from taskontrol.settings import rigsettings
+import sys
+from qtpy import QtWidgets as QtGui
+from qtpy import QtCore
+from taskontrol import rigsettings
 
 BUTTON_COLORS = {'on':'red','off':'black'}
 
@@ -28,7 +31,8 @@ class ManualControl(QtGui.QGroupBox):
         self.outputButtons = {}
         nButtons = 0
         nCols = 2
-        dictIterator = iter(sorted(rigsettings.OUTPUTS.items()))
+        #dictIterator = iter(sorted(rigsettings.OUTPUTS.iteritems()))
+        dictIterator = rigsettings.OUTPUTS.items()
         for key,value in dictIterator:
             self.outputButtons[key] = OutputButton(statemachine, key,value)
             self.outputButtons[key].setObjectName('ManualControlButton')
@@ -54,6 +58,7 @@ class OutputButton(QtGui.QPushButton):
         self.setCheckable(True)
         #self.connect(self,QtCore.SIGNAL('clicked()'),self.toggleOutput) ### OOLD
         self.clicked.connect(self.toggleOutput)
+
         #stylestr = 'QPushButton {font: 10pt}'
         #self.setStyleSheet(stylestr)
 
@@ -84,7 +89,7 @@ class WaterControl(QtGui.QGroupBox):
         self.outputButtons = {}
         outputsDict = {'Left':rigsettings.OUTPUTS['leftWater'],
                        'Right':rigsettings.OUTPUTS['rightWater']}
-        for key,value in iter(sorted(outputsDict.iteritems())):
+        for key,value in sorted(outputsDict.items()):
             self.outputButtons[key] = OutputButton(statemachine, key,value)
             self.outputButtons[key].setObjectName('ManualControlButton')
             self.outputButtons[key].setMinimumHeight(80)
@@ -127,7 +132,7 @@ class SingleDrop(QtGui.QGroupBox):
         self.outputButtons = {}
         outputsDict = {'Left':rigsettings.OUTPUTS['leftWater'],
                        'Right':rigsettings.OUTPUTS['rightWater']}
-        for key,value in iter(sorted(outputsDict.iteritems())):
+        for key,value in sorted(outputsDict.items()):
             self.outputButtons[key] = TimedButton(statemachine, key, value, toggleTime=toggleTime)
             self.outputButtons[key].setObjectName('SingleDropButton')
             self.outputButtons[key].setMinimumHeight(40)

@@ -4,12 +4,13 @@ TASKontrol
 
 TASKontrol is an open source framework for developing behavioral experiments for neuroscience research.
 
-It consists of modules written in `Python`_ and `PySide`_ (Qt for Python) for designing behavioral paradigms and providing a graphical user interface to control the experiments. It also includes software that runs in an `Arduino Due`_ to provide an interface for detecting external events and triggering stimuli.
+It consists of modules written in `Python`_ and `Qt`_ (via `QtPy`_) for designing behavioral paradigms and providing a graphical user interface to control the experiments. It also includes software that runs in an `Arduino Due`_ to provide an interface for detecting external events and triggering stimuli.
 
 TASKontrol was originally developed by Santiago Jaramillo and it is maintained by the `Jaramillo Lab`_ at the University of Oregon. The source code can be found in `GitHub`_.
 
 .. _Python: https://www.python.org/
-.. _PySide: http://www.pyside.org
+.. _Qt: https://www.qt.io
+.. _qtpy: https://pypi.org/project/QtPy/
 .. _Arduino Due: https://www.arduino.cc/en/Main/ArduinoBoardDue
 .. _Jaramillo Lab: http://jaralab.uoregon.edu/
 .. _Github: https://github.com/sjara/taskontrol
@@ -36,9 +37,6 @@ Contents:
    inputs_outputs
    extratimers
    advanced_topics
-     state_machine
-..     statematrix
-..     sound
    reference
 
 ..   settings
@@ -46,17 +44,17 @@ Contents:
 .. plugins
 
 
-Indices and tables
-------------------
+Classes and methods
+-------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+.. * :ref:`search`
 
 Help
 ----
 
-* `reStructuredText Primer <http://www.sphinx-doc.org/en/stable/rest.html>`_. 
+* `reStructuredText Primer <http://www.sphinx-doc.org/en/stable/rest.html>`_.
 
 
 .. taskontrol documentation master file, created by

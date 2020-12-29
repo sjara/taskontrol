@@ -1,23 +1,20 @@
-#!/usr/bin/env python
+"""
+Plugin to show the correct choice on each trial and the outcome (reward/punishment).
+"""
 
-'''
-Plugin to show the correct choice on each trial and the outcome (reward/punishment)
-'''
-
-
-__version__ = '0.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-__created__ = '2013-07-21'
-
-from PySide import QtCore 
-from PySide import QtGui 
+import sys
+from qtpy import QtWidgets
+from qtpy import QtGui
+from qtpy import QtCore
 import numpy as np
 import pyqtgraph as pg
 
 def set_pg_colors(form):
     '''Set default BG and FG color for pyqtgraph plots.'''
-    bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window)
-    fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText)
+    #bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window) ### OLD
+    #fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText) ### OLD
+    bgColorRGBA = form.palette().color(QtGui.QPalette.Window)
+    fgColorRGBA = form.palette().color(QtGui.QPalette.WindowText)
     pg.setConfigOption('background', bgColorRGBA)
     pg.setConfigOption('foreground', fgColorRGBA)
     pg.setConfigOptions(antialias=True)  ## this will be expensive for the local plot
@@ -38,7 +35,7 @@ class SidesPlot(pg.PlotWidget):
         self.mainPlot = pg.ScatterPlotItem(size=4, symbol='o', pxMode=True)
         self.addItem(self.mainPlot)
 
-        self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,'nochoice':4,'aftererror':5,'aborted':6} 
+        self.outcomeIDs = {'correct':1,'error':0,'invalid':2,'free':3,'nochoice':4,'aftererror':5,'aborted':6}
         # FIXME: This should come from somewhere else (to be consisten with the rest)
 
         # -- Graphical adjustments --
@@ -63,7 +60,7 @@ class SidesPlot(pg.PlotWidget):
         #self.mainPlot.addPoints(x=hiddenX,y=hiddenY,
         #                        pen=nTrialsToPlot*[pg.mkPen('r')],
         #                        brush=nTrialsToPlot*[pg.mkBrush('r')])
-        
+
 
     def make_pens(self,points):
         '''
@@ -122,10 +119,10 @@ if __name__ == "__main__":
     import sys
 
     # -- A workaround to enable re-running the app in ipython after closing --
-    app=QtGui.QApplication.instance() # checks if QApplication already exists 
-    if not app: # create QApplication if it doesnt exist 
-        app = QtGui.QApplication(sys.argv)
-    form = QtGui.QDialog()
+    app=QtWidgets.QApplication.instance() # checks if QApplication already exists
+    if not app: # create QApplication if it doesnt exist
+        app = QtWidgets.QApplication(sys.argv)
+    form = QtWidgets.QDialog()
     form.resize(600,140)
     set_pg_colors(form)
 
@@ -137,7 +134,7 @@ if __name__ == "__main__":
     outcome = np.random.randint(0,4,ntrials)
     #outcome = np.array([0,0,0,1,1,0,1,1,1,1])
     splot.update(sides,outcome,currentTrial=90)
-    layoutMain = QtGui.QHBoxLayout()
+    layoutMain = QtWidgets.QHBoxLayout()
     layoutMain.addWidget(splot)
     form.setLayout(layoutMain)
     form.show()

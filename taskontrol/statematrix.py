@@ -13,9 +13,7 @@ NOTES:
   the outputs for each state as a list of 0 (off), 1 (on) or another integer
   which indicates the output should not be changed from its previous value.
 
-'''
 
-'''
 Input format:
 sma.add_state(name='STATENAME', statetimer=3,
              transitions={'EVENT':NEXTSTATE},
@@ -31,14 +29,13 @@ mat = [  0,  0,  0,  0,  0,  0,  2  ]
 WRITE DOCUMENTATION ABOUT:
 sm.statesNameToIndex
 self.eventsDict
-...
 
 '''
 
 
+from . import utils
 #from taskontrol.settings import rigsettings
 #reload(rigsettings)
-from taskontrol.core import utils
 
 __version__ = '0.3'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
@@ -59,7 +56,7 @@ class StateMatrix(object):
 
     Where the first six are for center, left and right ports, and the
     next column for the state timer.
-    
+
     FIXME: only one 'readystate' can be specified. It should accept many.
     '''
     def __init__(self,inputs={},outputs={},readystate='readyForNextTrial',extratimers=[]):
@@ -69,7 +66,7 @@ class StateMatrix(object):
             outputs (dict): Labels for outputs. Elements should be of type str:int.
             readystate (str): name of ready-for-next-trial state.
             extratimers (list): names of extratimers.
-        
+
         A common use is:
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
@@ -98,7 +95,7 @@ class StateMatrix(object):
 
         # This dictionary is modified if ExtraTimers are used.
         self.eventsDict = {}
-        for key,val in self.inputsDict.iteritems():
+        for key,val in self.inputsDict.items():
             self.eventsDict[key+'in'] = 2*val
             self.eventsDict[key+'out'] = 2*val+1
         self.eventsDict['Tup'] = len(self.eventsDict)
@@ -109,7 +106,7 @@ class StateMatrix(object):
 
         for onetimer in extratimers:
             self._add_extratimer(onetimer)
-        
+
         #self.readyForNextTrialStateName = readystate[0]
         #self.readyForNextTrialStateInd = readystate[1]
         self.readyForNextTrialStateName = readystate
@@ -150,8 +147,8 @@ class StateMatrix(object):
         '''Set Tup transition from one state to another give state numbers
         instead of state names'''
         self.stateMatrix[originStateID][self.eventsDict['Tup']] = destinationStateID
-        
-        
+
+
     def _update_state_dict(self,stateName,stateInd):
         '''Add name and index of a state to the dicts keeping the states list.'''
         self.statesNameToIndex[stateName] = stateInd
@@ -159,12 +156,12 @@ class StateMatrix(object):
 
 
     def _append_state_to_list(self,stateName):
-        '''Add state to the list of available states.'''        
+        '''Add state to the list of available states.'''
         #if self._nextStateInd==self.readyForNextTrialStateInd:
         #    self._nextStateInd += 1  # Skip readyForNextTrialState
         self._update_state_dict(stateName,self._nextStateInd)
         self._nextStateInd += 1
-        
+
 
     def add_state(self, name='', statetimer=VERYLONGTIME, transitions={},
                   outputsOn=[], outputsOff=[], trigger=[], serialOut=0):
@@ -175,7 +172,7 @@ class StateMatrix(object):
         serialOut: integer (1-255) to send through serial port on entering
                       state. A value of zero means no serial output.
         '''
-        
+
         nExtraTimers = len(self.extraTimersNames)
 
         # -- Find index for this state (create if necessary) --
@@ -185,7 +182,7 @@ class StateMatrix(object):
 
         # -- Add target states from specified events --
         newRow = self._make_default_row(thisStateInd)
-        for (eventName,targetStateName) in transitions.iteritems():
+        for (eventName,targetStateName) in transitions.items():
             if targetStateName not in self.statesNameToIndex:
                 self._append_state_to_list(targetStateName)
             targetStateInd = self.statesNameToIndex[targetStateName]
@@ -213,8 +210,8 @@ class StateMatrix(object):
             extraTimerInd = self.extraTimersNames.index(oneExtraTimer)
             self.extraTimersTriggers[extraTimerInd] = thisStateInd
         pass
-    
-    
+
+
     def _add_extratimer(self, name, duration=0):
         '''
         Add an extra timer that will be trigger when entering a defined state,
@@ -231,7 +228,7 @@ class StateMatrix(object):
         #self.extraTimersTriggers.append(None) # This will be filled by add_state
         # The default trigger for extratimers is state 0. The state machine requires a trigger.
         self.extraTimersTriggers.append(0) # This will be updated by add_state
-        
+
 
     def set_extratimer(self, name, duration):
         '''
@@ -240,11 +237,11 @@ class StateMatrix(object):
         if name not in self.extraTimersNames:
             raise Exception('The state matrix has no extratimer called {0}.'.format(name))
         self.extraTimersDuration[self.extraTimersNames.index(name)] = duration
-        
+
     def get_matrix(self):
         # -- Check if there are orphan states or calls to nowhere --
         maxStateIDdefined = len(self.stateMatrix)-1
-        for (stateName,stateID) in self.statesNameToIndex.iteritems():
+        for (stateName,stateID) in self.statesNameToIndex.items():
             if (stateID>maxStateIDdefined) or not len(self.stateMatrix[stateID]):
                 raise ValueError('State "{0}" was not defined.'.format(stateName))
         return self.stateMatrix
@@ -350,7 +347,7 @@ if __name__ == "__main__":
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
                     outputsOn=['centerLED'])
-        print sm
+        print(sm)
     elif CASE==2:
         sm = StateMatrix()
         sm.add_schedule_wave(name='mySW',preamble=1.2)
@@ -360,7 +357,7 @@ if __name__ == "__main__":
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_apoke'},
                     outputs={'Dout':5})
-        print sm
+        print(sm)
     elif CASE==3:
         sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
                          outputs={'centerWater':0, 'centerLED':1},
@@ -370,7 +367,7 @@ if __name__ == "__main__":
         sm.add_state(name='wait_for_cpoke', statetimer=12,
                      transitions={'Cin':'play_target', 'mytimer':'third_state'},
                      outputsOff=['centerLED'],  trigger=['mytimer'])
-        print sm
+        print(sm)
     elif CASE==3.5:
         sm = StateMatrix(inputs={'C':0, 'L':1, 'R':2},
                          outputs={'centerWater':0, 'centerLED':1})
@@ -379,7 +376,7 @@ if __name__ == "__main__":
         sm.add_state(name='wait_for_cpoke', statetimer=12,
                      transitions={'Cin':'play_target', 'mytimer':'third_state'},
                      outputsOff=['centerLED'],  trigger=['mytimer'])
-        print sm
+        print(sm)
     elif CASE==4:
         sm = StateMatrix()
         sm.add_state(name='wait_for_cpoke', statetimer=12,
@@ -391,13 +388,13 @@ if __name__ == "__main__":
         sm.add_state(name='wait_for_apoke', statetimer=0.5,
                     transitions={'Tup':'wait_for_cpoke'},
                     outputsOff=['CenterLED'])
-        print sm
+        print(sm)
         sm.get_matrix()
         sm.reset_transitions()
         sm.add_state(name='wait_for_cpoke', statetimer=12,
                     transitions={'Cin':'play_target','Tup':'play_target'},
                     outputsOff=['CenterLED'])
-        print sm
+        print(sm)
         sm.get_matrix()
     if CASE==5:
         sm = StateMatrix()
@@ -407,5 +404,5 @@ if __name__ == "__main__":
         sm.add_state(name='play_target', statetimer=0.5,
                     transitions={'Cout':'wait_for_apoke','Tup':'wait_for_cpoke'},
                     outputsOn=['CenterLED'], serialOut=1)
-        print sm
-       
+        print(sm)
+

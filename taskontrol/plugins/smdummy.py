@@ -1,19 +1,14 @@
-#!/usr/bin/env python
-
-'''
+"""
 State machine client dummy.
-
-TO DO:
-'''
-
-
-__version__ = '0.1.1'
-__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
-__created__ = '2012-08-20'
+"""
 
 import time
 import numpy as np
 import datetime
+
+__version__ = '0.1.1'
+__author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
+__created__ = '2012-08-20'
 
 
 class StateMachineClient(object):
@@ -28,7 +23,7 @@ class StateMachineClient(object):
     def send_reset(self):
         pass
     def connect(self):
-        print 'DUMMY: Connect.'
+        print('DUMMY: Connect.')
         pass
     def test_connection(self):
         pass
@@ -44,18 +39,18 @@ class StateMachineClient(object):
     def get_inputs(self):
         pass
     def force_output(self,output,value):
-        print 'DUMMY: Force output {0} to {1}'.format(output,value)
+        print('DUMMY: Force output {0} to {1}'.format(output,value))
         pass
     def set_state_matrix(self,stateMatrix):
-        print 'DUMMY: Set state matrix.'
+        print('DUMMY: Set state matrix.')
     def send_matrix(self,someMatrix):
         pass
     def report_state_matrix(self):
         pass
     def run(self):
-        print 'DUMMY: Run.'
+        print('DUMMY: Run.')
     def stop(self):
-        print 'DUMMY: Stop.'
+        print('DUMMY: Stop.')
     def set_state_timers(self,timerValues):
         pass
     def report_state_timers(self):
@@ -67,7 +62,7 @@ class StateMachineClient(object):
     def report_extra_timers(self):
         pass
     def set_state_outputs(self,stateOutputs):
-        print 'DUMMY: Set state outputs.'
+        print('DUMMY: Set state outputs.')
         pass
     def set_serial_outputs(self,serialOutputs):
         pass
@@ -81,7 +76,7 @@ class StateMachineClient(object):
     def get_current_state(self):
         pass
     def force_state(self,stateID):
-        print 'DUMMY: Force state {0}.'.format(stateID)
+        print('DUMMY: Force state {0}.'.format(stateID))
 
     def write(self,value):
         pass
@@ -90,27 +85,27 @@ class StateMachineClient(object):
     def read(self):
         pass
     def close(self):
-        print 'DUMMY: Close.'
+        print('DUMMY: Close.')
 
 
 
 
 '''
     def connect(self):
-        print 'DUMMY: Connect state machine client.'
+        print('DUMMY: Connect state machine client.'
 
     def initialize(self):
-        print 'DUMMY: Initialize state machine.'
+        print('DUMMY: Initialize state machine.'
 
-    def setStateMatrix(statematrix, pend_sm_swap=False):       
-        #print statematrix
-        print 'DUMMY: Set state matrix.'
+    def setStateMatrix(statematrix, pend_sm_swap=False):
+        #print(statematrix
+        print('DUMMY: Set state matrix.'
 
     def readyToStartTrial(self):
-        print 'DUMMY: Ready to start trial.'
-        
+        print('DUMMY: Ready to start trial.'
+
     def getTimeEventsAndState(self,firstEvent):
-        #print 'DUMMY: Get time events and state.'
+        #print('DUMMY: Get time events and state.'
         timeThisTic = time.time()
         etime = timeThisTic-self.timeOfCreation
         state = 0
@@ -131,14 +126,14 @@ class StateMachineClient(object):
         pass
 
     def run(self):
-        print 'DUMMY: Run.'
+        print('DUMMY: Run.'
 
     def halt(self):
-        print 'DUMMY: Halt.'
+        print('DUMMY: Halt.'
 
     def forceState(self, state):
-        print 'DUMMY: Force state %d.'%state
+        print('DUMMY: Force state %d.'%state
 
     def close(self):
-        print 'DUMMY: Close.'
+        print('DUMMY: Close.'
 '''

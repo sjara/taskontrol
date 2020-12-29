@@ -2,7 +2,7 @@ import sys
 from PySide import QtCore
 from PySide import QtGui
 from taskontrol.core import messenger
-from taskontrol.settings import rigsettings
+from taskontrol import rigsettings
 import pyo
 import signal
 import time

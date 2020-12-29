@@ -9,15 +9,20 @@ __version__ = '0.1'
 __author__ = 'Santiago Jaramillo <sjara@uoregon.edu>'
 __created__ = '2013-07-21'
 
-from PySide import QtCore 
-from PySide import QtGui 
+import sys
+from qtpy import QtWidgets
+from qtpy import QtGui
+from qtpy import QtCore
+
 import numpy as np
 import pyqtgraph as pg
 
 def set_pg_colors(form):
     '''Set default BG and FG color for pyqtgraph plots.'''
-    bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window)
-    fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText)
+    #bgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.Window) ### OLD
+    #fgColorRGBA = form.palette().color(QtGui.QPalette.ColorRole.WindowText) ### OLD
+    bgColorRGBA = form.palette().color(QtGui.QPalette.Window)
+    fgColorRGBA = form.palette().color(QtGui.QPalette.WindowText)
     pg.setConfigOption('background', bgColorRGBA)
     pg.setConfigOption('foreground', fgColorRGBA)
     pg.setConfigOptions(antialias=True)  ## this will be expensive for the local plot
