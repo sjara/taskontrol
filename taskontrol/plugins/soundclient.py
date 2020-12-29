@@ -52,13 +52,13 @@ import numpy as np
 import tempfile
 import wave
 import serial
+import scipy.io.wavfile
+import scipy.signal
 #from .. import rigsettings
 from taskontrol import rigsettings
 if rigsettings.SOUND_SERVER=='jack':
     import jack
     import queue
-    import scipy.io.wavfile
-    import scipy.signal
 elif rigsettings.SOUND_SERVER=='pygame':
     import pygame
 elif rigsettings.SOUND_SERVER=='pyo':
