@@ -1,10 +1,24 @@
-*.pyc
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+
+# Sphinx documentation
+docs/_build/
+docs/_themes/
+
+# Emacs temp files
 *~
 \#*
 .emacs*
+
+# Local test folders
 old
-test
-zzz_old
-doc/_build
-doc/_themes
-rigsettings.py
+
+# Rig specific settings
+settings/rigsettings.py
+settings/*.h5
