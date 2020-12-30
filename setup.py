@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='taskontrol',
-    version='1.0dev',
+    version='1.0',
     author='Santiago Jaramillo',
     author_email='sjara@uoregon.edu',
     description='TASKontrol is a framework for developing behavioral experiments.',
