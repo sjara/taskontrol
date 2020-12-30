@@ -34,7 +34,7 @@ class ParadigmMinimal(QtWidgets.QMainWindow):
         # -- Create an empty statematrix --
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='readyForNextTrial')
+                                          readystate='ready_next_trial')
 
         # -- Create dispatcher --
         self.dispatcher = dispatcher.Dispatcher(serverType=smServerType, interval=0.1)
@@ -79,7 +79,7 @@ class Paradigm2AFC(QtWidgets.QMainWindow):
         # -- Create an empty state matrix --
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='readyForNextTrial')
+                                          readystate='ready_next_trial')
 
         # -- Add parameters --
         self.params = paramgui.Container()
@@ -211,7 +211,7 @@ class ParadigmGoNoGo(QtWidgets.QMainWindow):
         # -- Create an empty state matrix --
         self.sm = statematrix.StateMatrix(inputs=rigsettings.INPUTS,
                                           outputs=rigsettings.OUTPUTS,
-                                          readystate='readyForNextTrial')
+                                          readystate='ready_next_trial')
 
         # -- Add parameters --
         self.params = paramgui.Container()
