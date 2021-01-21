@@ -5,10 +5,12 @@ In addition to listing the changes, we write some hints for what to check in you
 * Transitioned completely to Python 3.
   * Check your paradigms for `print` statements. They should be functions.
 * Use `qtpy` instead of `PySide`.
-  * You need to use `qtpy.QWidgets` instead of `PySide.QtGui`.
+  * You need to use `qtpy.QtWidgets` instead of `PySide.QtGui`.
+* The `rigsettings` module is now imported with: `from taskontrol import rigsettings`. Do not use `taskontrol.settings`.
 * Moved all modules from package `taskontrol.core` to package `taskontrol`.
   * You need to change imports of core modules to something like: `from taskontrol import dispatcher`
-* Method `paramgui.update_history()` now requires parameter "`lastTrial`", which is used to verify that the history is of the correct length.
+* Method `paramgui.update_history()` now requires parameter "`lastTrial`", which is used to ensure that the history is of the correct length.
+  * This is usually done inside `prepare_next_trial()` as `self.params.update_history(nextTrial-1)`
 * Method `paramgui.center_in_screen()` is now `paramgui.center_on_screen()`.
 * Class `arraycontainer.Container` is now `utils.EnumContainer`.
 * Module `messenger.py` has been deleted.
