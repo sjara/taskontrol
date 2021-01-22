@@ -3,7 +3,8 @@
 In addition to listing the changes, we write some hints for what to check in your paradigm so it works with this new version.
 
 * Transitioned completely to Python 3.
-  * Check your paradigms for `print` statements. They should be functions.
+  * Check your paradigms for `print` statements. They should be functions: `print()`.
+  * Working with dictionaries: Use `in` instead of `has_key()`. Use `items()` instead of `iteritems()`.
 * Use `qtpy` instead of `PySide`.
   * You need to use `qtpy.QtWidgets` instead of `PySide.QtGui`.
 * The `rigsettings` module is now imported with: `from taskontrol import rigsettings`. Do not use `taskontrol.settings`.
@@ -18,6 +19,7 @@ In addition to listing the changes, we write some hints for what to check in you
   * Method `messenger.Messenger_stringlist()` is now `paramgui.Messenger_get_list()`.
 * Class `dispatcher.DispatcherGUI` doesn't have to be called explicitly anymore. An instance is now created as an attribute of `dispatcher.Dispatcher` (under the name `dispatcher.Dispatcher.widget`).
   * To add the dispatcher widget to the app, you can write: `layoutCol1.addWidget(self.dispatcher.widget)`.
+* If you use templates, note that the attribute `self.dispatcherModel` is now called `self.dispatcher`.
   
 # v0.2 (2017)
 * Extratimers work on Arduino and emulator.
