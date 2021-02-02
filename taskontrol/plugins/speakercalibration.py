@@ -76,7 +76,7 @@ def OLD_create_sound(soundParams):
 
 class OutputButton(QtGui.QPushButton):
     '''Single button for manual output'''
-    def __init__(self, buttonID, soundClient, title, soundType='sine',channel=1, parent=None):
+    def __init__(self, buttonID, soundClient, title, soundType='sine', channel=0, parent=None):
         super().__init__(title, parent)
 
         self.buttonID = buttonID
@@ -104,7 +104,9 @@ class OutputButton(QtGui.QPushButton):
             soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2}
         elif soundType=='noise':
             soundParams = {'type':'noise'}
-        soundParams.update({'amplitude':self.soundAmplitude, 'duration':duration,
+        amplitude = [0, 0]
+        amplitude[self.channel] = self.soundAmplitude
+        soundParams.update({'amplitude':amplitude, 'duration':duration,
                             'fadein':fade, 'fadeout':fade})
         self.soundClient.set_sound(self.buttonID, soundParams)
 
@@ -295,7 +297,8 @@ class SaveButton(QtGui.QPushButton):
         if filename is not None:
             defaultFileName = filename
         else:
-            if date is None:
+            # FIXME: on 2020-02-02 date appeared to be False instead of None, why?
+            if date is None or date==False:
                 date = time.strftime('%Y%m%d%H%M%S',time.localtime())
             soundType = self.soundControlArray[0].outputButtons[0].soundType
             dataRootDir = self.datadir
@@ -342,9 +345,6 @@ class SaveButton(QtGui.QPushButton):
                 dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
                 dsetRef = h5file.create_dataset('powerNarrowband',data=DEFAULT_POWER_NARROWBAND)
                 dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
-                dsetRef = h5file.create_dataset('computerSoundLevel',
-                                          	data=rigsettings.SOUND_VOLUME_LEVEL)
-                dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
             else:
                 dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
                 dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
@@ -353,9 +353,14 @@ class SaveButton(QtGui.QPushButton):
                 dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
                 dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
                 dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
-                dsetRef = h5file.create_dataset('computerSoundLevel',
-                                                data=rigsettings.SOUND_VOLUME_LEVEL)
-                dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
+                
+            if rigsettings.SOUND_VOLUME_LEVEL is None:
+                computerSoundLevel = np.nan
+            else:
+                computerSoundLevel = rigsettings.SOUND_VOLUME_LEVEL
+            dsetRef = h5file.create_dataset('computerSoundLevel',
+                                            data=computerSoundLevel)
+            dsetRef.attrs['Units'] = '%' # FIXME: hardcoded
         except UserWarning as uwarn:
             self.logMessage.emit(uwarn.message)
             print(uwarn.message)
