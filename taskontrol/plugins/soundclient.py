@@ -178,6 +178,44 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
         carrier = randomGen.uniform(-1,1,len(timeVec))
         soundWave = envelope*carrier
+    elif soundParams['type']=='toneCloud':
+        nFreq = soundParams['nFreq']
+        freqEachTone = np.logspace(np.log10(soundParams['freqRange'][0]),
+                                   np.log10(soundParams['freqRange'][1]),
+                                   soundParams['nFreq'])
+        toneTimeVec = np.arange(0, soundParams['toneDuration'], 1/samplingRate)
+        allFreqTime = np.outer(freqEachTone, toneTimeVec)
+        waveEachTone = np.sin(2*np.pi*allFreqTime)
+        nSamplesPerTone = waveEachTone.shape[1]
+        # -- Make end of waveform smooth --
+        toneFallTime = 0.001 # Use a ramp-down of 1ms
+        toneFallVec = np.linspace(1, 0, round(samplingRate * toneFallTime))
+        if len(toneFallVec)>0:
+            waveEachTone[:, -len(toneFallVec):] *= toneFallVec
+
+        toneOnsets = np.arange(0, soundParams['duration'], soundParams['toneOnsetAsync'])
+        toneOnsetsInds = (toneOnsets*samplingRate).astype(int)
+        # Don't count last overhanging tones
+        nTones = np.sum((toneOnsetsInds+nSamplesPerTone) < len(timeVec))
+        nFreqInTargetRange = nFreq//3
+        pTarget = (1 + 2*abs(soundParams['strength'])/100) / 3
+        nTonesFromTarget = int(np.round(pTarget*nTones))
+        if soundParams['strength']>0:
+            targetFreqInds = np.arange(nFreq-nFreqInTargetRange, nFreq)
+        else:
+            targetFreqInds = np.arange(0, nFreqInTargetRange)
+        pNonTargetTone = (1-pTarget)/(nFreq-len(targetFreqInds))   
+        pEachFreq = np.tile(pNonTargetTone, nFreq)
+        pEachFreq[targetFreqInds] = pTarget/len(targetFreqInds)
+        nTonesEachFreq = np.random.multinomial(nTones, pEachFreq)
+        toneSequenceSorted = np.repeat(np.arange(nFreq), nTonesEachFreq)
+        toneSequence = np.random.permutation(toneSequenceSorted)
+        sampleRange = nSamplesPerTone
+        soundWave = np.zeros(len(timeVec))
+        for toneInd in range(nTones):
+            onsetSample = toneOnsetsInds[toneInd]
+            waveThisTone = waveEachTone[toneSequence[toneInd], :]
+            soundWave[onsetSample:onsetSample+nSamplesPerTone] += waveThisTone
     elif soundParams['type']=='fromfile':
         '''
         # -- The version with wave+struct does not work yet --
@@ -492,8 +530,8 @@ class SoundClient(threading.Thread):
             self.init_serial()
         else:
             fakeSerialFullPath = os.path.join(TEMP_DIR, FAKE_SERIAL)
-            if not os.path.isfile(fakeSerialFullPath):
-                open(fakeSerialFullPath, 'w').close() # Create empty file
+            #if not os.path.isfile(fakeSerialFullPath):
+            open(fakeSerialFullPath, 'w').close() # Create empty file
             
         self.sounds = self.soundServer.sounds  # Gives access to sounds info
         self.daemon = True  # The program exits when only daemon threads are left.
