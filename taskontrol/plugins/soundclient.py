@@ -186,6 +186,8 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         toneTimeVec = np.arange(0, soundParams['toneDuration'], 1/samplingRate)
         allFreqTime = np.outer(freqEachTone, toneTimeVec)
         waveEachTone = np.sin(2*np.pi*allFreqTime)
+        if 'calibration' in soundParams:
+            waveEachTone *= soundParams['calibration'][:,np.newaxis]
         nSamplesPerTone = waveEachTone.shape[1]
         # -- Make end of waveform smooth --
         toneFallTime = 0.001 # Use a ramp-down of 1ms

@@ -631,7 +631,29 @@ class Calibration(object):
         dBdiff = intensity-self.intensity
         ampFactor = 10**(dBdiff/20.0)
         return np.array(ampAtRef)*ampFactor
-
+    
+    def find_amplitudes(self,frequencies,intensity):
+        '''
+        Find amplitudes for multiple frequencies. 
+        TODO: 
+        - This functions needs to be merged with find_amplitude()
+        - It needs to be made more efficient. Not looping and appending to list.
+        Returns an array (nFreq, nChan) with the amplitude for each channel, for each freq.
+        '''
+        ampAll = []
+        for frequency in frequencies:
+            ampAtRef = []
+            for chn in range(self.nChannels):
+                thisAmp = np.interp(np.log10(frequency),np.log10(self.frequency),
+                                    self.amplitude[chn,:])
+                ampAtRef.append(thisAmp)
+                # Find factor from ref intensity
+                dBdiff = intensity-self.intensity
+                ampFactor = 10**(dBdiff/20.0)
+                ampsThisFreq = np.array(ampAtRef)*ampFactor
+            ampAll.append(ampsThisFreq)
+        return np.array(ampAll)
+    
 
 class NoiseCalibration(object):
     '''
