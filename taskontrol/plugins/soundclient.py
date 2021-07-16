@@ -178,6 +178,12 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
         carrier = randomGen.uniform(-1,1,len(timeVec))
         soundWave = envelope*carrier
+    elif soundParams['type']=='FM':
+        f0 = soundParams['frequencyStart']
+        f1 = soundParams['frequencyEnd']
+        duration = soundParams['duration']
+        fInstant = f0*timeVec +  ((f1-f0) / (2.0*duration)) * timeVec**2
+        soundWave = np.sin(2.0 * np.pi * fInstant)
     elif soundParams['type']=='toneCloud':
         nFreq = soundParams['nFreq']
         freqEachTone = np.logspace(np.log10(soundParams['freqRange'][0]),
@@ -250,13 +256,17 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
 
 
 class SoundContainer(object):
-    def __init__(self, soundParams, soundObj, soundWave):
-        self.params = soundParams  # Sound parameters dictionary
-        self.obj = soundObj        # Sound object (depends on server)
-        self.wave = soundWave      # Sound waveform
+    def __init__(self, soundParams, soundObj, soundWave, samplingRate):
+        self.params = soundParams         # Sound parameters dictionary
+        self.obj = soundObj               # Sound object (depends on server)
+        self.wave = soundWave             # Sound waveform
+        self.fs = samplingRate  # Sound sampling rate
     def __repr__(self):
         return "{} '{}' {}".format(super().__repr__(),
                                    self.params['type'], self.wave.shape)
+    def get_wave(self):
+        timeVec = np.arange(0, len(self.wave)/self.fs, 1/self.fs)
+        return (timeVec, self.wave)
     
 class SoundServerJack(object):
     def __init__(self, risetime=RISETIME, falltime=FALLTIME):
@@ -362,7 +372,7 @@ class SoundServerJack(object):
         
     def set_sound(self, soundID, soundParams):
         soundObj, soundwave = self.create_sound(soundParams)
-        newSound = SoundContainer(soundParams, soundObj, soundwave)
+        newSound = SoundContainer(soundParams, soundObj, soundwave, self.samplingRate)
         self.sounds[soundID] = newSound
         self.create_stream(soundID)
         #self.preload_queue_no_thread(soundID) # FIXME: which preload to use?
@@ -460,7 +470,7 @@ class SoundServerPygame(object):
     
     def set_sound(self, soundID, soundParams):
         soundObj, soundwave = self.create_sound(soundParams)
-        newSound = SoundContainer(soundParams, soundObj, soundwave)
+        newSound = SoundContainer(soundParams, soundObj, soundwave, self.samplingRate)
         self.sounds[soundID] = newSound
 
     def create_sound(self, soundParams):
@@ -587,6 +597,10 @@ class SoundClient(threading.Thread):
                 #print('**************** GOOD *****************')
                 #raise
 
+    def get_wave(self, soundID):
+        [timeVec, waveform] = self.sounds[soundID].get_wave()
+        return (timeVec, waveform)
+    
     def set_sound(self, soundID, soundParams):
         self.soundServer.set_sound(soundID, soundParams)
 
