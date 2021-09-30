@@ -1,50 +1,33 @@
 # TASKontrol installation and setup
 
-The steps necessary to get started on any operating system are summarized as follows:
-
-1. Download the source code for TASKontrol using git:
-  `git clone git://github.com/sjara/taskontrol.git`
-2. Install python, PySide (which depends on Qt4), numpy and h5py.
-  * For data plots, you will also need matplotlib and [pyqtgraph](http://www.pyqtgraph.org/).
-  * For sound stimuli, you will need [pyo](http://ajaxsoundstudio.com/software/pyo/) and [pyserial](https://pythonhosted.org/pyserial/).
-3. Create the file `taskontrol/settings/rigsettings.py` based on `rigsettings_template.py` and change values according to your setup.
-4. Add the folder containing `taskontrol` to the Python path.
-5. Test your system with one of the example paradigms.
-
-
-## Installation steps for Ubuntu 14.04 (or 12.04).
-
-Note that these step will result in a local installation (not system-wide).
+## Installation for Ubuntu 20.04
 
 * Before starting, you may need to update the list of packages:
   * `sudo apt-get update`
 
 * Install dependencies:
-  * `sudo apt-get install git ipython python-pyside python-numpy python-matplotlib python-h5py python-pyo python-serial`
+  * `sudo apt install python3-numpy ipython3 python3-qtpy python3-h5py python3-serial python3-jack-client python3-pyqtgraph python3-pygame python3-pip`
 
-* Some widgets/plots depend on pyqtgraph (faster than matplotlib). Download the .deb file from http://luke.campagnola.me/debian/dev/ and install with the following command (using the appropriate version number):
-  * `sudo dpkg -i python-pyqtgraph_0.9.8-1_all.deb`
-
-* For (experimental) "real-time" sound presentation, you would also need:
+* If you are installing it on a rig (and need "real-time" sound presentation), you also need:
   * `sudo apt-get install linux-lowlatency jackd`
 
-* Create and go to the directory where you want the code:
+* Create directory where you want the code to reside and go there:
   * `mkdir ~/src`
   * `cd ~/src/`
 
 * Clone source code from repository:
   * `git clone git://github.com/sjara/taskontrol.git`
 
-* Define the settings for this rig:
+* Define the settings for this compupter/rig:
   * `cd ~/src/taskontrol/settings/`
   * `cp rigsettings_template.py rigsettings.py`
   * [edit rigsettings.py to match your settings, e.g. STATE_MACHINE_TYPE]
 
-* Add directory to python path:
-  * `export PYTHONPATH=$PYTHONPATH:~/src`
-  * (this only works for the current terminal. Add this to `~/.bashrc` if you want the path change to be permanent)
+* Install the packages (in development mode):
+  * `cd ~/src/taskontrol/`
+  * `pip3 install -e ./`
 
-* If using an arduino as server, you need to have access to the serial port:
+* If using an arduino as server (e.g., in a rig), you need to have access to the serial port:
   * Add yourself to the dialout group: `sudo usermod -aG dialout <username>`
   * You need to re-login for this to take effect.
 
