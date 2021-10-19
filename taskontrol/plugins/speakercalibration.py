@@ -159,6 +159,7 @@ class AmplitudeControl(QtGui.QDoubleSpinBox):
         self.soundButton = soundButton
         self.valueChanged.connect(self.change_amplitude)
     def change_amplitude(self,value):
+        self.setValue(value)
         self.soundButton.change_amplitude(value)
 
 class SoundControlGUI(QtGui.QGroupBox):
@@ -238,7 +239,7 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
 class LoadButton(QtGui.QPushButton):
     '''
     Note: this class does not change target intensity value.
-          It load data for the saved target intensity.
+          It loads data for the saved target intensity.
     '''
     logMessage = QtCore.Signal(str)
     def __init__(self, soundControlArray, parent=None):
@@ -253,15 +254,19 @@ class LoadButton(QtGui.QPushButton):
     def update_values(self):
         nChannels = 2 # FIXME: hardcoded
         for indch in range(nChannels):
-            for indf in range(len(self.soundControlArray[indch].outputButtons)):
-                oneOutputButton = self.soundControlArray[indch].outputButtons[indf]
+            for indf, oneoutputButton in enumerate(self.soundControlArray[indch].outputButtons):
                 oneAmplitudeControl = self.soundControlArray[indch].amplitudeControl[indf]
+                thisAmp = self.calData.amplitude[indch, indf]
+                #thisFreq = self.soundControlArray[indch]
+                oneAmplitudeControl.change_amplitude(thisAmp)
+                '''
                 thisAmp = self.calData.find_amplitude(oneOutputButton.soundFreq,
                                                       self.calData.intensity)
-                # NOTE: We are calculating values twice.
+                # NOTE: We are calculating values twice.1
                 #       find_amplitude() finds value for both channels
                 oneAmplitudeControl.setValue(thisAmp[indch])
                 oneOutputButton.change_amplitude(thisAmp[indch])
+                '''
 
 class PlotButton(QtGui.QPushButton):
     '''
@@ -279,6 +284,8 @@ class PlotButton(QtGui.QPushButton):
         import matplotlib.pyplot as plt
         plt.plot(frequencies,np.array(amplitudeData).T,'o-')
         plt.gca().set_xscale('log')
+        plt.ylabel('Amplitude')
+        plt.xlabel('Frequency (Hz)')
         plt.draw()
         plt.show()
 
