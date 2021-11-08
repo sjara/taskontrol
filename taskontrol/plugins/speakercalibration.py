@@ -27,6 +27,8 @@ import time
 import os
 import numpy as np
 import h5py
+import scipy.signal
+import matplotlib.pyplot as plt
 from qtpy import QtWidgets as QtGui
 from qtpy import QtCore
 from taskontrol import paramgui
@@ -205,6 +207,23 @@ class SoundControlGUI(QtGui.QGroupBox):
             amplitudeEach[indf] = oneAmplitude.value()
         return amplitudeEach
 
+    def smooth_amplitude(self):
+        self.polyOrder = 4
+        self.windowSize = 61
+        self.nSamples = 100
+        frequencies = self.soundFreqs
+        logFreq = np.log10(frequencies)
+        amplitudeData = []
+        smoothAmplitude = []
+        newLogFreq = np.linspace(np.log10(frequencies[0]),np.log10(frequencies[-1]),
+                                 self.nSamples)
+        newFreq = 10**newLogFreq
+        thisAmpArray = self.amplitude_array()
+        interpAmp = np.interp(newLogFreq, logFreq, thisAmpArray)
+        smoothAmplitude = scipy.signal.savgol_filter(interpAmp, self.windowSize,
+                                                     polyorder=self.polyOrder)
+        return (newFreq, smoothAmplitude)
+
 '''    
 class NoiseSoundControlGUI(QtGui.QGroupBox):
     def __init__(self, soundClient, channel=0, channelName='left', parent=None):
@@ -288,6 +307,49 @@ class PlotButton(QtGui.QPushButton):
         plt.xlabel('Frequency (Hz)')
         plt.draw()
         plt.show()
+
+#def smooth()
+        
+class PlotSmoothButton(QtGui.QPushButton):
+    '''
+    '''
+    def __init__(self, soundControlArray, parent=None):
+        super(PlotSmoothButton, self).__init__('Plot smooth', parent)
+        self.soundControlArray = soundControlArray
+        self.clicked.connect(self.plot_smooth_data)
+    def plot_smooth_data(self):
+        frequencies = self.soundControlArray[0].soundFreqs
+        logFreq = np.log10(frequencies)
+        amplitudeData = []
+        smoothAmplitude = []
+        for soundControl in self.soundControlArray:
+            thisAmpArray = soundControl.amplitude_array()
+            amplitudeData.append(thisAmpArray)
+            (newFreq, thisSmoothAmp) = soundControl.smooth_amplitude()
+            smoothAmplitude.append(thisSmoothAmp)
+        plt.plot(frequencies, np.array(amplitudeData).T, 'o-')
+        plt.plot(newFreq, np.array(smoothAmplitude).T, '-', lw=2)
+        plt.gca().set_xscale('log')
+        plt.ylabel('Amplitude')
+        plt.xlabel('Frequency (Hz)')
+        plt.draw()
+        plt.show()
+
+class ApplySmoothButton(QtGui.QPushButton):
+    '''
+    '''
+    def __init__(self, soundControlArray, parent=None):
+        super(ApplySmoothButton, self).__init__('Apply smoothing', parent)
+        self.soundControlArray = soundControlArray
+        self.clicked.connect(self.apply_smoothing)
+    def apply_smoothing(self):
+        for soundControl in self.soundControlArray:
+            frequency = soundControl.soundFreqs
+            (newFreq, thisSmoothAmp) = soundControl.smooth_amplitude()
+            newAmps = np.interp(np.log10(frequency), np.log10(newFreq),
+                                thisSmoothAmp)
+            for indf, thisNewAmp in enumerate(newAmps):
+                soundControl.amplitudeControl[indf].change_amplitude(thisNewAmp)
 
 class SaveButton(QtGui.QPushButton):
     '''
@@ -404,7 +466,7 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         self.soundControlL = SoundControlGUI(self.soundClient, channel=0, channelName='left')
         self.soundControlR = SoundControlGUI(self.soundClient, channel=1, channelName='right')
 
-        self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
+        self.saveButton = SaveButton([self.soundControlL, self.soundControlR])
         soundTypeLabel = QtGui.QLabel('Sound type')
         self.soundTypeMenu = QtGui.QComboBox()
         self.soundTypeList = ['sine','chord']
@@ -420,7 +482,8 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         self.computerSoundLevel.setEnabled(False)
         self.loadButton = LoadButton([self.soundControlL,self.soundControlR])
         self.plotButton = PlotButton([self.soundControlL,self.soundControlR])
-
+        self.plotSmoothButton = PlotSmoothButton([self.soundControlL,self.soundControlR])
+        self.applySmoothButton = ApplySmoothButton([self.soundControlL,self.soundControlR])
 
         layoutRight.addWidget(self.saveButton)
         layoutRight.addWidget(soundTypeLabel)
@@ -432,6 +495,8 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         layoutRight.addWidget(self.loadButton)
         layoutRight.addWidget(self.plotButton)
         layoutRight.addStretch()
+        layoutRight.addWidget(self.plotSmoothButton)
+        layoutRight.addWidget(self.applySmoothButton)
 
         layoutMain.addWidget(self.soundControlL)
         layoutMain.addWidget(VerticalLine())
