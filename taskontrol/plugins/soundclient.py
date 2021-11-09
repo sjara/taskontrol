@@ -257,16 +257,18 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
 
 class SoundContainer(object):
     def __init__(self, soundParams, soundObj, soundWave, samplingRate):
-        self.params = soundParams         # Sound parameters dictionary
-        self.obj = soundObj               # Sound object (depends on server)
-        self.wave = soundWave             # Sound waveform
-        self.fs = samplingRate  # Sound sampling rate
+        self.params = soundParams  # Sound parameters dictionary
+        self.obj = soundObj        # Sound object (depends on server)
+        self.wave = soundWave      # Sound waveform
+        self.fs = samplingRate     # Sound sampling rate
     def __repr__(self):
         return "{} '{}' {}".format(super().__repr__(),
                                    self.params['type'], self.wave.shape)
     def get_wave(self):
-        timeVec = np.arange(0, len(self.wave)/self.fs, 1/self.fs)
+        timeVec = np.arange(0, self.wave.shape[1]/self.fs, 1/self.fs)
         return (timeVec, self.wave)
+    def get_duration(self):
+        return self.wave.shape[1]/self.fs
     
 class SoundServerJack(object):
     def __init__(self, risetime=RISETIME, falltime=FALLTIME):
@@ -377,7 +379,8 @@ class SoundServerJack(object):
         self.create_stream(soundID)
         #self.preload_queue_no_thread(soundID) # FIXME: which preload to use?
         self.preload_queue(soundID)  # FIXME: which preload to use?
-        
+        return newSound
+
     def preload_queue(self, soundID):
         """Preload a sound via a thread. It will not block processing."""
         self.preloadingThreads[soundID] = self.PreloadQueue(self.sounds[soundID].obj,
@@ -472,6 +475,7 @@ class SoundServerPygame(object):
         soundObj, soundwave = self.create_sound(soundParams)
         newSound = SoundContainer(soundParams, soundObj, soundwave, self.samplingRate)
         self.sounds[soundID] = newSound
+        return newSound
 
     def create_sound(self, soundParams):
         if soundParams['type']=='pygameFile':
@@ -483,9 +487,10 @@ class SoundServerPygame(object):
         else:
             timeVec, soundWave = create_soundwave(soundParams, self.samplingRate, self.nChannels)
             # NOTE: pygame requires C-contiguous arrays of size [nSamples,nChannels]
+            #       but this function will return an array of [nChannels,nSamples]
             soundWave = np.ascontiguousarray(soundWave.T)
             soundObj = pygame.sndarray.make_sound(self.to_signed_int16(soundWave))
-        return soundObj, soundWave
+        return soundObj, soundWave.T
     
     def play_sound(self, soundID):
         self.sounds[soundID].obj.play()
@@ -602,8 +607,9 @@ class SoundClient(threading.Thread):
         return (timeVec, waveform)
     
     def set_sound(self, soundID, soundParams):
-        self.soundServer.set_sound(soundID, soundParams)
-
+        newSound = self.soundServer.set_sound(soundID, soundParams)
+        return newSound
+    
     def play_sound(self, soundID):
         self.soundServer.play_sound(soundID)
         
