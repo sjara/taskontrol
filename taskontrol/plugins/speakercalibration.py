@@ -164,6 +164,7 @@ class AmplitudeControl(QtGui.QDoubleSpinBox):
         self.setValue(value)
         self.soundButton.change_amplitude(value)
 
+
 class SoundControlGUI(QtGui.QGroupBox):
     def __init__(self, soundClient, channel=0, channelName='left', parent=None):
         super(SoundControlGUI, self).__init__(parent)
@@ -224,7 +225,7 @@ class SoundControlGUI(QtGui.QGroupBox):
                                                      polyorder=self.polyOrder)
         return (newFreq, smoothAmplitude)
 
-'''    
+
 class NoiseSoundControlGUI(QtGui.QGroupBox):
     def __init__(self, soundClient, channel=0, channelName='left', parent=None):
         super(NoiseSoundControlGUI, self).__init__(parent)
@@ -236,8 +237,8 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
         self.outputButtons = []
         self.amplitudeControl=[]
 
-        self.outputButtons.append(OutputButton(self.soundClient, 'RMS Power', soundType='noise', channel=self.channel))
-        self.outputButtons.append(OutputButton(self.soundClient, 'Narrowband Power', soundType='noise', channel=self.channel))
+        self.outputButtons.append(OutputButton(1, self.soundClient, 'RMS Power', soundType='noise', channel=self.channel))
+        self.outputButtons.append(OutputButton(2, self.soundClient, 'Narrowband Power', soundType='noise', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
             self.amplitudeControl.append(AmplitudeControl(outputButton))
@@ -253,7 +254,7 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
         for indf,oneAmplitude in enumerate(self.amplitudeControl):
             amplitudeEach[indf] = oneAmplitude.value()
         return amplitudeEach
-'''
+
 
 class LoadButton(QtGui.QPushButton):
     '''
@@ -564,13 +565,14 @@ class SpeakerCalibrationGUI(QtGui.QMainWindow):
         #self.pyoServer.shutdown()
         event.accept()
 
-"""
+
 class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
     def __init__(self, parent=None, paramfile=None, paramdictname=None):
         super(NoiseSpeakerCalibrationGUI, self).__init__(parent)
 
         self.name = 'noisespeakercalibration'
-        self.soundClient = self.initialize_sound()
+        #self.soundClient = self.initialize_sound()
+        self.soundClient = soundclient.SoundClient()
 
         # -- Add graphical widgets to main window --
         self.centralWidget = QtGui.QWidget()
@@ -668,7 +670,7 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
         self.soundClient.shutdown()
         #self.pyoServer.shutdown()
         event.accept()
-"""
+
 
 class Calibration(object):
     '''
