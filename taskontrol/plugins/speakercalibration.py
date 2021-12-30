@@ -272,7 +272,7 @@ class VowelSoundControlGUI(QtGui.QGroupBox):
         self.outputButtons = []
         self.amplitudeControl=[]
 
-        self.outputButtons.append(OutputButton(1, self.soundClient, 'Vowel RMS power', soundType='vowel', channel=self.channel))
+        self.outputButtons.append(OutputButton(1, self.soundClient, 'Vowel', soundType='vowel', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
             self.amplitudeControl.append(AmplitudeControl(outputButton))
@@ -439,24 +439,31 @@ class SaveButton(QtGui.QPushButton):
 
         try:
             if soundType=='noise':
-                dsetAmp = h5file.create_dataset('amplitudeRMS',data=amplitudeData[:,0]) # FIXME: hardcoded method of separating amplitudes
-                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                # FIXME: hardcoded method of separating amplitudes
+                dsetAmp = h5file.create_dataset('amplitudeRMS',data=amplitudeData[:,0])
+                dsetAmp.attrs['Channels'] = 'left, right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)'
                 dsetAmp = h5file.create_dataset('amplitudeNarrowband',data=amplitudeData[:,1])
-                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                dsetAmp.attrs['Channels'] = 'left, right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)'
                 dsetRef = h5file.create_dataset('powerRMS',data=DEFAULT_POWER_RMS)
-                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef.attrs['Units'] = 'dB-SPL'
                 dsetRef = h5file.create_dataset('powerNarrowband',data=DEFAULT_POWER_NARROWBAND)
-                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef.attrs['Units'] = 'dB-SPL'
+            elif soundType=='vowel':
+                dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
+                dsetAmp.attrs['Channels'] = 'left, right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)'
+                dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
+                dsetRef.attrs['Units'] = 'dB-SPL'
             else:
                 dsetAmp = h5file.create_dataset('amplitude',data=amplitudeData)
-                dsetAmp.attrs['Channels'] = 'left,right' # FIXME: hardcoded
-                dsetAmp.attrs['Units'] = '(none)' # FIXME: hardcoded
+                dsetAmp.attrs['Channels'] = 'left, right' # FIXME: hardcoded
+                dsetAmp.attrs['Units'] = '(none)'
                 dsetFreq = h5file.create_dataset('frequency',data=SOUND_FREQUENCIES)
-                dsetFreq.attrs['Units'] = 'Hz' # FIXME: hardcoded
+                dsetFreq.attrs['Units'] = 'Hz'
                 dsetRef = h5file.create_dataset('intensity',data=DEFAULT_INTENSITY)
-                dsetRef.attrs['Units'] = 'dB-SPL' # FIXME: hardcoded
+                dsetRef.attrs['Units'] = 'dB-SPL'
                 
             if rigsettings.SOUND_VOLUME_LEVEL is None:
                 computerSoundLevel = np.nan
@@ -896,33 +903,21 @@ class VowelCalibration(object):
     def __init__(self,filename=None):
         if filename is not None:
             h5file = h5py.File(filename,'r')
-            self.amplitudeRMS = h5file['amplitudeRMS'][...]
-            self.amplitudeNarrowband = h5file['amplitudeNarrowband'][...]
-            self.powerRMS = h5file['powerRMS'][...]
-            self.powerNarrowband = h5file['powerNarrowband'][...]
+            self.amplitude = h5file['amplitude'][...]
+            self.intensity = h5file['intensity'][...]
             h5file.close()
         else:
-            self.amplitudeRMS = 0.1*np.ones(2)
-            self.amplitudeNarrowband = 0.1*np.ones(2)
-            self.powerRMS = 60
-            self.powerNarrowband = 40
-        self.nChannels = self.amplitudeRMS.shape[0]
+            self.amplitude = 0.1*np.ones(2)
+            self.intensity = 60
+        self.nChannels = self.amplitude.shape[0]
 
-    def find_amplitude(self, intensity, type='rms'):
-        '''
-        type:
-          'rms': intensity corresponds to RMS power in time domain.
-          'narrowband': intensity corresponds to power at one frequency (in the audible range).
+    def find_amplitude(self, intensity):
+        """
         Returns an array with the amplitude for each channel.
-        '''
-        if type == 'rms':
-            ampAtRef = self.amplitudeRMS
-            dBdiff = intensity-self.powerRMS
-        elif type == 'narrowband':
-            ampAtRef = self.amplitudeNarrowband
-            dBdiff = intensity-self.powerNarrowband
+        """
+        dBdiff = intensity-self.intensity
         ampFactor = 10**(dBdiff/20.0)
-        return np.array(ampAtRef)*ampFactor
+        return (self.amplitude*ampFactor)
 
 
 if __name__ == "__main__":
