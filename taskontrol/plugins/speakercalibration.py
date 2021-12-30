@@ -47,6 +47,9 @@ DEFAULT_POWER_NARROWBAND = 40 # average power of narrowband sound (dB-SPL)
 
 DATADIR = '/var/tmp/'
 
+HOME_DIR = os.path.expanduser('~')
+VOWEL_SOUND_FILE = os.path.join(HOME_DIR, 'src/jarasounds/calibration/vowel.wav')
+
 BUTTON_COLORS = {'on':'red','off':'black'}
 
 '''
@@ -106,6 +109,8 @@ class OutputButton(QtGui.QPushButton):
             soundParams = {'type':'chord', 'frequency':int(self.soundTitle), 'ntones':12, 'factor':1.2}
         elif soundType=='noise':
             soundParams = {'type':'noise'}
+        elif soundType=='vowel':
+            soundParams = {'type':'fromfile', 'filename':VOWEL_SOUND_FILE}
         amplitude = [0, 0]
         amplitude[self.channel] = self.soundAmplitude
         soundParams.update({'amplitude':amplitude, 'duration':duration,
@@ -239,6 +244,35 @@ class NoiseSoundControlGUI(QtGui.QGroupBox):
 
         self.outputButtons.append(OutputButton(1, self.soundClient, 'RMS Power', soundType='noise', channel=self.channel))
         self.outputButtons.append(OutputButton(2, self.soundClient, 'Narrowband Power', soundType='noise', channel=self.channel))
+
+        for indButton, outputButton in enumerate(self.outputButtons):
+            self.amplitudeControl.append(AmplitudeControl(outputButton))
+            layout.addWidget(self.outputButtons[indButton], indButton+1, 0)
+            layout.addWidget(self.amplitudeControl[indButton], indButton+1, 1)
+
+        self.setLayout(layout)
+        self.setTitle('Speaker '+channelName)
+
+        # If multiple amplitude controls
+    def amplitude_array(self):
+        amplitudeEach = np.empty(len(self.amplitudeControl))
+        for indf,oneAmplitude in enumerate(self.amplitudeControl):
+            amplitudeEach[indf] = oneAmplitude.value()
+        return amplitudeEach
+
+
+class VowelSoundControlGUI(QtGui.QGroupBox):
+    def __init__(self, soundClient, channel=0, channelName='left', parent=None):
+        super(VowelSoundControlGUI, self).__init__(parent)
+        self.soundClient = soundClient
+        self.channel=channel
+
+        # -- Create graphical objects --
+        layout = QtGui.QGridLayout()
+        self.outputButtons = []
+        self.amplitudeControl=[]
+
+        self.outputButtons.append(OutputButton(1, self.soundClient, 'Vowel RMS power', soundType='vowel', channel=self.channel))
 
         for indButton, outputButton in enumerate(self.outputButtons):
             self.amplitudeControl.append(AmplitudeControl(outputButton))
@@ -672,6 +706,94 @@ class NoiseSpeakerCalibrationGUI(QtGui.QMainWindow):
         event.accept()
 
 
+
+class VowelSpeakerCalibrationGUI(QtGui.QMainWindow):
+    def __init__(self, parent=None, paramfile=None, paramdictname=None):
+        super(VowelSpeakerCalibrationGUI, self).__init__(parent)
+
+        self.soundClient = soundclient.SoundClient()
+
+        # -- Add graphical widgets to main window --
+        self.centralWidget = QtGui.QWidget()
+        layoutMain = QtGui.QHBoxLayout()
+        layoutRight = QtGui.QVBoxLayout()
+
+        self.soundControlL = VowelSoundControlGUI(self.soundClient, channel=0, channelName='left')
+        self.soundControlR = VowelSoundControlGUI(self.soundClient, channel=1, channelName='right')
+        for oneOutputButton in self.soundControlL.outputButtons:
+            oneOutputButton.soundType = 'vowel'
+        for oneOutputButton in self.soundControlR.outputButtons:
+            oneOutputButton.soundType = 'vowel'
+
+        self.saveButton = SaveButton([self.soundControlL,self.soundControlR])
+
+        soundTargetIntensityLabel = QtGui.QLabel('Target RMS power in time domain [dB-SPL]')
+        self.soundTargetIntensity = QtGui.QLineEdit()
+        self.soundTargetIntensity.setText(str(DEFAULT_POWER_RMS))
+        '''
+        #self.soundTargetIntensity.setEnabled(False)
+        powerTargetIntensityLabel = QtGui.QLabel('Target power at specific frequency [dB-SPL]')
+        self.powerTargetIntensity = QtGui.QLineEdit()
+        self.powerTargetIntensity.setText(str(DEFAULT_POWER_NARROWBAND))
+        #self.powerTargetIntensity.setEnabled(False)
+        '''
+        computerSoundLevelLabel = QtGui.QLabel('Computer sound level [%]')
+        self.computerSoundLevel = QtGui.QLineEdit()
+        self.computerSoundLevel.setText(str(rigsettings.SOUND_VOLUME_LEVEL))
+        self.computerSoundLevel.setEnabled(False)
+
+        layoutRight.addWidget(self.saveButton)
+        layoutRight.addWidget(soundTargetIntensityLabel)
+        layoutRight.addWidget(self.soundTargetIntensity)
+        layoutRight.addWidget(computerSoundLevelLabel)
+        layoutRight.addWidget(self.computerSoundLevel)
+        layoutRight.addStretch()
+
+        layoutMain.addWidget(self.soundControlL)
+        layoutMain.addWidget(VerticalLine())
+        layoutMain.addWidget(self.soundControlR)
+        layoutMain.addWidget(VerticalLine())
+        layoutMain.addLayout(layoutRight)
+
+        self.centralWidget.setLayout(layoutMain)
+        self.setCentralWidget(self.centralWidget)
+
+        # -- Center in screen --
+        self._center_in_screen()
+
+        # -- Connect messenger --
+        self.messagebar = paramgui.Messenger()
+        self.messagebar.timedMessage.connect(self._show_message)
+        self.messagebar.collect('Created window')
+
+        # -- Connect signals to messenger
+        self.saveButton.logMessage.connect(self.messagebar.collect)
+
+    def initialize_sound(self):
+        s = pyo.Server(audio='jack').boot()
+        s.start()
+        return s
+
+    def _show_message(self,msg):
+        self.statusBar().showMessage(str(msg))
+        print(msg)
+
+    def _center_in_screen(self):
+        qr = self.frameGeometry()
+        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+    def closeEvent(self, event):
+        '''
+        Executed when closing the main window.
+        This method is inherited from QtGui.QMainWindow, which explains
+        its camelCase naming.
+        '''
+        self.soundClient.shutdown()
+        event.accept()
+
+        
 class Calibration(object):
     '''
     Reads data from file and finds appropriate amplitude for a desired
@@ -767,6 +889,42 @@ class NoiseCalibration(object):
         return np.array(ampAtRef)*ampFactor
 
 
+class VowelCalibration(object):
+    '''
+    Reads data from file and finds appropriate amplitude for a desired power.
+    '''
+    def __init__(self,filename=None):
+        if filename is not None:
+            h5file = h5py.File(filename,'r')
+            self.amplitudeRMS = h5file['amplitudeRMS'][...]
+            self.amplitudeNarrowband = h5file['amplitudeNarrowband'][...]
+            self.powerRMS = h5file['powerRMS'][...]
+            self.powerNarrowband = h5file['powerNarrowband'][...]
+            h5file.close()
+        else:
+            self.amplitudeRMS = 0.1*np.ones(2)
+            self.amplitudeNarrowband = 0.1*np.ones(2)
+            self.powerRMS = 60
+            self.powerNarrowband = 40
+        self.nChannels = self.amplitudeRMS.shape[0]
+
+    def find_amplitude(self, intensity, type='rms'):
+        '''
+        type:
+          'rms': intensity corresponds to RMS power in time domain.
+          'narrowband': intensity corresponds to power at one frequency (in the audible range).
+        Returns an array with the amplitude for each channel.
+        '''
+        if type == 'rms':
+            ampAtRef = self.amplitudeRMS
+            dBdiff = intensity-self.powerRMS
+        elif type == 'narrowband':
+            ampAtRef = self.amplitudeNarrowband
+            dBdiff = intensity-self.powerNarrowband
+        ampFactor = 10**(dBdiff/20.0)
+        return np.array(ampAtRef)*ampFactor
+
+
 if __name__ == "__main__":
     
     signal.signal(signal.SIGINT, signal.SIG_DFL) # Enable Ctrl-C
@@ -774,9 +932,11 @@ if __name__ == "__main__":
     if not app: # create QApplication if it doesnt exist
         app = QtGui.QApplication(sys.argv)
     args = sys.argv[1:]
-    if len(args):
+    if len(args) > 0:
         if args[0]=='noise':
             spkcal = NoiseSpeakerCalibrationGUI()
+        if args[0]=='vowel':
+            spkcal = VowelSpeakerCalibrationGUI()
     else:
         spkcal = SpeakerCalibrationGUI()
     spkcal.show()
