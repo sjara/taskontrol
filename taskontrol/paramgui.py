@@ -80,7 +80,7 @@ class Container(dict):
             except KeyError:  # If the key does not exist yet (e.g. first trial)
                 self.history[key] = [self[key].get_value()]
             if lastTrial is not None:
-                msg = 'The length of the history does not match the numeber of trials.'
+                msg = 'The length of the history does not match the number of trials.'
                 assert len(self.history[key])==lastTrial+1, msg
 
     def set_values(self, valuesdict):
