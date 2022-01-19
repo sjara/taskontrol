@@ -56,9 +56,8 @@ Open the Anaconda Powershell Prompt to follow the steps below:
    * conda activate taskontrol
    * If successful, `(taskontrol)` should appear at the beginning of your prompt.
 1. Install dependencies:
-   * FINISH THIS SECTION
-   * conda install XXXXX
-   * conda install -c conda-forge YYYYY
+   * `conda install -c anaconda numpy ipython h5py pyserial pyqt qtpy scipy matplotlib`
+   * `pip install pygame`
 1. Choose or create a folder to install this package and go to that folder:
    * `mkdir ~/src/`
    * `cd ~/src/`
