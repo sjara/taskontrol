@@ -63,7 +63,7 @@ Open the Anaconda Powershell Prompt to follow the steps below:
    * `mkdir ~/src/`
    * `cd ~/src/`
 1. Clone the repository:
-   * `git clone --single-branch --branch python3 https://github.com/sjara/taskontrol.git`
+   * `git clone git://github.com/sjara/taskontrol.git`
 1. Install the package in editable/development mode:
    * `cd taskontrol`
    * `pip install -e ./`
