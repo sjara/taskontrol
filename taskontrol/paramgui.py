@@ -205,7 +205,7 @@ class GenericParam(QtWidgets.QWidget):
 
 class StringParam(GenericParam):
     def __init__(self, labelText='', value='', group=None,
-                 labelWidth=80, parent=None):
+                 labelWidth=80, enabled=True, parent=None):
         super().__init__(labelText, value, group,
                          history=False, labelWidth=labelWidth,  parent=parent)
         self._type = 'string'
@@ -216,6 +216,7 @@ class StringParam(GenericParam):
         # -- Define graphical interface --
         self.editWidget = QtWidgets.QLineEdit()
         self.editWidget.setObjectName('ParamEdit')
+        self.set_enabled(enabled)
 
         # -- Define value --
         self.set_value(value)
