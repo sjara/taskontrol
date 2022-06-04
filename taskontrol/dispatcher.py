@@ -205,7 +205,7 @@ class Dispatcher(QtCore.QObject):
     @QtCore.Slot()
     def resume(self):
         # --- Start timer ---
-        self.timer.start(1e3*self.interval)  # timer takes interval in ms
+        self.timer.start(int(1e3*self.interval))  # timer takes interval in ms
         # -- Start state machine --
         if self.isConnected:
             self.statemachine.run()

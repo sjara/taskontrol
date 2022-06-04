@@ -238,7 +238,7 @@ class StateMachineClient(QtCore.QObject):
         pass
     def run(self):
         self.runningState = True
-        self.timer.start(1e3*self.interval) # timer takes interval in ms
+        self.timer.start(int(1e3*self.interval)) # timer takes interval in ms
         if VERBOSE:
             print('EMULATOR: Run.')
     def stop(self):
@@ -272,9 +272,9 @@ class StateMachineClient(QtCore.QObject):
         lastEventsTime = self.eventsTime[:self.nEvents]
         lastEventsCode = self.eventsCode[:self.nEvents]
         lastNextState = self.nextState[:self.nEvents]
-        lastEvents = np.column_stack((lastEventsTime,lastEventsCode,lastNextState))
+        lastEvents = [list(x) for x in zip(lastEventsTime,lastEventsCode,lastNextState)]  
         self.nEvents = 0
-        return lastEvents.tolist()
+        return lastEvents
     def get_current_state(self):
         return self.currentState
         pass
