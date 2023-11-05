@@ -367,7 +367,6 @@ def create_app(paradigmClass):
     The paradigm file needs to run something like:
     (app,paradigm) = templates.create_app(Paradigm)
     """
-    signal.signal(signal.SIGINT, signal.SIG_DFL)  # Enable Ctrl-C
     app = QtWidgets.QApplication.instance()  # checks if QApplication already exists
     if not app:  # create QApplication if it doesnt exist
         app = QtWidgets.QApplication(sys.argv)
@@ -391,6 +390,8 @@ def create_app(paradigmClass):
 
     paradigm.show()
 
+    # The following line needs to be right before exec_(). It had stopped working in 2023.
+    signal.signal(signal.SIGINT, signal.SIG_DFL)  # Enable Ctrl-C
     app.exec_()
     return (app, paradigm)
 
