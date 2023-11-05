@@ -67,11 +67,13 @@ class EmulatorGUI(QtWidgets.QWidget):
             self.light[indbut] = QtWidgets.QPushButton()
             self.light[indbut].setMinimumSize(100,25)
             self.light[indbut].setEnabled(False)
+            #self.light[indbut].setText('ACTIVE') # For debugging
             self.changeLight(indbut,0)
             layoutMain.addWidget(self.light[indbut],1,buttonsPos[indbut])
             self.water[indbut] = QtWidgets.QPushButton()
             self.water[indbut].setMinimumSize(100,25)
             self.water[indbut].setEnabled(False)
+            #self.water[indbut].setText('ACTIVE') # For debugging
             layoutMain.addWidget(self.water[indbut],0,buttonsPos[indbut])
         self.setLayout(layoutMain)
 
@@ -91,13 +93,13 @@ class EmulatorGUI(QtWidgets.QWidget):
         self.inputStatus[inputID] = False
     def changeLight(self,lightID,value):
         if value:
-            stylestrLight = 'QWidget { background-color: yellow }'
+            stylestrLight = 'QWidget { background-color: yellow; color: yellow }'
         else:
             stylestrLight = ''
         self.light[lightID].setStyleSheet(stylestrLight)
     def changeWater(self,waterID,value):
         if value:
-            stylestrWater = 'QWidget { background-color: blue }'
+            stylestrWater = 'QWidget { background-color: blue; color: blue }'
         else:
             stylestrWater = ''
         self.water[waterID].setStyleSheet(stylestrWater)
