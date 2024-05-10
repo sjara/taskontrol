@@ -139,7 +139,7 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     
     Parameters specific to each sound type:
         'tone' (pure sinusoidal)
-            'frequency' (
+            'frequency'
         'chord' (multiple simultaneous sinusoidals): 
             'frequency' (center frequency)
             'factor' (maxFreq/centerFreq)
@@ -149,6 +149,16 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         'AM' (amplitude modulated white noise):
             'modDepth': modulation depth as a percentage (0-100).
             'modFrequency': amplitude modulation rate.
+        'toneCloud':
+            'nFreq'
+            'freqRange'
+            'toneDuration'
+            'toneOnsetAsync'
+        'toneTrain' (train of pure tones of a given freq)
+            'frequency' (frequency of the pure tone)
+            'rate' (how many tones per second in the train)
+            'toneDuration' duration of each individual tone.
+            Note that 'duration' refers to the duration of the whole train.
     """
     risetime = soundParams.setdefault('fadein', RISETIME)   # Set if not specified
     falltime = soundParams.setdefault('fadeout', FALLTIME)  # Set if not specified
@@ -224,6 +234,23 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             onsetSample = toneOnsetsInds[toneInd]
             waveThisTone = waveEachTone[toneSequence[toneInd], :]
             soundWave[onsetSample:onsetSample+nSamplesPerTone] += waveThisTone
+    elif soundParams['type']=='toneTrain':
+        toneTimeVec = np.arange(0, soundParams['toneDuration'], 1/samplingRate)
+        waveEachTone = np.sin(2*np.pi*soundParams['frequency']*toneTimeVec)
+        # -- Make ends of waveform smooth --
+        toneRiseFallTime = 0.001 # Use a ramp of 1ms
+        toneRiseVec = np.linspace(0, 1, round(samplingRate * toneRiseFallTime))
+        toneFallVec = np.linspace(1, 0, round(samplingRate * toneRiseFallTime))
+        if len(toneRiseVec)>0:
+            waveEachTone[0:len(toneRiseVec)] *= toneRiseVec
+            waveEachTone[-len(toneFallVec):] *= toneFallVec
+        toneOnsetAsync = 1/soundParams['rate']
+        toneOnsets = np.arange(0, soundParams['duration'], toneOnsetAsync)
+        toneOnsetsInds = (toneOnsets*samplingRate).astype(int)
+        soundWave = np.zeros(len(timeVec))
+        for onsetSample in toneOnsetsInds:
+            offsetSample = min(onsetSample+len(toneTimeVec), len(timeVec))
+            soundWave[onsetSample:offsetSample] += waveEachTone
     elif soundParams['type']=='fromfile':
         '''
         # -- The version with wave+struct does not work yet --
