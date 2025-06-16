@@ -51,9 +51,11 @@ import serial
 import scipy.io.wavfile
 import scipy.signal
 from taskontrol import rigsettings
+from screeninfo import get_monitors
 if rigsettings.SOUND_SERVER=='jack':
     import jack
     import queue
+    import pygame
 elif rigsettings.SOUND_SERVER=='pygame':
     import pygame
 else:
@@ -69,6 +71,9 @@ elif rigsettings.STATE_MACHINE_TYPE=='emulator':
     FAKE_SERIAL = 'fakeserial.txt'
 else:
     raise ValueError('STATE_MACHINE_TYPE not recognized.')
+
+# -- Screen parameters --
+MINIDISPLAY_DIMENSIONS = (640,480)
 
 
 # -- Serial port parameters --
@@ -538,33 +543,131 @@ class SoundServerPygame(object):
         pygame.mixer.quit()
 
 class ImageServer(object):
-    def __init__(self):
+    def __init__(self,screenSize):
+        self.screenSize = screenSize
+        self.clock, self.monitors, self.screen, self.surface = self.init_pygame()
+
         self.images = {}  # Each entry should be: index:ImageContainer()
+
+    def init_pygame(self):
+        '''
+        Initializes pygame and returns the relevent objects
+
+        Returns:
+            clock: pygame clock object (not used in current setup)
+            monitors: list of monitors with screen paraments for each one
+            screen: screen object created by pygame.display.set_mode()
+            surface: surface object for drawing images to screen
+        '''
+        # Initialize Pygame
+        pygame.init()
+        clock = pygame.time.Clock()
+
+        # Get monitor resolutions
+        monitors = get_monitors()
+
+        # find and (if present) use minidisplay
+        for i in range(len(monitors)):
+            disp = monitors[i]  
+            width, height = disp.width, disp.height
+            if (width,height) == self.screenSize:
+                x, y = disp.x, disp.y
+                screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN, display = i)
+                pygame.display.set_caption('minidisplay')
+                break
+        
+        # if minidisplay not present, show 640x480p rectangle on primary monitor
+        if (width,height) != self.screenSize:
+            print("minidisplay not detected!")
+            disp = monitors[0]
+            width,height = self.screenSize
+            x,y = disp.x,disp.y
+            screen = pygame.display.set_mode((width,height),pygame.NOFRAME,display = 0)
+            pygame.display.set_caption('main')
+
+        surface = pygame.display.get_surface()
+
+        surface.fill((0,0,0))
+        pygame.display.flip()
+
+        return clock, monitors, screen, surface
+        
 
     def set_image(self, imageID, imagePixels):
         """
         Set an image in the server.
         imageID (int): unique identifier for the image.
-        imagePixels (np.ndarray): 2D array with pixel values of the image.
+        imagePixels (np.ndarray): 2D array with pixel values of the image (image will be scaled
+                                        to screen size when presented).
         """
         self.images[imageID] = imagePixels  # Store image pixels
 
+        pass
+
     def get_image(self, imageID):
         return self.images[imageID]
+    
+    def pixels_from_img(self, img: np.ndarray):
+        '''
+        Scales up the img array to size of the display
+
+        Args:
+            img (np.ndarray): 2d pixels grid of any size equal to or lesser than the size
+                                    of our screen
+        Returns:
+            pixels: image scaled up to the size of the screen, and stacked into
+                        a 3d array of shape (height,height,3) for RGB pixel values
+        '''
+
+        # get surface info
+        width,height = self.surface.get_size()
+        xOffset = (width - height)//2           # offset to center the square
+        scaleFactor = height//img.shape[0]      # scale factor between img pixels and screen pixels
+        
+        # map image to screen
+        scaledImg = np.kron(img,np.ones((scaleFactor,scaleFactor)))
+
+        # allocate pixels array, 3d array for each RGB values
+        pixels = np.zeros((width,height,3))
+
+        # use np.stack to create white image
+        pixels[xOffset:xOffset+height,:] = np.stack((scaledImg,scaledImg,scaledImg),axis=2)
+
+        return pixels
+
 
     def show_image(self, imageID):
         print('******* Showing image with ID {} *********'.format(imageID))
         img = self.get_image(imageID)
         print(img)
 
+        if np.max(img) == 1:
+            pixels = self.pixels_from_img(img)*255
+
+        else: 
+            pixels = self.pixels_from_img(img)
+
+        pygame.surfarray.blit_array(self.surface,pixels)
+        
+        pygame.display.flip()
+
+        pass
+
+    def stop_all(self):
+        self.surface.fill((0,0,0))
+        pygame.display.flip()
+        pass
+
     def shutdown(self):
+        pygame.quit()
         pass
         
 class SoundClient(threading.Thread):
     """
     Main interface for the generation, triggering, and presentation of sounds.
     """
-    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIAL_TRIGGER):
+    def __init__(self, servertype=rigsettings.SOUND_SERVER, serialtrigger=SERIAL_TRIGGER,
+                 screenSize=MINIDISPLAY_DIMENSIONS):
         """
         servertype (str): 'jack', 'pygame', 'pyo'
         """
@@ -583,7 +686,7 @@ class SoundClient(threading.Thread):
         else:
             raise ValueError('Sound server type not recognized.')
 
-        self.ImageServer = ImageServer()
+        self.ImageServer = ImageServer(screenSize)
         
         # -- Set sync channel --
         if rigsettings.SOUND_SYNC_CHANNEL is not None:
@@ -676,6 +779,7 @@ class SoundClient(threading.Thread):
         
     def stop_all(self):
         self.soundServer.stop_all()
+        self.ImageServer.stop_all()
 
     def set_image(self, imageID, imagePixels):
         self.ImageServer.set_image(imageID, imagePixels)
