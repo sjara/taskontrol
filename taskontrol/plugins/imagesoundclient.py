@@ -622,10 +622,10 @@ class ImageServer(object):
         # get surface info
         width,height = self.surface.get_size()
         xOffset = (width - height)//2           # offset to center the square
-        scaleFactor = height//img.shape[0]      # scale factor between img pixels and screen pixels
+        scaleFactor = (height//img.shape[0],height//img.shape[1])      # scale factor between img pixels and screen pixels
         
         # map image to screen
-        scaledImg = np.kron(img,np.ones((scaleFactor,scaleFactor)))
+        scaledImg = np.kron(img,np.ones(scaleFactor))
 
         # allocate pixels array, 3d array for each RGB values
         pixels = np.zeros((width,height,3))
