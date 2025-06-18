@@ -641,7 +641,7 @@ class ImageServer(object):
         img = self.get_image(imageID)
         print(img)
 
-        if np.max(img) == 1:
+        if np.max(img) <= 1:
             pixels = self.pixels_from_img(img)*255
 
         else: 
