@@ -631,7 +631,7 @@ class ImageServer(object):
         pixels = np.zeros((width,height,3))
 
         # use np.stack to create white image
-        pixels[xOffset:xOffset+height,:] = np.stack((scaledImg,scaledImg,scaledImg),axis=2)
+        pixels[xOffset:xOffset+scaledImg.shape[0],:scaledImg.shape[1]] = np.stack((scaledImg,scaledImg,scaledImg),axis=2)
 
         return pixels
 
