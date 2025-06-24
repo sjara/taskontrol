@@ -566,13 +566,15 @@ class ImageServer(object):
         # Get monitor resolutions
         monitors = get_monitors()
 
+        
         # find and (if present) use minidisplay
         for i in range(len(monitors)):
             disp = monitors[i]  
             width, height = disp.width, disp.height
             if (width,height) == self.screenSize:
                 x, y = disp.x, disp.y
-                screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN, display = i)
+                os.environ['SDL_VIDEO_WINDOW_POS'] = f"{x},{y}"
+                screen = pygame.display.set_mode((width, height), pygame.NOFRAME)
                 pygame.display.set_caption('minidisplay')
                 break
         
