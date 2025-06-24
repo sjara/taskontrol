@@ -4,6 +4,11 @@ Plugin for presenting images and sounds (by communicating with a sound server).
 This is an expanded version of soundclient.py that allows triggering the
 presentation of static images on a separate window.
 
+To accomodate both stimulation types, the usual soundID range of 1-128 has been split
+between the soundIDs (1-63) and imageIDs (64-126). Values of 127 and 128 are reserved
+for the BLANK_SCREEN and STOP_ALL_SOUNDS commands respectively.
+
+
 You can choose what sound server to use by changing rigsettings.py.
 The available servers are:
 1. jack (to use jackclient directly on Linux. This option provides the minimum latency.)
@@ -27,6 +32,20 @@ You may want to test the sound first.
 
 - Without jack, you can test with:
 speaker-test -r 41000 -t sine -f 8000
+"""
+
+"""
+REQUIREMENTS for testing on Mac:
+matplotlib                3.7.3
+numpy                     1.24.4
+pygame                    2.6 (1.9.6 also works)
+pyqt5                     5.15.11 (install via pip)
+pyqtgraph                 0.13.3
+pyserial                  3.5
+python                    3.8.20 
+qtpy                      2.4.2 
+scipy                     1.10.1       
+screeninfo                0.8.1         
 """
 
 '''
@@ -87,7 +106,8 @@ MAX_SERIAL_STIM = 128 # According to the serial protocol.
 #       but this is not implemented.
 MAX_NSOUNDS = 64
 MAX_NIMAGES = 64
-STOP_ALL_SOUNDS = 128  # SoundID to stop all sounds
+STOP_ALL_SOUNDS = 128   # SoundID to stop all sounds
+BLANK_SCREEN = 127      # ImageID for blank screen ((0,0,0))
 
 
 RISETIME = 0.002
@@ -600,7 +620,8 @@ class ImageServer(object):
         Set an image in the server.
         imageID (int): unique identifier for the image.
         imagePixels (np.ndarray): 2D array with pixel values of the image (image will be scaled
-                                        to screen size when presented).
+                                        to screen size when presented). Pixel values should be 
+                                        between 0-1 (e.g., 0 = black, 1 = white, 0.6 = 60% power)
         """
         self.images[imageID] = imagePixels  # Store image pixels
 
@@ -615,7 +636,8 @@ class ImageServer(object):
 
         Args:
             img (np.ndarray): 2d pixels grid of any size equal to or lesser than the size
-                                    of our screen
+                                    of our screen. Pixel values should be 
+                                    between 0-1 (e.g., 0 = black, 1 = white, 0.6 = 60% power)
         Returns:
             pixels: image scaled up to the size of the screen, and stacked into
                         a 3d array of shape (height,height,3) for RGB pixel values
@@ -639,30 +661,35 @@ class ImageServer(object):
 
 
     def show_image(self, imageID):
-        print('******* Showing image with ID {} *********'.format(imageID))
-        img = self.get_image(imageID)
-        print(img)
+        '''
+        Displays an image based on a 2darray of pixels.
 
-        if np.max(img) <= 1:
-            pixels = self.pixels_from_img(img)*255
+        Args:
+            imageID (int): ID number corresponding to a 2d pixels grid of any size equal to 
+                                or lesser than the size of our screen. Pixel values should be 
+                                    between 0-1 (e.g., 0 = black, 1 = white, 0.6 = 60% power)
+        '''
+        if imageID == BLANK_SCREEN:
+            self.stop_all()
 
         else: 
-            pixels = self.pixels_from_img(img)
-
-        pygame.surfarray.blit_array(self.surface,pixels)
+            print('******* Showing image with ID {} *********'.format(imageID))
+            img = self.get_image(imageID)
+            print(img)
+            pixels = self.pixels_from_img(img)*255
+            pygame.surfarray.blit_array(self.surface,pixels)
         
-        pygame.display.flip()
+            pygame.display.flip()
 
-        pass
 
     def stop_all(self):
         self.surface.fill((0,0,0))
         pygame.display.flip()
-        pass
+        
 
     def shutdown(self):
         pygame.quit()
-        pass
+        
         
 class SoundClient(threading.Thread):
     """
@@ -778,6 +805,9 @@ class SoundClient(threading.Thread):
         
     def stop_sound(self, soundID):
         self.soundServer.stop_sound(soundID)
+
+    def stop_image(self):
+        self.ImageServer.stop_all()
         
     def stop_all(self):
         self.soundServer.stop_all()
