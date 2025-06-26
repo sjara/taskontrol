@@ -176,8 +176,11 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
                                    np.log10(soundParams['frequency']*soundParams['factor']),
                                    soundParams['ntones'])
         soundWave = np.zeros(len(timeVec))
+        # Note: Amplitude of each component tone is 1/sqrt(ntones) so the amplitude of
+        #       the chord matches the RMS power of a single tone at the same amplitude.
+        compAmp = 1/np.sqrt(soundParams['ntones']) 
         for indcomp, freqThisComp in enumerate(freqEachComp):
-            soundWave += np.sin(2*np.pi*freqThisComp*timeVec)
+            soundWave += compAmp * np.sin(2*np.pi*freqThisComp*timeVec)
     elif soundParams['type']=='noise':
         soundWave = randomGen.uniform(-1,1,len(timeVec))
     elif soundParams['type']=='AM':
