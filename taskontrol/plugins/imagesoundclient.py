@@ -580,7 +580,7 @@ class ImageServer(object):
             surface: surface object for drawing images to screen
         '''
         # Initialize Pygame
-        pygame.init()
+        pygame.display.init()
         clock = pygame.time.Clock()
 
         # Get monitor resolutions
@@ -649,7 +649,7 @@ class ImageServer(object):
         scaleFactor = (height//img.shape[0],height//img.shape[1])      # scale factor between img pixels and screen pixels
         
         # map image to screen
-        scaledImg = np.kron(img,np.ones(scaleFactor))
+        scaledImg = np.kron(img,np.ones(scaleFactor)).T
 
         # allocate pixels array, 3d array for each RGB values
         pixels = np.zeros((width,height,3))
@@ -688,7 +688,7 @@ class ImageServer(object):
         
 
     def shutdown(self):
-        pygame.quit()
+        pygame.display.quit()
         
         
 class SoundClient(threading.Thread):
@@ -826,6 +826,7 @@ class SoundClient(threading.Thread):
             time.sleep(0.001)
         self.stop_all()
         self.soundServer.shutdown()
+        self.ImageServer.shutdown()
 
 """
 if __name__ == "__main__":
