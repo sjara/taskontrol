@@ -14,7 +14,8 @@ as well as functions for creating the main Qt app for a paradigm.
 
 from qtpy import QtCore
 from qtpy import QtWidgets
-import imp
+#import imp
+import importlib
 import numpy as np  # To be able to save strings with np.string_()
 import signal
 import sys
@@ -105,7 +106,11 @@ class Container(dict):
                   If none is given, it will attempt to load 'default'
         """
         if filename is not None:
-            paramsmodule = imp.load_source('module.name', filename)
+            spec = importlib.util.spec_from_file_location('params_module', filename)
+            paramsmodule = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(paramsmodule)
+            # Old way to load a module from a file
+            #paramsmodule = imp.load_source('module.name', filename)
             try:
                 self.set_values(getattr(paramsmodule, dictname))
             except AttributeError:
