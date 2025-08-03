@@ -4,6 +4,10 @@ pyserial == 3.4
 qtpy == 2.1.0
 PyQt5==5.15.6
 pyqtgraph == 0.11.0rc0
+imp
+scipy
+matplotlib
+#pygame
 
 # scipy == 1.3.3
 # pyqt
