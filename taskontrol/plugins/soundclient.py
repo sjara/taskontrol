@@ -197,7 +197,7 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         multTerm = modFactor*0.5
         addTerm = (1-modFactor*0.5)
         modFreq = soundParams['modFrequency']
-        envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
+        envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec - np.pi/2)
         carrier = np.sin(2*np.pi*soundParams['toneFrequency']*timeVec)
         soundWave = envelope*carrier
     elif soundParams['type']=='FM':
