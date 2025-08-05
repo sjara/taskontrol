@@ -218,6 +218,14 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         duration = soundParams['duration']
         fInstant = f0*timeVec +  ((f1-f0) / (2.0*duration)) * timeVec**2
         soundWave = np.sin(2.0 * np.pi * fInstant)
+    elif soundParams['type']=='AMtone':
+        modFactor = soundParams['modDepth']/100.0 if 'modDepth' in soundParams else 1.0
+        multTerm = modFactor*0.5
+        addTerm = (1-modFactor*0.5)
+        modFreq = soundParams['modFrequency']
+        envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
+        carrier = np.sin(2*np.pi*soundParams['toneFrequency']*timeVec)
+        soundWave = envelope*carrier
     elif soundParams['type']=='toneCloud':
         nFreq = soundParams['nFreq']
         freqEachTone = np.logspace(np.log10(soundParams['freqRange'][0]),
