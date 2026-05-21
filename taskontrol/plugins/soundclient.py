@@ -281,7 +281,7 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         fileFs, soundWave = scipy.io.wavfile.read(soundParams['filename'])
         nSamples = len(soundWave)
         maxIntValue = abs(np.iinfo(soundWave.dtype).min) # For example, int16 range is -32768 to 32767
-        soundWave = soundWave.astype(np.float)/maxIntValue
+        soundWave = soundWave.astype(np.float64)/maxIntValue
         newNsamples = round(samplingRate*nSamples/fileFs)
         #soundWave = scipy.signal.resample(soundWave, newNsamples) # This way is too slow
         soundWave = scipy.signal.resample_poly(soundWave, samplingRate, fileFs) # Faster resample
