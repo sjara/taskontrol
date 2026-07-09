@@ -150,6 +150,9 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         'AM' (amplitude modulated white noise):
             'modDepth': modulation depth as a percentage (0-100).
             'modFrequency': amplitude modulation rate.
+        'fadingNoise' (white noise with amplitude ramping linearly over time):
+            'amplitudeStart': starting amplitude scale factor (relative to 'amplitude').
+            'amplitudeEnd': ending amplitude scale factor (relative to 'amplitude').
         'toneCloud':
             'nFreq'
             'freqRange'
@@ -206,6 +209,12 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         duration = soundParams['duration']
         fInstant = f0*timeVec +  ((f1-f0) / (2.0*duration)) * timeVec**2
         soundWave = np.sin(2.0 * np.pi * fInstant)
+    elif soundParams['type']=='fadingNoise':
+        ampStart = soundParams['amplitudeStart']
+        ampEnd = soundParams['amplitudeEnd']
+        envelope = np.linspace(ampStart, ampEnd, len(timeVec))
+        carrier = randomGen.uniform(-1,1,len(timeVec))
+        soundWave = envelope*carrier
     elif soundParams['type']=='toneCloud':
         nFreq = soundParams['nFreq']
         freqEachTone = np.logspace(np.log10(soundParams['freqRange'][0]),
