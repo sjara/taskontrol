@@ -282,8 +282,8 @@ class MenuParam(GenericParam):
         self._type = 'menu'
 
         # -- Check if spaces in items --
-        if ' ' in ''.join(menuItems):
-            raise ValueError('MenuParam items cannot contain spaces')
+        #if ' ' in ''.join(menuItems):
+        #    raise ValueError('MenuParam items cannot contain spaces')
 
         # -- Define graphical interface --
         self.editWidget = QtWidgets.QComboBox()
