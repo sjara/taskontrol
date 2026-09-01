@@ -157,7 +157,8 @@ class Container(dict):
                     dset.attrs['Description'] = '{} menu items'.format(item.get_label())
             else:  # -- Store parameters without history (Session parameters) --
                 if item.get_type() == 'string':
-                    dset = sessionDataGroup.create_dataset(key, data=np.string_(item.get_value()))
+                    #dset = sessionDataGroup.create_dataset(key, data=np.string_(item.get_value()))  # Fails on numpy 2.0
+                    dset = sessionDataGroup.create_dataset(key, data=np.bytes_(item.get_value()))
                 else:
                     dset = trialDataGroup.create_dataset(key, data=item.get_value())
                 dset.attrs['Description'] = item.get_label()

@@ -45,15 +45,15 @@ class SaveData(QtWidgets.QGroupBox):
         self.checkInteractive.setChecked(False)
         self.checkOverwrite = QtWidgets.QCheckBox('Overwrite')
         self.checkOverwrite.setChecked(False)
-        self.checkSendToRepo = QtWidgets.QCheckBox('Send to repository')
-        self.checkSendToRepo.setChecked(False)
+        #self.checkSendToRepo = QtWidgets.QCheckBox('Send to repository')
+        #self.checkSendToRepo.setChecked(False)
 
         # -- Create layouts --
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.buttonSaveData, 0, 0, 1, 2)
         layout.addWidget(self.checkInteractive, 1, 0)
         layout.addWidget(self.checkOverwrite, 1, 1)
-        layout.addWidget(self.checkSendToRepo, 2, 0, 1, 2)
+        # layout.addWidget(self.checkSendToRepo, 2, 0, 1, 2)
         self.setLayout(layout)
         self.setTitle('Manage Data')
 
@@ -137,12 +137,12 @@ class SaveData(QtWidgets.QGroupBox):
         if success:
             self.filename = fname
             self.logMessage.emit('Saved data to {0}'.format(fname))
-            if self.checkSendToRepo.checkState():
-                if self.remotedir:
-                    self.send_to_repository(relativePath, fileNameOnly)
-                else:
-                    self.logMessage.emit('Remote directory has not been defined. ' +
-                                         'Nothing sent to repository.')
+            # if self.checkSendToRepo.checkState():
+            #     if self.remotedir:
+            #         self.send_to_repository(relativePath, fileNameOnly)
+            #     else:
+            #         self.logMessage.emit('Remote directory has not been defined. ' +
+            #                              'Nothing sent to repository.')
 
     def send_to_repository(self, relativePath, fileNameOnly):
         """

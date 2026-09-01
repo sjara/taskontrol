@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskontrol"
+version = "1.0"
+description = "TASKontrol is a framework for developing behavioral experiments."
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+    { name = "Santiago Jaramillo", email = "sjara@uoregon.edu" },
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "h5py",
+    "pyserial",
+    "qtpy",
+    "PyQt5",
+    "pyqtgraph",
+    "scipy",
+    "matplotlib",
+]
+
+[tool.setuptools.packages.find]
+exclude = []

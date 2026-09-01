@@ -13,33 +13,22 @@ You can find the full documentation at:
 
 ## INSTALLATION
 
-**NOTE**: If installing the system in the Jaramillo lab, see instead [INSTALL.jaralab.md](./INSTALL.jaralab.md) to install the required packages from the Ubuntu repository rather than using conda/pip.
+**NOTE**: For installation on older systems in the Jaramillo lab (using Ubuntu 20.04), see instead [INSTALL.jaralab.md](./INSTALL.jaralab.md) to install the required packages from the Ubuntu repository rather than using pip/conda.
 
-Outside the Jaramillo lab, you can install the package in a conda virtual environment. The installation requires that you have working versions of Anaconda and Git.
+The installation requires that you have working versions of Python and Git.
 
 1. Using Git, clone the stable version of TASKontrol:
-  * `git clone -b v1.1_stable --single-branch https://github.com/sjara/taskontrol.git`
-1. Go to the `taskontrol` folder that was just created:
+  * `git clone https://github.com/sjara/taskontrol.git`
+2. Go to the `taskontrol` folder that was just created:
   * `cd taskontrol`
-1. Create a conda environment for taskontrol:
-  * `conda env create -f environment.yml`
-1. Activate the `taskontrol` environment:
-  * `conda activate taskontrol`
-  * The prompt should now say `(taskontrol)`, indicating you are in the environment.
-1. Create a taskontrol rig settings file (based on the template):
-  * `cp rigsettings_template.py rigsettings.py`
+3. Create a virtual environment, either using conda, venv or virtualenvwrapper.
+4. Activate the virtual environment.
+  * The prompt should now indicate you are inside the environment.
+5. Create a taskontrol rig settings file (based on the template):
+  * `cp settings/rigsettings_template.py settings/rigsettings.py`
   * Edit the rigsettings.py file if necessary (for example, to set a specific `STATE_MACHINE_TYPE`)
-1. Inside that virtual environment, install the package (in development mode):
+6. Inside that virtual environment, install the package (in development mode):
   * `pip install -e ./`
-1. Test the installation:
-  * `python examples/tutorial001.py`
+7. Test the installation:
+  * `python examples/example003_dispatcher.py`
   * You should see a window with a big green button and an emulator window.
-
-
-Mac:
-1. XCode to get git
-1. Anaconda
-1. conda env create -f environment.yml
-  * qt qtpy h5py numpy pyserial pyqtgraph
-  
-to avoid conflicts with system-wide Python packages. Below are the instructions to run on a terminal (on Linux or Mac):
