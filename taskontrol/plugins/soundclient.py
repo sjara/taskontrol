@@ -163,6 +163,10 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             'rate' (how many tones per second in the train)
             'toneDuration' duration of each individual tone.
             Note that 'duration' refers to the duration of the whole train.
+        'clickTrain' (train of noise clicks):
+            'rate' (how many clicks per second in the train)
+            'clickDuration' duration of each individual click.
+            Note that 'duration' refers to the duration of the whole train.
     """
     risetime = soundParams.setdefault('fadein', RISETIME)   # Set if not specified
     falltime = soundParams.setdefault('fadeout', FALLTIME)  # Set if not specified
@@ -272,6 +276,23 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         for onsetSample in toneOnsetsInds:
             offsetSample = min(onsetSample+len(toneTimeVec), len(timeVec))
             soundWave[onsetSample:offsetSample] += waveEachTone
+    elif soundParams['type']=='clickTrain':
+        clickTimeVec = np.arange(0, soundParams['clickDuration'], 1/samplingRate)
+        waveEachClick = randomGen.uniform(-1, 1, len(clickTimeVec))
+        # -- Make ends of waveform smooth --
+        clickRiseFallTime = 0.001 # Use a ramp of 1ms
+        clickRiseVec = np.linspace(0, 1, round(samplingRate * clickRiseFallTime))
+        clickFallVec = np.linspace(1, 0, round(samplingRate * clickRiseFallTime))
+        if len(clickRiseVec)>0:
+            waveEachClick[0:len(clickRiseVec)] *= clickRiseVec
+            waveEachClick[-len(clickFallVec):] *= clickFallVec
+        clickOnsetAsync = 1/soundParams['rate']
+        clickOnsets = np.arange(0, soundParams['duration'], clickOnsetAsync)
+        clickOnsetsInds = (clickOnsets*samplingRate).astype(int)
+        soundWave = np.zeros(len(timeVec))
+        for onsetSample in clickOnsetsInds:
+            offsetSample = min(onsetSample+len(clickTimeVec), len(timeVec))
+            soundWave[onsetSample:offsetSample] += waveEachClick[:offsetSample-onsetSample]
     elif soundParams['type']=='fromfile':
         '''
         # -- The version with wave+struct does not work yet --
