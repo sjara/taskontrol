@@ -141,10 +141,20 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     Parameters specific to each sound type:
         'tone' (pure sinusoidal)
             'frequency'
-        'chord' (multiple simultaneous sinusoidals): 
+        'chord' (multiple simultaneous sinusoidals):
             'frequency' (center frequency)
             'factor' (maxFreq/centerFreq)
             'ntones' (number of tones included in the chord)
+        'chordFromOctaves' (multiple simultaneous sinusoidals at specified octaves from a
+                base frequency, e.g., to test tones at F0, some intermediate frequency, and
+                4*F0, use octaves=[0, someOctave, 2]):
+            'frequency' (base frequency, F0)
+            'octaves' (list of octave offsets from F0 for each tone, e.g., [0, 1, 2]
+                gives tones at F0, 2*F0, 4*F0)
+            'calibration' (optional): list of per-tone amplitude scale factors (same
+                length as 'octaves') used to correct for the speaker's non-flat
+                frequency response. Each tone's amplitude is multiplied by its
+                corresponding factor before being added to the chord.
         'noise' (white noise):
             (no additional parameters)
         'AM' (amplitude modulated white noise):
@@ -189,6 +199,20 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         compAmp = 1/np.sqrt(soundParams['ntones']) 
         for indcomp, freqThisComp in enumerate(freqEachComp):
             soundWave += compAmp * np.sin(2*np.pi*freqThisComp*timeVec)
+    elif soundParams['type']=='chordFromOctaves':
+        octavesArray = np.array(soundParams['octaves'])
+        freqEachComp = soundParams['frequency'] * (2.0**octavesArray)
+        nTonesThisChord = len(freqEachComp)
+        soundWave = np.zeros(len(timeVec))
+        # Note: Amplitude of each component tone is 1/sqrt(ntones) so the amplitude of
+        #       the chord matches the RMS power of a single tone at the same amplitude.
+        compAmp = 1/np.sqrt(nTonesThisChord)
+        if 'calibration' in soundParams:
+            compAmp = compAmp * np.array(soundParams['calibration'])
+        else:
+            compAmp = np.tile(compAmp, nTonesThisChord)
+        for freqThisComp, ampThisComp in zip(freqEachComp, compAmp):
+            soundWave += ampThisComp * np.sin(2*np.pi*freqThisComp*timeVec)
     elif soundParams['type']=='noise':
         soundWave = randomGen.uniform(-1,1,len(timeVec))
     elif soundParams['type']=='AM':
