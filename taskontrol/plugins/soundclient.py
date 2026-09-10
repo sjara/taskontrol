@@ -155,6 +155,20 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
                 length as 'octaves') used to correct for the speaker's non-flat
                 frequency response. Each tone's amplitude is multiplied by its
                 corresponding factor before being added to the chord.
+        'FMcenter' (logarithmic frequency-modulated sweep around a center frequency):
+            'centerFrequency' (frequency at the midpoint of the sweep, in Hz)
+            'slope' (sweep rate in octaves/sec; positive sweeps up, negative sweeps down;
+                a slope of 0 produces a pure tone at 'centerFrequency')
+            Start and end frequencies are calculated from 'centerFrequency', 'slope',
+            and 'duration' so that the sweep is centered (in log-frequency) on
+            'centerFrequency' and covers 'slope'*'duration' octaves total.
+        'FMtrain' (train of identical logarithmic FM sweeps separated by silence):
+            'centerFrequency' (frequency at the midpoint of each sweep, in Hz)
+            'slope' (sweep rate in octaves/sec; positive sweeps up, negative sweeps down;
+                a slope of 0 produces a train of pure tones at 'centerFrequency')
+            'sweepDuration' (duration of each individual FM sweep)
+            'silenceDuration' (duration of silence between sweeps)
+            Note that 'duration' refers to the duration of the whole train.
         'noise' (white noise):
             (no additional parameters)
         'AM' (amplitude modulated white noise):
@@ -237,6 +251,48 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         duration = soundParams['duration']
         fInstant = f0*timeVec +  ((f1-f0) / (2.0*duration)) * timeVec**2
         soundWave = np.sin(2.0 * np.pi * fInstant)
+    elif soundParams['type']=='FMcenter':
+        # -- Logarithmic (exponential) frequency sweep around a center frequency --
+        centerFrequency = soundParams['centerFrequency']
+        slope = soundParams['slope']  # in octaves/sec
+        duration = soundParams['duration']
+        if slope==0:
+            soundWave = np.sin(2.0*np.pi*centerFrequency*timeVec)
+        else:
+            f0 = centerFrequency * 2.0**(-slope*duration/2.0)
+            f1 = centerFrequency * 2.0**(slope*duration/2.0)
+            k = np.log(f1/f0) / duration  # sweep rate in natural-log units (1/sec)
+            phase = 2.0*np.pi*f0/k * (np.exp(k*timeVec) - 1.0)
+            soundWave = np.sin(phase)
+    elif soundParams['type']=='FMtrain':
+        # -- Train of logarithmic FM sweeps, each identical, separated by silence --
+        centerFrequency = soundParams['centerFrequency']
+        slope = soundParams['slope']  # in octaves/sec
+        sweepDuration = soundParams['sweepDuration']
+        silenceDuration = soundParams['silenceDuration']
+        sweepTimeVec = np.arange(0, sweepDuration, 1/samplingRate)
+        if slope==0:
+            waveEachSweep = np.sin(2.0*np.pi*centerFrequency*sweepTimeVec)
+        else:
+            f0 = centerFrequency * 2.0**(-slope*sweepDuration/2.0)
+            f1 = centerFrequency * 2.0**(slope*sweepDuration/2.0)
+            k = np.log(f1/f0) / sweepDuration
+            phase = 2.0*np.pi*f0/k * (np.exp(k*sweepTimeVec) - 1.0)
+            waveEachSweep = np.sin(phase)
+        # -- Make ends of waveform smooth --
+        sweepRiseFallTime = 0.001  # Use a ramp of 1ms
+        sweepRiseVec = np.linspace(0, 1, round(samplingRate * sweepRiseFallTime))
+        sweepFallVec = np.linspace(1, 0, round(samplingRate * sweepRiseFallTime))
+        if len(sweepRiseVec)>0:
+            waveEachSweep[0:len(sweepRiseVec)] *= sweepRiseVec
+            waveEachSweep[-len(sweepFallVec):] *= sweepFallVec
+        sweepOnsetAsync = sweepDuration + silenceDuration
+        sweepOnsets = np.arange(0, soundParams['duration'], sweepOnsetAsync)
+        sweepOnsetsInds = (sweepOnsets*samplingRate).astype(int)
+        soundWave = np.zeros(len(timeVec))
+        for onsetSample in sweepOnsetsInds:
+            offsetSample = min(onsetSample+len(sweepTimeVec), len(timeVec))
+            soundWave[onsetSample:offsetSample] += waveEachSweep[:offsetSample-onsetSample]
     elif soundParams['type']=='fadingNoise':
         ampStart = soundParams['amplitudeStart']
         ampEnd = soundParams['amplitudeEnd']
