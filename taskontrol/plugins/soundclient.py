@@ -169,6 +169,16 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             'sweepDuration' (duration of each individual FM sweep)
             'silenceDuration' (duration of silence between sweeps)
             Note that 'duration' refers to the duration of the whole train.
+        'FMfixedrange' (single logarithmic FM sweep spanning a fixed frequency range):
+            'centerFrequency' (frequency at the midpoint of the sweep, in Hz)
+            'octaveRange' (total range spanned by the sweep, in octaves, centered
+                in log-frequency on 'centerFrequency')
+            'slope' (sweep rate in octaves/sec; positive sweeps up, negative sweeps down;
+                it cannot be 0)
+            The sweep lasts 'octaveRange'/abs('slope') and it is centered in time
+            within 'duration' (with silence before and after), so the sweep crosses
+            'centerFrequency' at 'duration'/2 for any slope. The sweep must fit
+            within 'duration'.
         'noise' (white noise):
             (no additional parameters)
         'AM' (amplitude modulated white noise):
@@ -293,6 +303,32 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         for onsetSample in sweepOnsetsInds:
             offsetSample = min(onsetSample+len(sweepTimeVec), len(timeVec))
             soundWave[onsetSample:offsetSample] += waveEachSweep[:offsetSample-onsetSample]
+    elif soundParams['type']=='FMfixedrange':
+        # -- Single logarithmic FM sweep of fixed frequency range, centered in time --
+        centerFrequency = soundParams['centerFrequency']
+        octaveRange = soundParams['octaveRange']
+        slope = soundParams['slope']  # in octaves/sec
+        if slope==0:
+            raise ValueError("The slope of an 'FMfixedrange' sound cannot be 0.")
+        sweepDuration = octaveRange/abs(slope)
+        sweepTimeVec = np.arange(0, sweepDuration, 1/samplingRate)
+        if len(sweepTimeVec)>len(timeVec):
+            raise ValueError("The sweep of an 'FMfixedrange' sound ({:0.4f} s) does not fit "
+                             "in its duration ({:0.4f} s).".format(sweepDuration,
+                                                                 soundParams['duration']))
+        f0 = centerFrequency * 2.0**(-np.sign(slope)*octaveRange/2.0)
+        sweepRate = slope*np.log(2)  # sweep rate in natural-log units (1/sec)
+        phase = 2.0*np.pi*f0/sweepRate * (np.exp(sweepRate*sweepTimeVec) - 1.0)
+        waveSweep = np.sin(phase)
+        # -- Make ends of waveform smooth --
+        sweepRiseFallTime = 0.001  # Use a ramp of 1ms
+        nSamplesRiseFall = round(samplingRate * sweepRiseFallTime)
+        if nSamplesRiseFall>0 and len(waveSweep)>=2*nSamplesRiseFall:
+            waveSweep[:nSamplesRiseFall] *= np.linspace(0, 1, nSamplesRiseFall)
+            waveSweep[-nSamplesRiseFall:] *= np.linspace(1, 0, nSamplesRiseFall)
+        onsetSample = (len(timeVec)-len(sweepTimeVec))//2
+        soundWave = np.zeros(len(timeVec))
+        soundWave[onsetSample:onsetSample+len(sweepTimeVec)] = waveSweep
     elif soundParams['type']=='fadingNoise':
         ampStart = soundParams['amplitudeStart']
         ampEnd = soundParams['amplitudeEnd']
