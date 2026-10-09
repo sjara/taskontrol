@@ -184,6 +184,17 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         'AM' (amplitude modulated white noise):
             'modDepth': modulation depth as a percentage (0-100).
             'modFrequency': amplitude modulation rate.
+        'bandNoise' (band-limited white noise):
+            'centerFrequency' (center of the band in log-frequency, in Hz)
+            'octaves' (bandwidth in octaves; the band goes from
+                'centerFrequency'/2**('octaves'/2) to 'centerFrequency'*2**('octaves'/2).
+                Use np.inf for unfiltered white noise)
+            'modFrequency' (optional): amplitude modulation rate. If not specified
+                (or 0), the noise is not modulated.
+            'modDepth' (optional): modulation depth as a percentage (0-100).
+            The band is obtained by filtering white noise of the given 'amplitude',
+            so the spectral density inside the band is the same for any bandwidth
+            (and the total power grows with bandwidth).
         'fadingNoise' (white noise with amplitude ramping linearly over time):
             'amplitudeStart': starting amplitude scale factor (relative to 'amplitude').
             'amplitudeEnd': ending amplitude scale factor (relative to 'amplitude').
@@ -247,6 +258,25 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
         carrier = randomGen.uniform(-1,1,len(timeVec))
         soundWave = envelope*carrier
+    elif soundParams['type']=='bandNoise':
+        # -- Band-limited noise: white noise with all components outside the band removed --
+        centerFrequency = soundParams['centerFrequency']
+        octaves = soundParams['octaves']
+        soundWave = randomGen.uniform(-1,1,len(timeVec))
+        if np.isfinite(octaves):
+            freqLow = centerFrequency / 2.0**(octaves/2.0)
+            freqHigh = centerFrequency * 2.0**(octaves/2.0)
+            spectrum = np.fft.rfft(soundWave)
+            freqEachBin = np.fft.rfftfreq(len(soundWave), 1/samplingRate)
+            spectrum[(freqEachBin<freqLow) | (freqEachBin>freqHigh)] = 0
+            soundWave = np.fft.irfft(spectrum, len(soundWave))
+        modFreq = soundParams.get('modFrequency', 0)
+        if modFreq:
+            modFactor = soundParams['modDepth']/100.0 if 'modDepth' in soundParams else 1.0
+            multTerm = modFactor*0.5
+            addTerm = (1-modFactor*0.5)
+            envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
+            soundWave = envelope*soundWave
     elif soundParams['type']=='AMtone':
         modFactor = soundParams['modDepth']/100.0 if 'modDepth' in soundParams else 1.0
         multTerm = modFactor*0.5
