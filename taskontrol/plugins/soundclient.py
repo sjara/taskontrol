@@ -202,8 +202,13 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             'soundDuration' (duration of each of the two sounds)
             'gap' (silent time from the offset of the first sound to the onset of the second)
             'order' (which sound goes first and second: 'AB', 'BA', 'AA' or 'BB')
-            Each sound is a new noise sample (in 'AA' and 'BB' the two sounds are not
-            identical waveforms). Sound A is scaled to the same RMS power as the white noise
+            'seed' (optional): seed for frozen noise. If given (and not None), sound A is
+                always the same waveform and so is sound B, for any order and position, so
+                calls with the same seed and parameters create the exact same sound ('AA'
+                and 'BB' then repeat one waveform). The seed is used by a generator local to
+                this sound and does not change any other random number generator.
+            Without a seed, each sound is a new noise sample (in 'AA' and 'BB' the two
+            sounds are not identical waveforms). Sound A is scaled to the same RMS power as the white noise
             it is filtered from, so A and B have the same power. Each sound has its own
             'fadein' and 'fadeout' ramps. The first sound starts at time 0 and the second
             must end within 'duration' (usually 2*'soundDuration'+'gap').
@@ -306,9 +311,18 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         freqLow = centerFrequency / 2.0**(octaves/2.0)
         freqHigh = centerFrequency * 2.0**(octaves/2.0)
         freqEachBin = np.fft.rfftfreq(nSamplesEachSound, 1/samplingRate)
+        if soundParams.get('seed') is not None:
+            # -- Frozen noise: one waveform for A and one for B, independent of the order --
+            seededGen = np.random.default_rng(soundParams['seed'])
+            whiteNoiseEachLabel = {'A': seededGen.uniform(-1, 1, nSamplesEachSound),
+                                   'B': seededGen.uniform(-1, 1, nSamplesEachSound)}
+            whiteNoiseEachSound = [whiteNoiseEachLabel[soundLabel] for soundLabel in order]
+        else:
+            whiteNoiseEachSound = [randomGen.uniform(-1, 1, nSamplesEachSound)
+                                   for soundLabel in order]
         soundWave = np.zeros(len(timeVec))
-        for onsetSample, soundLabel in zip([0, secondOnsetSample], order):
-            waveThisSound = randomGen.uniform(-1, 1, nSamplesEachSound)
+        for onsetSample, soundLabel, waveThisSound in zip([0, secondOnsetSample], order,
+                                                          whiteNoiseEachSound):
             if soundLabel=='A':
                 whiteNoisePower = np.mean(waveThisSound**2)
                 spectrum = np.fft.rfft(waveThisSound)
@@ -505,7 +519,8 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     else:
         raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
     
-    soundWave = apply_rise_fall(soundWave, samplingRate, risetime, falltime)
+    if soundParams['type']!='noisePair':  # Each sound in a 'noisePair' has its own ramps
+        soundWave = apply_rise_fall(soundWave, samplingRate, risetime, falltime)
     soundWave = soundAmp[:,np.newaxis] * np.tile(soundWave,(nChannels,1))
     return timeVec, soundWave
 
