@@ -178,7 +178,8 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             The sweep lasts 'octaveRange'/abs('slope') and it is centered in time
             within 'duration' (with silence before and after), so the sweep crosses
             'centerFrequency' at 'duration'/2 for any slope. The sweep must fit
-            within 'duration'.
+            within 'duration'. The 'fadein' and 'fadeout' ramps are applied to the
+            sweep itself (not to the silence around it).
         'noise' (white noise):
             (no additional parameters)
         'AM' (amplitude modulated white noise):
@@ -404,12 +405,7 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
         sweepRate = slope*np.log(2)  # sweep rate in natural-log units (1/sec)
         phase = 2.0*np.pi*f0/sweepRate * (np.exp(sweepRate*sweepTimeVec) - 1.0)
         waveSweep = np.sin(phase)
-        # -- Make ends of waveform smooth --
-        sweepRiseFallTime = 0.001  # Use a ramp of 1ms
-        nSamplesRiseFall = round(samplingRate * sweepRiseFallTime)
-        if nSamplesRiseFall>0 and len(waveSweep)>=2*nSamplesRiseFall:
-            waveSweep[:nSamplesRiseFall] *= np.linspace(0, 1, nSamplesRiseFall)
-            waveSweep[-nSamplesRiseFall:] *= np.linspace(1, 0, nSamplesRiseFall)
+        waveSweep = apply_rise_fall(waveSweep, samplingRate, risetime, falltime)
         onsetSample = (len(timeVec)-len(sweepTimeVec))//2
         soundWave = np.zeros(len(timeVec))
         soundWave[onsetSample:onsetSample+len(sweepTimeVec)] = waveSweep
@@ -519,7 +515,8 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
     else:
         raise ValueError("Sound type '{}' not recognized.".format(soundParams['type']))
     
-    if soundParams['type']!='noisePair':  # Each sound in a 'noisePair' has its own ramps
+    # -- These types apply the ramps to each sound inside the waveform instead --
+    if soundParams['type'] not in ['noisePair', 'FMfixedrange']:
         soundWave = apply_rise_fall(soundWave, samplingRate, risetime, falltime)
     soundWave = soundAmp[:,np.newaxis] * np.tile(soundWave,(nChannels,1))
     return timeVec, soundWave
