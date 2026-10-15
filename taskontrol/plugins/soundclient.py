@@ -195,14 +195,16 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             The band is obtained by filtering white noise of the given 'amplitude',
             so the spectral density inside the band is the same for any bandwidth
             (and the total power grows with bandwidth).
-        'noisePair' (a band-limited noise A and a white noise B, one after the other,
-                in a single waveform so that the gap between them is exact):
+        'noisePair' (two sounds, each a band-limited noise A or a white noise B, one after
+                the other in a single waveform so that the gap between them is exact):
             'centerFrequency' (center of the band of sound A in log-frequency, in Hz)
             'octaves' (bandwidth of sound A in octaves, as in 'bandNoise')
             'soundDuration' (duration of each of the two sounds)
             'gap' (silent time from the offset of the first sound to the onset of the second)
-            'order' ('AB' for band noise first, 'BA' for white noise first)
-            Sound A is scaled to the same RMS power as sound B. Each sound has its own
+            'order' (which sound goes first and second: 'AB', 'BA', 'AA' or 'BB')
+            Each sound is a new noise sample (in 'AA' and 'BB' the two sounds are not
+            identical waveforms). Sound A is scaled to the same RMS power as the white noise
+            it is filtered from, so A and B have the same power. Each sound has its own
             'fadein' and 'fadeout' ramps. The first sound starts at time 0 and the second
             must end within 'duration' (usually 2*'soundDuration'+'gap').
         'fadingNoise' (white noise with amplitude ramping linearly over time):
@@ -288,36 +290,33 @@ def create_soundwave(soundParams, samplingRate=44100, nChannels=2):
             envelope = addTerm + multTerm*np.sin(2*np.pi*modFreq*timeVec + np.pi/2)
             soundWave = envelope*soundWave
     elif soundParams['type']=='noisePair':
-        # -- Band-limited noise (A) and white noise (B) of equal power, separated by a gap --
+        # -- Two sounds (band-limited noise A or white noise B) of equal power, with a gap --
         centerFrequency = soundParams['centerFrequency']
         octaves = soundParams['octaves']
         gap = soundParams['gap']
+        order = soundParams['order']
+        if order not in ['AB', 'BA', 'AA', 'BB']:
+            raise ValueError("The order of a 'noisePair' must be 'AB', 'BA', 'AA' or 'BB'.")
         nSamplesEachSound = int(soundParams['soundDuration']*samplingRate)
         secondOnsetSample = nSamplesEachSound + int(gap*samplingRate)
         if secondOnsetSample+nSamplesEachSound > len(timeVec):
             raise ValueError("The two sounds of a 'noisePair' (2 x {:0.4f} s + gap {:0.4f} s) "
                              "do not fit in its duration ({:0.4f} s).".format(
                                  soundParams['soundDuration'], gap, soundParams['duration']))
-        waveB = randomGen.uniform(-1, 1, nSamplesEachSound)
-        waveA = randomGen.uniform(-1, 1, nSamplesEachSound)
         freqLow = centerFrequency / 2.0**(octaves/2.0)
         freqHigh = centerFrequency * 2.0**(octaves/2.0)
-        spectrum = np.fft.rfft(waveA)
         freqEachBin = np.fft.rfftfreq(nSamplesEachSound, 1/samplingRate)
-        spectrum[(freqEachBin<freqLow) | (freqEachBin>freqHigh)] = 0
-        waveA = np.fft.irfft(spectrum, nSamplesEachSound)
-        waveA *= np.sqrt(np.mean(waveB**2)/np.mean(waveA**2))
-        waveA = apply_rise_fall(waveA, samplingRate, risetime, falltime)
-        waveB = apply_rise_fall(waveB, samplingRate, risetime, falltime)
-        if soundParams['order']=='AB':
-            (waveFirst, waveSecond) = (waveA, waveB)
-        elif soundParams['order']=='BA':
-            (waveFirst, waveSecond) = (waveB, waveA)
-        else:
-            raise ValueError("The order of a 'noisePair' must be 'AB' or 'BA'.")
         soundWave = np.zeros(len(timeVec))
-        soundWave[:nSamplesEachSound] = waveFirst
-        soundWave[secondOnsetSample:secondOnsetSample+nSamplesEachSound] = waveSecond
+        for onsetSample, soundLabel in zip([0, secondOnsetSample], order):
+            waveThisSound = randomGen.uniform(-1, 1, nSamplesEachSound)
+            if soundLabel=='A':
+                whiteNoisePower = np.mean(waveThisSound**2)
+                spectrum = np.fft.rfft(waveThisSound)
+                spectrum[(freqEachBin<freqLow) | (freqEachBin>freqHigh)] = 0
+                waveThisSound = np.fft.irfft(spectrum, nSamplesEachSound)
+                waveThisSound *= np.sqrt(whiteNoisePower/np.mean(waveThisSound**2))
+            waveThisSound = apply_rise_fall(waveThisSound, samplingRate, risetime, falltime)
+            soundWave[onsetSample:onsetSample+nSamplesEachSound] = waveThisSound
     elif soundParams['type']=='AMtone':
         modFactor = soundParams['modDepth']/100.0 if 'modDepth' in soundParams else 1.0
         multTerm = modFactor*0.5
