@@ -111,7 +111,8 @@ def apply_rise_fall(waveform, samplingRate, riseTime, fallTime):
     newWaveform = waveform.copy()
     if (len(newWaveform)>nSamplesRise) and (len(waveform)>nSamplesFall):
         newWaveform[:nSamplesRise] *= riseVec
-        newWaveform[-nSamplesFall:] *= fallVec
+        # -- Index from the start, since [-0:] would select the whole waveform --
+        newWaveform[len(newWaveform)-nSamplesFall:] *= fallVec
     return newWaveform
 
 
